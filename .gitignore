@@ -1,0 +1,14 @@
+# vscode
+.vscode
+
+# hardhat
+artifacts
+cache
+deployments
+node_modules
+typechain-types
+
+.env
+
+
+.DS_Store
