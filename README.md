@@ -48,7 +48,7 @@ Checkout the ```hardhat.config.ts``` file where you define which networks you wa
 Again make sure that you have added API Keys in .env file
 
 ```
-npm run deploy
+npx hardhat run scripts/tryDeployment.ts
 ```
 
 Thank You!
