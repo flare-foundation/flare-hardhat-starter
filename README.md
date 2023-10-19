@@ -12,13 +12,15 @@ cd flare-hardhat-starter
 ```
 then run:
 
-```
-npm install
-```
-or 
+
 ```
 yarn
 ```
+or 
+```
+npm install
+```
+
 
 **Now Make sure to first copy .env.example into .env and set your private key**
 
@@ -46,9 +48,7 @@ Checkout the ```hardhat.config.ts``` file where you define which networks you wa
 Again make sure that you have added API Keys in .env file
 
 ```
-yarn hardhat deploy
-or 
-npx hardhat deploy
+npm run deploy
 ```
 
 Thank You!
