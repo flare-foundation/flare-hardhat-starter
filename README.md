@@ -42,6 +42,7 @@ npm hardhat test
 & Deploy
 
 Checkout the ```hardhat.config.ts``` file where you define which networks you want to interact with. Flare mainnet & test networks details are already added in that file!
+
 Again make sure that you have added API Keys in .env file
 
 ```
