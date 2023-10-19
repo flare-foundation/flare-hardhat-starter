@@ -27,7 +27,7 @@ Now you can compile
 ```
 yarn hardhat compile
 or 
-npm hardhat compile
+npx hardhat compile
 ```
 
 This will compile all .sol files in your /contracts folder. It will also generate artifacts, that will be needed for testing. Contracts Imports.sol imports MockContracts and flare related mocks thus enabling mocking the contracts from typescript.
@@ -36,7 +36,7 @@ Run Tests
 ```
 yarn hardhat test
 or 
-npm hardhat test
+npx hardhat test
 ```
 
 & Deploy
@@ -48,7 +48,7 @@ Again make sure that you have added API Keys in .env file
 ```
 yarn hardhat deploy
 or 
-npm hardhat deploy
+npx hardhat deploy
 ```
 
 Thank You!
