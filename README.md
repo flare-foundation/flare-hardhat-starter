@@ -1,5 +1,8 @@
 # Flare Hardhat Starter Kit
 
+**IMPORTANT!!**
+The supporting library uses openzeppelin version `4.9.3`, be careful to use the documentation and examples from that library version.
+
 ## Getting started
 
 If you are new to hardhat please checkout [hardhat getting started doc](https://hardhat.org/hardhat-runner/docs/getting-started#overview)
