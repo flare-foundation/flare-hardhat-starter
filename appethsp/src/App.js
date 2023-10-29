@@ -1,31 +1,46 @@
 import logo from './logo.svg';
 import './App.css';
 import { connectWallet } from './ethereum';
+
 import React, { useState } from 'react';
 import { contract, provider } from './ethereum';
 import { ethers } from 'ethers';
 
 
+import DeployPage from './DeployPage';
+import BuyTicketPage from './BuyTicketPage';
+import VotePage from './VotePage';
+import FinalizePage from './FinalizePage';
+import 'bootstrap/dist/css/bootstrap.min.css';
+
+
+
 const App = () => {
-    const [artist, setArtist] = useState('');
+    const [page, setPage] = useState('deploy');
 
-    const handleBuyTicket = async () => {
-        const signer = provider.getSigner();
-        const tx = await contract.connect(signer).buyTicket({ value: ethers.utils.parseEther("0.1") });  // Assume ticket price is 0.1 ETH
-        await tx.wait();
-    };
-
-    const handleVote = async () => {
-        const signer = provider.getSigner();
-        const tx = await contract.connect(signer).castVote(artist);
-        await tx.wait();
+    const renderPage = () => {
+        switch(page) {
+            case 'buy':
+                return <BuyTicketPage />;
+            case 'vote':
+                return <VotePage />;
+            case 'finalize':
+                return <FinalizePage />;
+            case 'deploy':
+            default:
+                return <DeployPage />;
+        }
     };
 
     return (
-        <div>
-            <button onClick={handleBuyTicket}>Buy Ticket</button>
-            <input value={artist} onChange={e => setArtist(e.target.value)} placeholder="Artist address" />
-            <button onClick={handleVote}>Vote</button>
+        <div className="container mt-5">
+            <div className="btn-group mb-4" role="group" aria-label="Basic example">
+                <button type="button" className="btn btn-primary" onClick={() => setPage('deploy')}>Deploy</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setPage('buy')}>Buy Ticket</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setPage('vote')}>Vote</button>
+                <button type="button" className="btn btn-secondary" onClick={() => setPage('finalize')}>Finalize</button>
+            </div>
+            {renderPage()}
         </div>
     );
 };

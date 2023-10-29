@@ -39,6 +39,10 @@ const config: HardhatUserConfig = {
         },
       }
     ],
+
+
+
+    
     overrides: {
       "contracts/Imports060.sol": {
         version: "0.6.6",
@@ -80,7 +84,12 @@ const config: HardhatUserConfig = {
       url: "https://flare-api.flare.network/ext/C/rpc" + (FLARE_RPC_API_KEY ? `?x-apikey=${FLARE_RPC_API_KEY}` : ""),
       accounts: [`${PRIVATE_KEY}`],
       chainId: 14,
-    }
+    },
+    scrollSepolia: {
+      url: "https://sepolia-rpc.scroll.io/" || "",
+      accounts:
+        process.env.PRIVATE_KEY !== undefined ? [process.env.PRIVATE_KEY] : [],
+    },
   },
   etherscan: {
     apiKey: {

@@ -3,7 +3,7 @@ import ReactDOM from 'react-dom/client';
 import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
-// import { EtherspotTransactionKit } from "@etherspot/transaction-kit";
+//import { EtherspotTransactionKit } from "@etherspot/transaction-kit";
 import { ethers } from "ethers";
 import { connectWallet } from './ethereum';
 
