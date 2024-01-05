@@ -6,7 +6,7 @@ import '@typechain/hardhat';
 import "dotenv/config";
 import { HardhatUserConfig, task } from "hardhat/config";
 const intercept = require('intercept-stdout');
-const { GOERLI_API_URL, PRIVATE_KEY, ETHERSCAN_API_URL, ANKR_SEPOLIA_API_KEY, FLARESCAN_API_KEY, FLARE_EXPLORER_API_KEY, FLARE_RPC_API_KEY } = process.env;
+const { GOERLI_API_URL, PRIVATE_KEY, ETHERSCAN_API_URL, SEPOLIA_API_KEY, FLARESCAN_API_KEY, FLARE_EXPLORER_API_KEY, FLARE_RPC_API_KEY } = process.env;
 
 const USE_FLARESCAN = false;
 
@@ -58,7 +58,7 @@ const config: HardhatUserConfig = {
       accounts: [`${PRIVATE_KEY}`]
     },
     sepolia: {
-      url: `https://rpc.ankr.com/eth_sepolia/${ANKR_SEPOLIA_API_KEY}`,
+      url: `https://rpc.ankr.com/eth_sepolia/${SEPOLIA_API_KEY}`,
       accounts: [`${PRIVATE_KEY}`]
     },
     coston: {
