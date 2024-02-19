@@ -1,7 +1,7 @@
 import { setNonce } from "@nomicfoundation/hardhat-network-helpers";
 import { time } from '@openzeppelin/test-helpers';
 import BN from "bn.js";
-import hardhat, { ethers } from 'hardhat';
+import hardhat, { ethers, run } from 'hardhat';
 import { FLARE_CONTRACT_REGISTRY_ADDRESS } from '../lib/constants';
 import { FlareContractRegistryMockContract, FlareContractRegistryMockInstance } from '../typechain-types';
 const FlareContractRegistryMock: FlareContractRegistryMockContract = artifacts.require('FlareContractRegistryMock');
@@ -67,4 +67,28 @@ export async function sleep(ms: number) {
 export async function increaseTimeTo(tm: number) {
     await ethers.provider.send("evm_mine", [tm]);
 
+}
+
+export async function requestVerification(address: string, args: any[], repeat: number = 5) {
+    for (let j = 0; j < repeat; j++) {
+        try {
+            await run("verify:verify", {
+                address: address,
+                constructorArguments: args,
+            })
+            break;
+        } catch (e) {
+
+        }
+        await sleep(5000)
+    }
+
+}
+
+/**
+ * Return latest block timestamp as number (seconds since 1.1.1970).
+ */
+export async function latestBlockTimestamp() {
+    const latestBlock = await web3.eth.getBlock('latest');
+    return Number(latestBlock.timestamp);
 }
