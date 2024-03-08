@@ -1,60 +1,77 @@
-# Flare Hardhat Starter Kit
+## Flare Hardhat Starter Kit
 
 **IMPORTANT!!**
-The supporting library uses openzeppelin version `4.9.3`, be careful to use the documentation and examples from that library version.
+The supporting library uses Openzeppelin version `4.9.3`, be careful to use the documentation and examples from that library version.
 
-## Getting started
+### Getting started
 
-If you are new to hardhat please checkout [hardhat getting started doc](https://hardhat.org/hardhat-runner/docs/getting-started#overview)
+If you are new to Hardhat please check the [Hardhat getting started doc](https://hardhat.org/hardhat-runner/docs/getting-started#overview)
 
-### Clone and install dependencies:
+1. Clone and install dependencies:
 
-```
-git clone https://github.com/flare-foundation/flare-hardhat-starter.git
-cd flare-hardhat-starter
-```
-then run:
+   ```console
+   git clone https://github.com/flare-foundation/flare-hardhat-starter.git
+   cd flare-hardhat-starter
+   ```
 
+   and then run:
 
-```
-yarn
-```
-or 
-```
-npm install
-```
+   ```console
+   yarn
+   ```
 
+   or
 
-**Now Make sure to first copy .env.example into .env and set your private key**
+   ```console
+   npm install
+   ```
 
-Now you can compile
+2. Set up `.env` file
 
-```
-yarn hardhat compile
-or 
-npx hardhat compile
-```
+   ```console
+   mv .env.example .env
+   ```
 
-This will compile all .sol files in your /contracts folder. It will also generate artifacts, that will be needed for testing. Contracts Imports.sol imports MockContracts and flare related mocks thus enabling mocking the contracts from typescript.
+3. Change the `PRIVATE_KEY` in the `.env` file to yours
 
-Run Tests
-```
-yarn hardhat test
-or 
-npx hardhat test
-```
+4. Compile the project
 
-& Deploy
+    ```console
+    yarn hardhat compile
+    ```
 
-Checkout the ```hardhat.config.ts``` file where you define which networks you want to interact with. Flare mainnet & test networks details are already added in that file!
+    or
 
-Again make sure that you have added API Keys in .env file
+    ```console
+    npx hardhat compile
+    ```
 
-```
-npx hardhat run scripts/tryDeployment.ts
-```
+    This will compile all `.sol` files in your `/contracts` folder. It will also generate artifacts that will be needed for testing. Contracts `Imports.sol` import MockContracts and Flare related mocks, thus enabling mocking of the contracts from typescript.
 
-Thank You!
-### Resources:
+5. Run Tests
+
+    ```console
+    yarn hardhat test
+    ```
+
+    or
+
+    ```console
+    npx hardhat test
+    ```
+
+6. Deploy
+
+    Check the `hardhat.config.ts` file, where you define which networks you want to interact with. Flare mainnet & test network details are already added in that file.
+
+    Make sure that you have added API Keys in the `.env` file
+
+   ```console
+   npx hardhat run scripts/tryDeployment.ts
+   ```
+
+## Resources
+
 - [Flare Dev Docs](https://docs.flare.network/dev/)
 - [Hardhat Docs](https://hardhat.org/docs)
+
