@@ -498,10 +498,10 @@
   resolved "https://registry.yarnpkg.com/@flarenetwork/flare-periphery-contract-artifacts/-/flare-periphery-contract-artifacts-0.1.7.tgz#69e7f5bd80f9be7f5704aecea8ff0c25129b78e7"
   integrity sha512-S/reQhAJczgtG1VN1MeoJ6T9kAOXZ2eoFdcnFFO+UB8kV1p5V4QfjoFDUlUqg7l7ghD1l+bmx6Ua6z8OhHWpKA==
 
-"@flarenetwork/flare-periphery-contracts@^0.1.5":
-  version "0.1.5"
-  resolved "https://registry.yarnpkg.com/@flarenetwork/flare-periphery-contracts/-/flare-periphery-contracts-0.1.5.tgz#49ac7b5f80adfedfbaecdfeb95f2d9592963efc5"
-  integrity sha512-Bm7lW5T9NcQV6rmkDFAAEkFZAOA1P0Ylf5wvHWcoC701a304q0lKHMmWsFP9es1RhkjtJpdRZe5NY3wbmE3RMA==
+"@flarenetwork/flare-periphery-contracts@^0.1.7":
+  version "0.1.7"
+  resolved "https://registry.yarnpkg.com/@flarenetwork/flare-periphery-contracts/-/flare-periphery-contracts-0.1.7.tgz#a11e787b9f720b969915fde698ab908224cd2cf3"
+  integrity sha512-7/3hbtUBhKSYdAavE536ZQ+vfGOJXqfWpSoGDC9Khkrp+wDix2AACzhNIcTj1wbVNAGm6P5uSAUDoCcmTT3FmQ==
   dependencies:
     "@openzeppelin/contracts" "^4.6.0"
 
