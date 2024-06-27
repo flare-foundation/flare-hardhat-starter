@@ -72,6 +72,6 @@ If you are new to Hardhat please check the [Hardhat getting started doc](https:/
 
 ## Resources
 
-- [Flare Dev Docs](https://docs.flare.network/dev/)
+- [Flare Developer Hub](https://dev.flare.network/)
 - [Hardhat Docs](https://hardhat.org/docs)
 
