@@ -3,11 +3,11 @@
 pragma solidity ^0.8.6;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IFtso} from "@flarenetwork/flare-periphery-contracts/coston2/ftso/userInterfaces/IFtso.sol";
-import {IPriceSubmitter} from "@flarenetwork/flare-periphery-contracts/coston2/ftso/userInterfaces/IPriceSubmitter.sol";
-import {IFtsoRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ftso/userInterfaces/IFtsoRegistry.sol";
+import {IFtso} from "@flarenetwork/flare-periphery-contracts/coston2/IFtso.sol";
+import {IPriceSubmitter} from "@flarenetwork/flare-periphery-contracts/coston2/IPriceSubmitter.sol";
+import {IFtsoRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/IFtsoRegistry.sol";
 
-import {FlareContractsRegistryLibrary} from "@flarenetwork/flare-periphery-contracts/coston2/util-contracts/ContractRegistryLibrary.sol";
+import {FlareContractsRegistryLibrary} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
 
 error InsufficientBalance(uint256 available, uint256 required);
 error OnylOwner();
