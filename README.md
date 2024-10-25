@@ -1,3 +1,5 @@
+## If you are from the encode hackathon https://github.com/flare-foundation/flare-hardhat-starter/tree/encode-hackathon is the branch you look for
+
 ## Flare Hardhat Starter Kit
 
 **IMPORTANT!!**
