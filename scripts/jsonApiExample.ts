@@ -8,10 +8,9 @@ const JsonApiExample: JsonApiExampleContract = artifacts.require('JsonApiExample
 
 const { OPEN_WEATHER_API_KEY } = process.env
 
-const VERIFIER_SERVER_URL = "http://localhost:3000/IJsonApi/prepareResponse";
+const VERIFIER_SERVER_URL = "http://0.0.0.0:8000/IJsonApi/prepareResponse";
 
 async function getAttestationData(timestamp: number): Promise<any> {
-
     return await (await fetch(VERIFIER_SERVER_URL,
         {
             method: "POST",
@@ -21,9 +20,10 @@ async function getAttestationData(timestamp: number): Promise<any> {
                 "sourceId": "0x5745423200000000000000000000000000000000000000000000000000000000",
                 "messageIntegrityCode": "0x0000000000000000000000000000000000000000000000000000000000000000",
                 "requestBody": {
-                    "url": `https://api.openweathermap.org/data/3.0/onecall/timemachine?lat=39.099724&lon=-94.578331&dt=${timestamp}&appid=${OPEN_WEATHER_API_KEY}`,
-                    "postprocessJq": "{latitude:(.lat*pow(10;6)),longitude:(.lon*pow(10;6)),temperature:(.data[0].temp*pow(10;6)),wind_speed:(.data[0].wind_speed*pow(10;6)),wind_deg:.data[0].wind_deg,timestamp:.data[0].dt,description:[.data[0].weather[].description]}",
-                    "abi_signature": "{\"struct Weather\":{\"latitude\":\"int256\",\"longitude\":\"int256\",\"temperature\":\"uint256\",\"wind_speed\":\"uint256\",\"wind_deg\":\"uint256\",\"timestamp\":\"uint256\",\"description\":\"string[]\"}}"
+                    "url": `https://api.twitter.com/2/tweets/1856350782020341981?tweet.fields=author_id,created_at&expansions=author_id&user.fields=most_recent_tweet_id,pinned_tweet_id`,
+                    "postprocessJq": "{data.text, .includes.users[0].username, .data.created_at, .data.public_metrics.like_count, .data.public_metrics.reply_count}",
+                    "abi_signature":
+                        "{\"struct Tweet\":{\"text\":\"string\",\"username\":\"string\",\"createdAt\":\"uint256\",\"likeCount\":\"uint256\",\"replyCount\":\"uint256\"}}"
                 }
             })
         })).json();
@@ -40,7 +40,7 @@ async function main() {
     const [deployer] = await ethers.getSigners();
 
     console.log("Deploying contracts with the account:", deployer.address);
-
+    return
     const jsonApi: JsonApiExampleInstance = await JsonApiExample.at("0xf37e9ACe5D12a95C72Cb795A9178E6fFF34040eE") //new()
 
     await jsonApi.addWeather(attestationData.response);
