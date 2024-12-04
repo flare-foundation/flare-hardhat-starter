@@ -3,7 +3,7 @@ pragma solidity ^0.8.20;
 
 import {IEVMTransactionVerification} from "@flarenetwork/flare-periphery-contracts/coston/IEVMTransactionVerification.sol";
 import {EVMTransaction} from "@flarenetwork/flare-periphery-contracts/coston/EVMTransaction.sol";
-import {FlareContractsRegistryLibrary} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
+import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
 
 struct EventInfo {
     address sender;
@@ -25,7 +25,7 @@ contract EthereumPaymentCollector {
     ) public view returns (bool) {
         // Use the library to get the verifier contract and verify that this transaction was proved by state connector
         return
-            FlareContractsRegistryLibrary
+            ContractRegistry
                 .auxiliaryGetIEVMTransactionVerification()
                 .verifyEVMTransaction(transaction);
     }

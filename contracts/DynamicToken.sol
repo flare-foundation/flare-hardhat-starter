@@ -3,11 +3,10 @@
 pragma solidity ^0.8.6;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IFtso} from "@flarenetwork/flare-periphery-contracts/coston2/IFtso.sol";
-import {IPriceSubmitter} from "@flarenetwork/flare-periphery-contracts/coston2/IPriceSubmitter.sol";
-import {IFtsoRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/IFtsoRegistry.sol";
-
-import {FlareContractsRegistryLibrary} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+// WARNING: This is a test contract, do not use it in production
+import {TestFtsoV2Interface} from "@flarenetwork/flare-periphery-contracts/coston2/TestFtsoV2Interface.sol";
+import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import {IFtsoFeedIdConverter} from "@flarenetwork/flare-periphery-contracts/coston2/IFtsoFeedIdConverter.sol";
 
 error InsufficientBalance(uint256 available, uint256 required);
 error OnylOwner();
@@ -17,10 +16,10 @@ contract DynamicToken is ERC20 {
     address public immutable owner;
 
     string public nativeTokenSymbol;
-    string public foreignTokenSymbol;
-    uint256 public tokensPerForeignToken;
-
-    uint256 public immutable maxSupply;
+    bytes21 public nativeTokenFeedId;
+    string public denominatingTokenSymbol;
+    bytes21 public denominatingTokenFeedId;
+    uint256 public tokensPerDenominatingToken;
 
     modifier onlyOwner() {
         if (msg.sender != owner) {
@@ -30,40 +29,61 @@ contract DynamicToken is ERC20 {
     }
 
     constructor(
-        uint256 _maxSupply,
         string memory _name,
         string memory _symbol,
         string memory _nativeTokenSymbol,
-        string memory _foreignTokenSymbol,
-        uint256 _tokensPerForeignToken
+        string memory _denominatingTokenSymbol,
+        uint256 _tokensPerDenominatingToken
     ) ERC20(_name, _symbol) {
-        maxSupply = _maxSupply;
         owner = msg.sender;
+
         nativeTokenSymbol = _nativeTokenSymbol;
-        foreignTokenSymbol = _foreignTokenSymbol;
-        tokensPerForeignToken = _tokensPerForeignToken;
+        denominatingTokenSymbol = _denominatingTokenSymbol;
+
+        tokensPerDenominatingToken = _tokensPerDenominatingToken;
+
+        IFtsoFeedIdConverter feedIdConverter = ContractRegistry
+            .getFtsoFeedIdConverter();
+        nativeTokenFeedId = feedIdConverter.getFeedId(1, _nativeTokenSymbol);
+        denominatingTokenFeedId = feedIdConverter.getFeedId(
+            1,
+            _denominatingTokenSymbol
+        );
     }
 
+    // TODO: Check this function
     function getTokenPriceWei() public view returns (uint256 natWeiPerToken) {
-        IFtsoRegistry ftsoRegistry = FlareContractsRegistryLibrary
-            .getFtsoRegistry();
+        // WARNING: This is a test contract, do not use it in production
+        TestFtsoV2Interface ftsoV2 = ContractRegistry.getTestFtsoV2();
 
         (
-            uint256 foreignTokenToUsd,
-            ,
-            uint256 foreignTokenFTSODecimals
-        ) = ftsoRegistry.getCurrentPriceWithDecimals(foreignTokenSymbol);
-        (uint256 nativeToUsd, , uint256 nativeTokenFTSODecimals) = ftsoRegistry
-            .getCurrentPriceWithDecimals(nativeTokenSymbol);
+            uint256 denominatingTokenPrice,
+            int8 denominatingTokenFTSODecimals,
 
-        natWeiPerToken =
-            ((10 ** decimals()) *
-                nativeTokenFTSODecimals *
-                (10 ** foreignTokenToUsd)) /
-            (nativeToUsd *
-                tokensPerForeignToken *
-                (10 ** 18) *
-                (10 ** foreignTokenFTSODecimals));
+        ) = ftsoV2.getFeedById(denominatingTokenFeedId);
+        (uint256 nativeToUsd, int8 nativeTokenFTSODecimals, ) = ftsoV2
+            .getFeedById(nativeTokenFeedId);
+
+        // A bit more involved calculation to avoid to many numerical errors
+
+        uint256 weiPerToken = (10 ** uint256(decimals())) *
+            (10 ** denominatingTokenPrice);
+        if (nativeTokenFTSODecimals >= 0) {
+            weiPerToken *= 10 ** uint256(uint8(nativeTokenFTSODecimals));
+        }
+        if (denominatingTokenFTSODecimals < 0) {
+            weiPerToken *= 10 ** uint256(uint8(denominatingTokenFTSODecimals));
+        }
+
+        if (nativeTokenFTSODecimals < 0) {
+            natWeiPerToken /= 10 ** uint256(uint8(-nativeTokenFTSODecimals));
+        }
+        if (denominatingTokenFTSODecimals > 0) {
+            natWeiPerToken /=
+                10 ** uint256(uint8(denominatingTokenFTSODecimals));
+        }
+
+        natWeiPerToken /= nativeToUsd * (tokensPerDenominatingToken * 10 ** 18);
     }
 
     function _mintCoins() private returns (uint256 tokenAmount) {
@@ -88,14 +108,6 @@ contract DynamicToken is ERC20 {
 
     fallback() external payable {
         _mintCoins();
-    }
-
-    function _afterTokenTransfer(
-        address,
-        address,
-        uint256
-    ) internal view override {
-        require(totalSupply() <= maxSupply, "Supply ceiling reached");
     }
 
     function withdrawFunds() external onlyOwner {

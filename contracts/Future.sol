@@ -2,9 +2,8 @@
 
 pragma solidity ^0.8.6;
 
-import {IFtsoRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ftso/userInterfaces/IFtsoRegistry.sol";
-
-import {FlareContractsRegistryLibrary} from "@flarenetwork/flare-periphery-contracts/coston2/util-contracts/ContractRegistryLibrary.sol";
+import {TestFtsoV2Interface} from "@flarenetwork/flare-periphery-contracts/coston2/TestFtsoV2Interface.sol";
+import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
 
 contract CoinFuture {
     event FutureProposed(
@@ -112,15 +111,15 @@ contract CoinFuture {
         future.isSettled = true;
 
         uint256 payout = calculateFuturePayout(futureId);
+        TestFtsoV2Interface ftsoV2 = ContractRegistry.getTestFtsoV2();
 
         // Get winner
-        IFtsoRegistry ftsoRegistry = FlareContractsRegistryLibrary
-            .getFtsoRegistry();
-
-        (uint256 tokenPrice, , uint256 decimals) = ftsoRegistry
-            .getCurrentPriceWithDecimals(future.token);
-
-        uint256 tokenPriceWei = (10 ** (18 - decimals)) * tokenPrice;
+        (uint256 tokenPriceWei, ) = ftsoV2.getFeedByIdInWei(
+            ContractRegistry.getFtsoFeedIdConverter().getFeedId(
+                1,
+                string.concat(future.token, "/USD")
+            )
+        );
 
         if (tokenPriceWei >= future.targePrice) {
             winner = future.proposer;
