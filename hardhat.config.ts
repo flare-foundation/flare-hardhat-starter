@@ -183,8 +183,8 @@ const config: HardhatUserConfig = {
   },
   tenderly: {
     // Tenderly specific configuration
-    username: TENDERLY_USERNAME || "flare", // Use env variable or my default
-    project: TENDERLY_PROJECT || "flareexample", // Use env variable or my default
+    username: TENDERLY_USERNAME,
+    project: TENDERLY_PROJECT,
   },
   typechain: {
     target: "truffle-v5",
@@ -193,7 +193,7 @@ const config: HardhatUserConfig = {
 
 import { testProvider } from "./scripts/test-provider";
 
-task("test-provider", `Test Provider`).setAction(
+task("tenderly-test", `Test Provider`).setAction(
   async (args, hre, _runSuper) => {
     // Receive hre
     await testProvider(hre, network); // Pass hre to example
