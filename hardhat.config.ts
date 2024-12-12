@@ -1,29 +1,49 @@
-import '@nomicfoundation/hardhat-chai-matchers';
+import "@nomicfoundation/hardhat-chai-matchers";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-verify";
-import '@nomiclabs/hardhat-truffle5';
-import '@typechain/hardhat';
+import "@nomiclabs/hardhat-truffle5";
+import "@typechain/hardhat";
 import "dotenv/config";
 import { HardhatUserConfig, task } from "hardhat/config";
-const intercept = require('intercept-stdout');
-const { GOERLI_API_URL, PRIVATE_KEY, ETHERSCAN_API_URL, SEPOLIA_API_KEY, FLARESCAN_API_KEY, FLARE_EXPLORER_API_KEY, FLARE_RPC_API_KEY } = process.env;
+import * as tenderly from "@tenderly/hardhat-integration";
+
+const intercept = require("intercept-stdout");
+const {
+  GOERLI_API_URL,
+  PRIVATE_KEY,
+  ETHERSCAN_API_URL,
+  SEPOLIA_API_KEY,
+  FLARESCAN_API_KEY,
+  FLARE_EXPLORER_API_KEY,
+  FLARE_RPC_API_KEY,
+  TENDERLY_NODE_ACCESS_KEY,
+  TENDERLY_USERNAME,
+  TENDERLY_PROJECT,
+} = process.env;
 
 const USE_FLARESCAN = false;
 
-import { TASK_COMPILE } from 'hardhat/builtin-tasks/task-names';
+import { TASK_COMPILE } from "hardhat/builtin-tasks/task-names";
 
 // Override solc compile task and filter out useless warnings
-task(TASK_COMPILE)
-  .setAction(async (args, hre, runSuper) => {
-    intercept((text: any) => {
-      if (/MockContract.sol/.test(text) && text.match(/Warning: SPDX license identifier not provided in source file/)) return '';
-      if (/MockContract.sol/.test(text) &&
-        /Warning: This contract has a payable fallback function, but no receive ether function/.test(text)) return '';
-      return text;
-    });
-    await runSuper(args);
+task(TASK_COMPILE).setAction(async (args, hre, runSuper) => {
+  intercept((text: any) => {
+    if (
+      /MockContract.sol/.test(text) &&
+      text.match(/Warning: SPDX license identifier not provided in source file/)
+    )
+      return "";
+    if (
+      /MockContract.sol/.test(text) &&
+      /Warning: This contract has a payable fallback function, but no receive ether function/.test(
+        text
+      )
+    )
+      return "";
+    return text;
   });
-
+  await runSuper(args);
+});
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -37,59 +57,70 @@ const config: HardhatUserConfig = {
             runs: 200,
           },
         },
-      }
+      },
     ],
     overrides: {
       "contracts/Imports060.sol": {
         version: "0.6.6",
-        settings: {
-        }
+        settings: {},
       },
       "@gnosis.pm/mock-contract/contracts/MockContract.sol": {
         version: "0.6.6",
-        settings: {
-        }
+        settings: {},
       },
-    }
+    },
   },
   networks: {
     goerli: {
       url: `https://eth-goerli.alchemyapi.io/v2/${GOERLI_API_URL}`,
-      accounts: [`${PRIVATE_KEY}`]
+      accounts: [`${PRIVATE_KEY}`],
     },
     sepolia: {
       url: `https://rpc.ankr.com/eth_sepolia/${SEPOLIA_API_KEY}`,
-      accounts: [`${PRIVATE_KEY}`]
+      accounts: [`${PRIVATE_KEY}`],
     },
     coston: {
-      url: "https://coston-api.flare.network/ext/bc/C/rpc" + (FLARE_RPC_API_KEY ? `?x-apikey=${FLARE_RPC_API_KEY}` : ""),
+      url:
+        "https://coston-api.flare.network/ext/bc/C/rpc" +
+        (FLARE_RPC_API_KEY ? `?x-apikey=${FLARE_RPC_API_KEY}` : ""),
       accounts: [`${PRIVATE_KEY}`],
-      chainId: 16
+      chainId: 16,
     },
     coston2: {
-      url: "https://coston2-api.flare.network/ext/C/rpc" + (FLARE_RPC_API_KEY ? `?x-apikey=${FLARE_RPC_API_KEY}` : ""),
+      url:
+        "https://coston2-api.flare.network/ext/C/rpc" +
+        (FLARE_RPC_API_KEY ? `?x-apikey=${FLARE_RPC_API_KEY}` : ""),
       accounts: [`${PRIVATE_KEY}`],
-      chainId: 114
+      chainId: 114,
     },
     songbird: {
-      url: "https://songbird-api.flare.network/ext/bc/C/rpc" + (FLARE_RPC_API_KEY ? `?x-apikey=${FLARE_RPC_API_KEY}` : ""),
+      url:
+        "https://songbird-api.flare.network/ext/bc/C/rpc" +
+        (FLARE_RPC_API_KEY ? `?x-apikey=${FLARE_RPC_API_KEY}` : ""),
       accounts: [`${PRIVATE_KEY}`],
-      chainId: 19
+      chainId: 19,
     },
     flare: {
-      url: "https://flare-api.flare.network/ext/C/rpc" + (FLARE_RPC_API_KEY ? `?x-apikey=${FLARE_RPC_API_KEY}` : ""),
+      url:
+        "https://flare-api.flare.network/ext/C/rpc" +
+        (FLARE_RPC_API_KEY ? `?x-apikey=${FLARE_RPC_API_KEY}` : ""),
       accounts: [`${PRIVATE_KEY}`],
       chainId: 14,
-    }
+    },
+    tenderly: {
+      url: `https://flare.gateway.tenderly.co/${TENDERLY_NODE_ACCESS_KEY}`,
+      chainId: 14,
+      accounts: [`${PRIVATE_KEY}`],
+    },
   },
   etherscan: {
     apiKey: {
-      "goerli": `${ETHERSCAN_API_URL}`,
-      "coston": `${FLARESCAN_API_KEY}`,
-      "coston2": `${FLARESCAN_API_KEY}`,
-      "songbird": `${FLARESCAN_API_KEY}`,
-      "flare": `${FLARESCAN_API_KEY}`,
-      "sepolia": `${ETHERSCAN_API_URL}`,
+      goerli: `${ETHERSCAN_API_URL}`,
+      coston: `${FLARESCAN_API_KEY}`,
+      coston2: `${FLARESCAN_API_KEY}`,
+      songbird: `${FLARESCAN_API_KEY}`,
+      flare: `${FLARESCAN_API_KEY}`,
+      sepolia: `${ETHERSCAN_API_URL}`,
     },
     customChains: [
       {
@@ -97,70 +128,100 @@ const config: HardhatUserConfig = {
         chainId: 16,
         urls: {
           // faucet: https://faucet.towolabs.com/
-          apiURL: "https://coston-explorer.flare.network/api" + (FLARE_EXPLORER_API_KEY ? `?x-apikey=${FLARE_EXPLORER_API_KEY}` : ""), // Must not have / endpoint
-          browserURL: "https://coston-explorer.flare.network"
-        }
+          apiURL:
+            "https://coston-explorer.flare.network/api" +
+            (FLARE_EXPLORER_API_KEY
+              ? `?x-apikey=${FLARE_EXPLORER_API_KEY}`
+              : ""), // Must not have / endpoint
+          browserURL: "https://coston-explorer.flare.network",
+        },
       },
       {
         network: "coston2",
         chainId: 114,
         urls: {
           // faucet: https://coston2-faucet.towolabs.com/
-          apiURL: "https://coston2-explorer.flare.network/api" + (FLARE_EXPLORER_API_KEY ? `?x-apikey=${FLARE_EXPLORER_API_KEY}` : ""), // Must not have / endpoint
-          browserURL: "https://coston2-explorer.flare.network"
-        }
+          apiURL:
+            "https://coston2-explorer.flare.network/api" +
+            (FLARE_EXPLORER_API_KEY
+              ? `?x-apikey=${FLARE_EXPLORER_API_KEY}`
+              : ""), // Must not have / endpoint
+          browserURL: "https://coston2-explorer.flare.network",
+        },
       },
       {
         network: "songbird",
         chainId: 19,
         urls: {
-          apiURL: "https://songbird-explorer.flare.network/api" + (FLARE_EXPLORER_API_KEY ? `?x-apikey=${FLARE_EXPLORER_API_KEY}` : ""), // Must not have / endpoint
-          browserURL: "https://songbird-explorer.flare.network/"
-        }
+          apiURL:
+            "https://songbird-explorer.flare.network/api" +
+            (FLARE_EXPLORER_API_KEY
+              ? `?x-apikey=${FLARE_EXPLORER_API_KEY}`
+              : ""), // Must not have / endpoint
+          browserURL: "https://songbird-explorer.flare.network/",
+        },
       },
       {
         network: "flare",
         chainId: 14,
         urls: {
-          apiURL: "https://flare-explorer.flare.network/api" + (FLARE_EXPLORER_API_KEY ? `?x-apikey=${FLARE_EXPLORER_API_KEY}` : ""), // Must not have / endpoint
+          apiURL:
+            "https://flare-explorer.flare.network/api" +
+            (FLARE_EXPLORER_API_KEY
+              ? `?x-apikey=${FLARE_EXPLORER_API_KEY}`
+              : ""), // Must not have / endpoint
           browserURL: "https://flare-explorer.flare.network/",
-        }
-      }
-    ]
+        },
+      },
+    ],
   },
   paths: {
     sources: "./contracts/",
     tests: "./test/",
     cache: "./cache",
-    artifacts: "./artifacts"
+    artifacts: "./artifacts",
+  },
+  tenderly: {
+    // Tenderly specific configuration
+    username: TENDERLY_USERNAME || "flare", // Use env variable or my default
+    project: TENDERLY_PROJECT || "flareexample", // Use env variable or my default
   },
   typechain: {
-    target: 'truffle-v5',
+    target: "truffle-v5",
   },
 };
+
+import { testProvider } from "./scripts/test-provider";
+
+task("test-provider", `Test Provider`).setAction(
+  async (args, hre, _runSuper) => {
+    // Receive hre
+    await testProvider(hre, network); // Pass hre to example
+  }
+);
 
 if (USE_FLARESCAN) {
   const FLARESCAN_DATA = [
     {
       apiURL: "https://api.routescan.io/v2/network/testnet/evm/16/etherscan",
-      browserURL: "https://coston.testnet.flarescan.com"
+      browserURL: "https://coston.testnet.flarescan.com",
     },
     {
       apiURL: "https://api.routescan.io/v2/network/testnet/evm/114/etherscan",
-      browserURL: "https://coston2.testnet.flarescan.com"
+      browserURL: "https://coston2.testnet.flarescan.com",
     },
     {
       apiURL: "https://api.routescan.io/v2/network/mainnet/evm/19/etherscan",
-      browserURL: "https://songbird.flarescan.com"
+      browserURL: "https://songbird.flarescan.com",
     },
     {
       apiURL: "https://api.routescan.io/v2/network/mainnet/evm/14/etherscan",
-      browserURL: "https://mainnet.flarescan.com"
-    }
-  ]
+      browserURL: "https://mainnet.flarescan.com",
+    },
+  ];
 
   for (let i = 0; i < FLARESCAN_DATA.length; i++) {
-    config.etherscan.customChains[i].urls = FLARESCAN_DATA[i]
+    config.etherscan.customChains[i].urls = FLARESCAN_DATA[i];
   }
 }
 
