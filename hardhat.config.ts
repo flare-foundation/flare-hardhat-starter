@@ -196,7 +196,7 @@ import { testProvider } from "./scripts/test-provider";
 task("tenderly-test", `Test Provider`).setAction(
   async (args, hre, _runSuper) => {
     // Receive hre
-    await testProvider(hre, network); // Pass hre to example
+    await testProvider(hre); 
   }
 );
 
