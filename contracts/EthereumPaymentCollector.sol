@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {IEVMTransactionVerification} from "@flarenetwork/flare-periphery-contracts/coston2/IEVMTransactionVerification.sol";
-import {IEVMTransaction} from "@flarenetwork/flare-periphery-contracts/coston2/IEVMTransaction.sol";
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import {IEVMTransactionVerification} from "@flarenetwork/flare-periphery-contracts/coston/IEVMTransactionVerification.sol";
+import {IEVMTransaction} from "@flarenetwork/flare-periphery-contracts/coston/IEVMTransaction.sol";
+import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
 
 // Dummy import to get artifacts for IFDCHub
-import {IFdcHub} from "@flarenetwork/flare-periphery-contracts/coston2/IFdcHub.sol";
-import {IFdcRequestFeeConfigurations} from "@flarenetwork/flare-periphery-contracts/coston2/IFdcRequestFeeConfigurations.sol";
+import {IFdcHub} from "@flarenetwork/flare-periphery-contracts/coston/IFdcHub.sol";
+import {IFdcRequestFeeConfigurations} from "@flarenetwork/flare-periphery-contracts/coston/IFdcRequestFeeConfigurations.sol";
 
 struct EventInfo {
     address sender;
@@ -23,7 +23,7 @@ struct TokenTransfer {
 
 contract TransferEventListener {
     TokenTransfer[] public tokenTransfers;
-    address public USDC_CONTRACT = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238; // USDC contract address on sepolia
+    address public USDC_CONTRACT = 0xadbf21cCdFfe308a8d83AC933EF5D3c98830397F; // USDC contract address on sepolia
 
     function isEVMTransactionProofValid(
         IEVMTransaction.Proof calldata transaction
