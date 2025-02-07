@@ -473,10 +473,10 @@
   resolved "https://registry.npmjs.org/@flarenetwork/flare-periphery-contract-artifacts/-/flare-periphery-contract-artifacts-0.1.15.tgz"
   integrity sha512-EThsQE9Ia3pWYW7af8tUbybojuwzPq2mFI8dFGQdJagYrd8PNNLJ5SK20zLMdw41XrAsyWRRqVlI9IwBwsVfWA==
 
-"@flarenetwork/flare-periphery-contracts@^0.1.19":
-  version "0.1.19"
-  resolved "https://registry.yarnpkg.com/@flarenetwork/flare-periphery-contracts/-/flare-periphery-contracts-0.1.19.tgz#0bf631757af9a499cf96a77af9af7a54bc72f0fb"
-  integrity sha512-LXh+Zc6N23AtU+ybaxUumzRcfdDCsIulJGZF46aAIbjU9ENamd/u0k+o1XFJc2w3qdhz/BV6/o7IqzU1150rMQ==
+"@flarenetwork/flare-periphery-contracts@^0.1.20":
+  version "0.1.20"
+  resolved "https://registry.yarnpkg.com/@flarenetwork/flare-periphery-contracts/-/flare-periphery-contracts-0.1.20.tgz#c00edb4aa0a0fd2857dbdc69637abfae8091cc34"
+  integrity sha512-jfQ9o89C5Xm/YOqBI/JX25Emdq19eytIODKK2KxkFUBqsRtll+BDCyQzI9fGzj8Dig4dvOTkHeMi6VWRGfADyA==
   dependencies:
     "@openzeppelin/contracts" "^4.6.0"
     hardhat "^2.22.5"

@@ -7,8 +7,8 @@ import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/C
 import {IFdcHub} from "@flarenetwork/flare-periphery-contracts/coston/IFdcHub.sol";
 import {IFdcRequestFeeConfigurations} from "@flarenetwork/flare-periphery-contracts/coston/IFdcRequestFeeConfigurations.sol";
 
-import {IJsonApiVerification} from "./verifier/generated/interfaces/verification/IJsonApiVerification.sol";
-import {IJsonApi} from "./verifier/interfaces/types/IJsonApi.sol";
+import {IJsonApiVerification} from "@flarenetwork/flare-periphery-contracts/coston/IJsonApiVerification.sol";
+import {IJsonApi} from "@flarenetwork/flare-periphery-contracts/coston/IJsonApi.sol";
 
 import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
 
@@ -30,20 +30,14 @@ struct DataTransportObject {
 contract StarWarsCharacterList {
     mapping(uint256 => StarWarsCharacter) public characters;
     uint256[] public characterIds;
-    using MerkleProof for bytes32[];
+
     function isJsonApiProofValid(
         IJsonApi.Proof calldata _proof
     ) public view returns (bool) {
         // Inline the check for now until we have an official contract deployed
-        bytes32 merkleRoot = ContractRegistry.getRelay().merkleRoots(
-            200,
-            _proof.data.votingRound
-        );
         return
-            _proof.data.attestationType == bytes32("IJsonApi") &&
-            _proof.merkleProof.verifyCalldata(
-                merkleRoot,
-                keccak256(abi.encode(_proof.data))
+            ContractRegistry.auxiliaryGetIJsonApiVerification().verifyJsonApi(
+                _proof
             );
     }
 
