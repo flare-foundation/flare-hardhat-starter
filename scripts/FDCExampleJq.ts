@@ -43,7 +43,6 @@ async function prepareRequest() {
     const requestData = {
         "attestationType": attestationType,
         "sourceId": sourceType,
-        "messageIntegrityCode": "0x0000000000000000000000000000000000000000000000000000000000000000",
         "requestBody": {
             "url": "https://swapi.dev/api/people/3/",
             "postprocessJq": `{
