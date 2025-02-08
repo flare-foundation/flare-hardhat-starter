@@ -1,7 +1,7 @@
 {
   "license": "MIT",
   "devDependencies": {
-    "@flarenetwork/flare-periphery-contracts": "^0.1.20",
+    "@flarenetwork/flare-periphery-contracts": "^0.1.21",
     "@gnosis.pm/mock-contract": "^4.0.0",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
