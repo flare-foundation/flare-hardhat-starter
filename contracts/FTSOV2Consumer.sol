@@ -8,12 +8,6 @@ import {IFeeCalculator} from "@flarenetwork/flare-periphery-contracts/coston2/IF
 contract FtsoV2FeedConsumer {
     bytes21[] public feedIds;
     bytes21 public constant flrUsdId = 0x01464c522f55534400000000000000000000000000; // "FLR/USD"
-    uint256 public fee;
-
-    function checkFees() external view returns (uint256 _fee) {
-       IFeeCalculator feeCalc = ContractRegistry.getFeeCalculator();
-        return feeCalc.calculateFeeByIds(feedIds);
-    }
 
     function getFlrUsdPrice() external view returns (uint256, int8, uint64) {
         TestFtsoV2Interface ftsoV2 = TestFtsoV2Interface(ContractRegistry.getTestFtsoV2());
