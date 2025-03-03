@@ -24,6 +24,16 @@ async function main() {
     console.error("Error verifying contract:", error);
   }
 
+  // Verify the contract
+  try {
+    await run("verify:verify", {
+      address: ftsoConsumer.address,
+    });
+    console.log("Contract verified successfully");
+  } catch (error) {
+    console.error("Error verifying contract:", error);
+  }
+
   // Test the contract functions
   try {
     // Test getFLRUSDPrice
