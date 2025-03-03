@@ -17,8 +17,6 @@ contract FastUpdatesConsumer {
     PriceData[] public priceHistory;
     bytes21[] public trackedFeeds;
     
-    event PriceUpdated(bytes21 feedId, uint256 price, int8 decimals, uint256 timestamp);
-    event FeesPaid(uint256 amount);
 
     constructor(bytes21[] memory _feedIds) {
         owner = msg.sender;
@@ -31,10 +29,6 @@ contract FastUpdatesConsumer {
     }
 
     function updatePrices() external payable {
-        // Check if enough fees were sent
-        uint256 requiredFees = calculateRequiredFees();
-        require(msg.value >= requiredFees, "Insufficient fees");
-
         TestFtsoV2Interface ftsoV2 = ContractRegistry.getTestFtsoV2();
         
         // Get all prices using getFeedsByIdInWei
@@ -51,10 +45,7 @@ contract FastUpdatesConsumer {
                 decimals: decimals
             }));
 
-            emit PriceUpdated(trackedFeeds[i], prices[i], decimals, timestamp);
         }
-
-        emit FeesPaid(requiredFees);
 
         // Refund excess fees if any
         if (msg.value > requiredFees) {
