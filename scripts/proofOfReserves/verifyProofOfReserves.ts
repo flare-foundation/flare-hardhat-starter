@@ -13,7 +13,7 @@ import {
 
 const ProofOfReserves = artifacts.require("ProofOfReserves");
 
-const PROOF_OF_RESERVES_ADDRESS = "0xE37E728bB266420a3001C8822686a69272F102fc";
+const PROOF_OF_RESERVES_ADDRESS = "0x6E33B810bDA99dBeaa255286802CEDa5F835ccBF";
 
 const {
   VERIFIER_URL_TESTNET,
@@ -251,45 +251,29 @@ async function submitDataAndProofsToProofOfReserves(data: Map<string, any>) {
 
   const [jsonProof, transactionProofs] = await prepareDataAndProofs(data);
 
-  var supplies: string[] = [];
-
   for (const proof of transactionProofs) {
-    for (const event of proof.data.responseBody.events) {
-      try {
-        const decodedEvent = web3.eth.abi.decodeLog(
-          [
-            {
-              type: "address",
-              name: "tokenAddress",
-            },
-            { type: "uint256", name: "totalSupply" },
-          ],
-          event.data,
-          event.topics
-        );
-        console.log("Decoded event:", decodedEvent, "\n");
-        if (
-          decodedEvent.tokenAddress ==
-            "0x971C2CbD573e9aCbad555Fdd2252ab21eb73a962" ||
-          decodedEvent.tokenAddress ==
-            "0x1C57e92ca1d10403B1F425699fe629B439F68A12"
-        ) {
-          supplies.push(decodedEvent.totalSupply);
-        } else {
-          supplies.push("0");
-        }
-      } catch (error) {
-        supplies.push("0");
-      }
-    }
+    console.log("Proof:", proof.data, "\n");
+    // for (const event of proof.data.responseBody.events) {
+    // try {
+    //   const decodedEvent = web3.eth.abi.decodeLog(
+    //     [
+    //       {
+    //         type: "address",
+    //         name: "tokenAddress",
+    //       },
+    //       { type: "uint256", name: "totalSupply" },
+    //     ],
+    //     event.data,
+    //     event.topics
+    //   );
+    //   console.log("Decoded event:", decodedEvent, "\n");
+    // } catch (error) {}
+    // }
   }
-
-  console.log("Supplies:", supplies, "\n");
 
   const transaction = await proofOfReserves.verifyReserves(
     jsonProof,
-    transactionProofs,
-    supplies
+    transactionProofs
   );
   // console.log(transaction, "\n");
   const sufficientReserves: boolean = true;
