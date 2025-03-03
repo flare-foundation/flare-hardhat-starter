@@ -1,4 +1,4 @@
-import { artifacts, ethers } from "hardhat";
+import { artifacts, ethers, run } from "hardhat";
 import { FtsoV2FeedConsumerInstance } from "../typechain-types";
 
 const FtsoV2FeedConsumer = artifacts.require("FtsoV2FeedConsumer");
@@ -13,6 +13,16 @@ async function main() {
     "0x01464c522f55534400000000000000000000000000"
   );
   console.log("FtsoV2FeedConsumer deployed to:", ftsoConsumer.address);
+
+  // Verify the contract
+  try {
+    await run("verify:verify", {
+      address: ftsoConsumer.address,
+    });
+    console.log("Contract verified successfully");
+  } catch (error) {
+    console.error("Error verifying contract:", error);
+  }
 
   // Test the contract functions
   try {
