@@ -6,7 +6,7 @@ const TokenStateReader = artifacts.require("TokenStateReader");
 // yarn hardhat run scripts/proofOfReserves/deployTokenStateReader.ts --network coston && yarn hardhat run scripts/proofOfReserves/deployTokenStateReader.ts --network coston2
 
 async function deployAndVerify() {
-  const args: any[] = [hre.network.name];
+  const args: any[] = [];
   const tokenStateReader: TokenStateReaderInstance = await TokenStateReader.new(
     ...args
   );
