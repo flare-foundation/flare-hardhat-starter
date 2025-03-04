@@ -24,10 +24,6 @@ contract ProofOfReserves is Ownable {
 
     constructor() Ownable(msg.sender) {
         // TODO make this dynamic with hardhat and Ownable
-        // Coston
-        tokenStateReaders[0xA10896Efaa5719787B630997562d6637b30DeBc5] = 0x971C2CbD573e9aCbad555Fdd2252ab21eb73a962;
-        // Coston2
-        tokenStateReaders[0x91D1FA626B9555c045e1c9a00746aA621855ee01] = 0x1C57e92ca1d10403B1F425699fe629B439F68A12;
     }
 
     function updateAddress(address readerAddress, address tokenAddress) public onlyOwner {

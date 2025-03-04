@@ -9,10 +9,15 @@ import {
   postRequestToDALayer,
   sleep,
 } from "../fdcExample/Base";
+import {
+  tokenAddresses,
+  readerAddresses,
+  proofOfReservesAddress,
+  transactionHashCoston,
+  transactionHashCoston2,
+} from "./config";
 
 const ProofOfReserves = artifacts.require("ProofOfReserves");
-
-const proofOfReservesAddress = "0xeBd9614E123b1522d6123b3403096F0B766CBF62";
 
 const {
   VERIFIER_URL_TESTNET,
@@ -54,8 +59,7 @@ const requests: AttestationRequest[] = [
     verifierApiKey: VERIFIER_API_KEY!,
     urlTypeBase: "sgb",
     data: {
-      transactionHash:
-        "0x517a113851ed6c260734516e8c5ddeede46b467510c1c1d3456696ece3dd83d8",
+      transactionHash: transactionHashCoston,
     },
   },
   {
@@ -65,8 +69,7 @@ const requests: AttestationRequest[] = [
     verifierApiKey: VERIFIER_API_KEY!,
     urlTypeBase: "flr",
     data: {
-      transactionHash:
-        "0x921f8b5f1e18d2f410e669f45109d804eeebe4481b69b1c9f1c73bcef88580dd",
+      transactionHash: transactionHashCoston2,
     },
   },
 ];
@@ -247,6 +250,13 @@ async function submitDataAndProofsToProofOfReserves(data: Map<string, any>) {
   const proofOfReserves: ProofOfReservesInstance = await ProofOfReserves.at(
     proofOfReservesAddress
   );
+
+  for (const source of tokenAddresses.keys()) {
+    await proofOfReserves.updateAddress(
+      readerAddresses.get(source),
+      tokenAddresses.get(source)
+    );
+  }
 
   const [jsonProof, transactionProofs] = await prepareDataAndProofs(data);
 
