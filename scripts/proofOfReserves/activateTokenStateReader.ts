@@ -13,8 +13,8 @@ const tokenAddresses = new Map([
   ["coston2", "0x1C57e92ca1d10403B1F425699fe629B439F68A12"],
 ]);
 const readerAddresses = new Map([
-  ["coston", "0xa55ca3B48C3343f4eeC31433c4c9EEB6F806cF72"],
-  ["coston2", "0x3A8E713ca13ea199D3eB49b1bE13dcD04bB1F810"],
+  ["coston", "0xA10896Efaa5719787B630997562d6637b30DeBc5"],
+  ["coston2", "0x91D1FA626B9555c045e1c9a00746aA621855ee01"],
 ]);
 
 async function main() {
