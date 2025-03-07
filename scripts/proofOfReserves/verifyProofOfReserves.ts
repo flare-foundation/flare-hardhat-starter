@@ -13,8 +13,7 @@ import {
   tokenAddresses,
   readerAddresses,
   proofOfReservesAddress,
-  transactionHashCoston,
-  transactionHashCoston2,
+  transactionHashes,
 } from "./config";
 
 const ProofOfReserves = artifacts.require("ProofOfReserves");
@@ -59,7 +58,7 @@ const requests: AttestationRequest[] = [
     verifierApiKey: VERIFIER_API_KEY!,
     urlTypeBase: "sgb",
     data: {
-      transactionHash: transactionHashCoston,
+      transactionHash: transactionHashes.get("coston")!,
     },
   },
   {
@@ -69,7 +68,7 @@ const requests: AttestationRequest[] = [
     verifierApiKey: VERIFIER_API_KEY!,
     urlTypeBase: "flr",
     data: {
-      transactionHash: transactionHashCoston2,
+      transactionHash: transactionHashes.get("coston2")!,
     },
   },
 ];
