@@ -5,6 +5,8 @@ import "@nomiclabs/hardhat-truffle5";
 import "@typechain/hardhat";
 import "dotenv/config";
 import { HardhatUserConfig, task } from "hardhat/config";
+import { getPriceData } from "./scripts/getPricesDAlayer";
+import { getFastUpdates } from "./scripts/fastUpdates";
 const intercept = require("intercept-stdout");
 const {
   GOERLI_API_URL,
@@ -39,9 +41,6 @@ task(TASK_COMPILE).setAction(async (args, hre, runSuper) => {
   });
   await runSuper(args);
 });
-
-import { getPriceData } from "./scripts/getPricesDAlayer";
-import { getFastUpdates } from "./scripts/fastUpdates";
 
 task("da-price", `Query prices on DA layer`) // prettier-ignore
   .setAction(async (args, hre, _runSuper) => {
