@@ -6,15 +6,8 @@ import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/
 import {IFeeCalculator} from "@flarenetwork/flare-periphery-contracts/coston2/IFeeCalculator.sol";
 
 contract FastUpdatesConsumer {
-    struct PriceData {
-        uint256 timestamp;
-        bytes21 feedId;
-        uint256 price;
-        int8 decimals;
-    }
 
     address public owner;
-    PriceData[] public priceHistory;
     bytes21[] public trackedFeeds;
     
 
@@ -37,24 +30,12 @@ contract FastUpdatesConsumer {
         // Get decimals for each feed individually since getFeedsByIdInWei doesn't return decimals
         for (uint256 i = 0; i < trackedFeeds.length; i++) {
             (, int8 decimals, ) = ftsoV2.getFeedById(trackedFeeds[i]);
-            
-            priceHistory.push(PriceData({
-                timestamp: timestamp,
-                feedId: trackedFeeds[i],
-                price: prices[i],
-                decimals: decimals
-            }));
-
         }
 
         // Refund excess fees if any
         if (msg.value > requiredFees) {
             payable(msg.sender).transfer(msg.value - requiredFees);
         }
-    }
-
-    function getPriceHistory() external view returns (PriceData[] memory) {
-        return priceHistory;
     }
 
     function getTrackedFeeds() external view returns (bytes21[] memory) {
