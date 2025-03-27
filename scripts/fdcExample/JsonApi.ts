@@ -8,8 +8,11 @@ import {
 
 const StarWarsCharacterList = artifacts.require("StarWarsCharacterList");
 
-const { JQ_VERIFIER_URL_TESTNET, JQ_VERIFIER_API_KEY, COSTON2_DA_LAYER_URL } =
-  process.env;
+const {
+  JQ_VERIFIER_URL_TESTNET,
+  JQ_VERIFIER_API_KEY_TESTNET,
+  COSTON2_DA_LAYER_URL,
+} = process.env;
 
 // yarn hardhat run scripts/fdcExample/JsonApi.ts --network coston2
 
@@ -35,7 +38,7 @@ async function prepareAttestationRequest(
   };
 
   const url = `${verifierUrlBase}JsonApi/prepareRequest`;
-  const apiKey = JQ_VERIFIER_API_KEY!;
+  const apiKey = JQ_VERIFIER_API_KEY_TESTNET!;
 
   return await prepareAttestationRequestBase(
     url,

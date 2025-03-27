@@ -19,7 +19,7 @@ const SONGBIRD_RPC_URL = process.env.SONGBIRD_RPC_URL ?? "";
 const FLARE_RPC_URL = process.env.FLARE_RPC_URL ?? "";
 const ETHERSCAN_API_URL = process.env.ETHERSCAN_API_URL ?? "";
 
-const VERIFIER_API_KEY = process.env.VERIFIER_API_KEY ?? "";
+const VERIFIER_API_KEY_TESTNET = process.env.VERIFIER_API_KEY_TESTNET ?? "";
 
 const USE_FLARESCAN = process.env.USE_FLARESCAN ?? false;
 

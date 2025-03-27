@@ -6,7 +6,7 @@ import {
   retrieveDataAndProofBase,
 } from "./Base";
 
-const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY, COSTON2_DA_LAYER_URL } =
+const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } =
   process.env;
 
 // yarn hardhat run scripts/fdcExample/ReferencedPaymentNonexistence.ts --network coston2
@@ -49,7 +49,7 @@ async function prepareAttestationRequest(
   };
 
   const url = `${verifierUrlBase}verifier/${urlTypeBase}/ReferencedPaymentNonexistence/prepareRequest`;
-  const apiKey = VERIFIER_API_KEY ?? "";
+  const apiKey = VERIFIER_API_KEY_TESTNET ?? "";
 
   return await prepareAttestationRequestBase(
     url,

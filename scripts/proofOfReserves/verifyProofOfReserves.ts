@@ -20,7 +20,7 @@ const ProofOfReserves = artifacts.require("ProofOfReserves");
 
 const {
   VERIFIER_URL_TESTNET,
-  VERIFIER_API_KEY,
+  VERIFIER_API_KEY_TESTNET,
   JQ_VERIFIER_URL_TESTNET,
   JQ_VERIFIER_API_KEY,
   COSTON2_DA_LAYER_URL,
@@ -55,7 +55,7 @@ const requests: AttestationRequest[] = [
     source: "coston",
     sourceIdBase: "testSGB",
     verifierUrlBase: VERIFIER_URL_TESTNET!,
-    verifierApiKey: VERIFIER_API_KEY!,
+    verifierApiKey: VERIFIER_API_KEY_TESTNET!,
     urlTypeBase: "sgb",
     data: {
       transactionHash: transactionHashes.get("coston")!,
@@ -65,7 +65,7 @@ const requests: AttestationRequest[] = [
     source: "coston2",
     sourceIdBase: "testFLR",
     verifierUrlBase: VERIFIER_URL_TESTNET!,
-    verifierApiKey: VERIFIER_API_KEY!,
+    verifierApiKey: VERIFIER_API_KEY_TESTNET!,
     urlTypeBase: "flr",
     data: {
       transactionHash: transactionHashes.get("coston2")!,
