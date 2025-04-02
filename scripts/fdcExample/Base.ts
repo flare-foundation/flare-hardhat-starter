@@ -182,7 +182,7 @@ async function retrieveDataAndProofBase(
   // We check every 10 seconds if the round is finalized
   const relay: IRelayInstance = await getRelay();
   while (!(await relay.isFinalized(200, roundId))) {
-    await sleep(10000);
+    await sleep(30000);
   }
   console.log("Round finalized!\n");
 
@@ -196,7 +196,7 @@ async function retrieveDataAndProofBase(
   var proof = await postRequestToDALayer(url, request, true);
   console.log("Waiting for the DA Layer to generate the proof...");
   while (proof.response_hex == undefined) {
-    await sleep(5000);
+    await sleep(10000);
     proof = await postRequestToDALayer(url, request, false);
   }
   console.log("Proof generated!\n");
