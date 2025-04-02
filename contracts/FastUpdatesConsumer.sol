@@ -1,15 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.20;
 
-import {TestFtsoV2Interface} from "@flarenetwork/flare-periphery-contracts/coston2/TestFtsoV2Interface.sol";
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
-import {IFeeCalculator} from "@flarenetwork/flare-periphery-contracts/coston2/IFeeCalculator.sol";
+import { TestFtsoV2Interface } from "@flarenetwork/flare-periphery-contracts/coston2/TestFtsoV2Interface.sol";
+import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import { IFeeCalculator } from "@flarenetwork/flare-periphery-contracts/coston2/IFeeCalculator.sol";
 
 contract FastUpdatesConsumer {
-
     address public owner;
     bytes21[] public trackedFeeds;
-    
 
     constructor(bytes21[] memory _feedIds) {
         owner = msg.sender;
@@ -23,7 +21,7 @@ contract FastUpdatesConsumer {
 
     function updatePrices() external payable {
         TestFtsoV2Interface ftsoV2 = ContractRegistry.getTestFtsoV2();
-        
+
         // Get all prices using getFeedsByIdInWei
         (uint256[] memory prices, uint256 timestamp) = ftsoV2.getFeedsByIdInWei(trackedFeeds);
 

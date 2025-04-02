@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.6;
 
-import {TestFtsoV2Interface} from "@flarenetwork/flare-periphery-contracts/coston2/TestFtsoV2Interface.sol";
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import { TestFtsoV2Interface } from "@flarenetwork/flare-periphery-contracts/coston2/TestFtsoV2Interface.sol";
+import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
 
 contract CoinFuture {
     event FutureProposed(
@@ -19,11 +19,7 @@ contract CoinFuture {
 
     event FutureAccepted(uint256 indexed futureId, address counterparty);
 
-    event FutureSettled(
-        uint256 indexed futureId,
-        address winner,
-        uint256 payout
-    );
+    event FutureSettled(uint256 indexed futureId, address winner, uint256 payout);
 
     struct Future {
         address proposer;
@@ -44,9 +40,7 @@ contract CoinFuture {
         owner = msg.sender;
     }
 
-    function calculateFuturePayout(
-        uint256 futureId
-    ) public view returns (uint256 payout) {
+    function calculateFuturePayout(uint256 futureId) public view returns (uint256 payout) {
         Future storage future = futures[futureId];
 
         return future.amount + (future.amount * 100) / future.odds;
@@ -88,10 +82,7 @@ contract CoinFuture {
         Future storage future = futures[futureId];
         require(future.counterparty == address(0), "already accepted");
         require(future.proposer != msg.sender, "cannot accept own future");
-        require(
-            future.expiration > block.timestamp + ACCEPTANCE_WINDOW,
-            "future expired"
-        );
+        require(future.expiration > block.timestamp + ACCEPTANCE_WINDOW, "future expired");
 
         uint256 price = calculateFuturePayout(futureId);
         require(msg.value >= price - future.amount, "wrong price");

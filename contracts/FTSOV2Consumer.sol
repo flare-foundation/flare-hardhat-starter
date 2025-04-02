@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity >=0.8.0 <0.9.0;
 
-import {TestFtsoV2Interface} from "@flarenetwork/flare-periphery-contracts/coston2/TestFtsoV2Interface.sol";
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
-import {IFeeCalculator} from "@flarenetwork/flare-periphery-contracts/coston2/IFeeCalculator.sol";
+import { TestFtsoV2Interface } from "@flarenetwork/flare-periphery-contracts/coston2/TestFtsoV2Interface.sol";
+import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import { IFeeCalculator } from "@flarenetwork/flare-periphery-contracts/coston2/IFeeCalculator.sol";
 
 contract FtsoV2FeedConsumer {
     bytes21[] public feedIds;
@@ -11,7 +11,7 @@ contract FtsoV2FeedConsumer {
 
     function getFlrUsdPrice() external view returns (uint256, int8, uint64) {
         TestFtsoV2Interface ftsoV2 = TestFtsoV2Interface(ContractRegistry.getTestFtsoV2());
-    
+
         return ftsoV2.getFeedById(flrUsdId);
     }
 }

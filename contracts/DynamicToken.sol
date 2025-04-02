@@ -2,11 +2,11 @@
 
 pragma solidity ^0.8.6;
 
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 // WARNING: This is a test contract, do not use it in production
-import {TestFtsoV2Interface} from "@flarenetwork/flare-periphery-contracts/coston2/TestFtsoV2Interface.sol";
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
-import {IFtsoFeedIdConverter} from "@flarenetwork/flare-periphery-contracts/coston2/IFtsoFeedIdConverter.sol";
+import { TestFtsoV2Interface } from "@flarenetwork/flare-periphery-contracts/coston2/TestFtsoV2Interface.sol";
+import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import { IFtsoFeedIdConverter } from "@flarenetwork/flare-periphery-contracts/coston2/IFtsoFeedIdConverter.sol";
 
 error InsufficientBalance(uint256 available, uint256 required);
 error OnylOwner();
@@ -42,13 +42,9 @@ contract DynamicToken is ERC20 {
 
         tokensPerDenominatingToken = _tokensPerDenominatingToken;
 
-        IFtsoFeedIdConverter feedIdConverter = ContractRegistry
-            .getFtsoFeedIdConverter();
+        IFtsoFeedIdConverter feedIdConverter = ContractRegistry.getFtsoFeedIdConverter();
         nativeTokenFeedId = feedIdConverter.getFeedId(1, _nativeTokenSymbol);
-        denominatingTokenFeedId = feedIdConverter.getFeedId(
-            1,
-            _denominatingTokenSymbol
-        );
+        denominatingTokenFeedId = feedIdConverter.getFeedId(1, _denominatingTokenSymbol);
     }
 
     // TODO: Check this function
@@ -56,18 +52,16 @@ contract DynamicToken is ERC20 {
         // WARNING: This is a test contract, do not use it in production
         TestFtsoV2Interface ftsoV2 = ContractRegistry.getTestFtsoV2();
 
-        (
-            uint256 denominatingTokenPrice,
-            int8 denominatingTokenFTSODecimals,
-
-        ) = ftsoV2.getFeedById(denominatingTokenFeedId);
-        (uint256 nativeToUsd, int8 nativeTokenFTSODecimals, ) = ftsoV2
-            .getFeedById(nativeTokenFeedId);
+        (uint256 denominatingTokenPrice, int8 denominatingTokenFTSODecimals, ) = ftsoV2.getFeedById(
+            denominatingTokenFeedId
+        );
+        (uint256 nativeToUsd, int8 nativeTokenFTSODecimals, ) = ftsoV2.getFeedById(
+            nativeTokenFeedId
+        );
 
         // A bit more involved calculation to avoid to many numerical errors
 
-        uint256 weiPerToken = (10 ** uint256(decimals())) *
-            (10 ** denominatingTokenPrice);
+        uint256 weiPerToken = (10 ** uint256(decimals())) * (10 ** denominatingTokenPrice);
         if (nativeTokenFTSODecimals >= 0) {
             weiPerToken *= 10 ** uint256(uint8(nativeTokenFTSODecimals));
         }
@@ -79,8 +73,7 @@ contract DynamicToken is ERC20 {
             natWeiPerToken /= 10 ** uint256(uint8(-nativeTokenFTSODecimals));
         }
         if (denominatingTokenFTSODecimals > 0) {
-            natWeiPerToken /=
-                10 ** uint256(uint8(denominatingTokenFTSODecimals));
+            natWeiPerToken /= 10 ** uint256(uint8(denominatingTokenFTSODecimals));
         }
 
         natWeiPerToken /= nativeToUsd * (tokensPerDenominatingToken * 10 ** 18);

@@ -2,11 +2,11 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
-import {IFtsoFeedIdConverter} from "@flarenetwork/flare-periphery-contracts/coston2/IFtsoFeedIdConverter.sol";
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
-import {IRelay} from "@flarenetwork/flare-periphery-contracts/coston2/IRelay.sol";
-import {FtsoV2Interface} from "@flarenetwork/flare-periphery-contracts/coston2/FtsoV2Interface.sol";
-import {ProtocolsV2Interface} from "@flarenetwork/flare-periphery-contracts/coston2/ProtocolsV2Interface.sol";
+import { IFtsoFeedIdConverter } from "@flarenetwork/flare-periphery-contracts/coston2/IFtsoFeedIdConverter.sol";
+import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import { IRelay } from "@flarenetwork/flare-periphery-contracts/coston2/IRelay.sol";
+import { FtsoV2Interface } from "@flarenetwork/flare-periphery-contracts/coston2/FtsoV2Interface.sol";
+import { ProtocolsV2Interface } from "@flarenetwork/flare-periphery-contracts/coston2/ProtocolsV2Interface.sol";
 
 struct NFTInfo {
     string name;
@@ -75,48 +75,37 @@ contract FTSOV2NFT is ERC721URIStorage {
         FtsoV2Interface.FeedDataWithProof calldata baseCurrencyPrice
     ) public view returns (uint256) {
         if (quoteCurrencyPrice.proof.length >= 1) {
-            require(
-                checkCorrectness(quoteCurrencyPrice),
-                "Invalid quote currency price"
-            );
+            require(checkCorrectness(quoteCurrencyPrice), "Invalid quote currency price");
         }
         if (baseCurrencyPrice.proof.length >= 1) {
-            require(
-                checkCorrectness(baseCurrencyPrice),
-                "Invalid base currency price"
-            );
+            require(checkCorrectness(baseCurrencyPrice), "Invalid base currency price");
         }
 
         IFtsoFeedIdConverter FTSOFeedIdConverter = getFeedConverter();
         // Check that the base currency is FLR
         require(
-            baseCurrencyPrice.body.id ==
-                FTSOFeedIdConverter.getFeedId(1, "FLR/USD"),
+            baseCurrencyPrice.body.id == FTSOFeedIdConverter.getFeedId(1, "FLR/USD"),
             "Invalid base currency"
         );
         // Check that the quote currency is the same as provided proof
         require(
-            FTSOFeedIdConverter.getFeedId(1, quoteCurrency) ==
-                quoteCurrencyPrice.body.id,
+            FTSOFeedIdConverter.getFeedId(1, quoteCurrency) == quoteCurrencyPrice.body.id,
             "Invalid price feed"
         );
         require(
-            quoteCurrencyPrice.body.votingRoundId ==
-                baseCurrencyPrice.body.votingRoundId,
+            quoteCurrencyPrice.body.votingRoundId == baseCurrencyPrice.body.votingRoundId,
             "Voting round mismatch"
         );
 
         uint256 currentVotingRoundId = getCurrentVotingRoundId();
 
         require(
-            quoteCurrencyPrice.body.votingRoundId +
-                MAX_HISTORICAL_VOTING_EPOCHS >=
+            quoteCurrencyPrice.body.votingRoundId + MAX_HISTORICAL_VOTING_EPOCHS >=
                 currentVotingRoundId,
             "Voting round too old"
         );
 
-        int8 decimalDifferecne = baseCurrencyPrice.body.decimals -
-            quoteCurrencyPrice.body.decimals;
+        int8 decimalDifferecne = baseCurrencyPrice.body.decimals - quoteCurrencyPrice.body.decimals;
 
         NFTInfo memory nftInfo = availableOptions[optionIndex[quoteCurrency]];
 
@@ -145,11 +134,7 @@ contract FTSOV2NFT is ERC721URIStorage {
         FtsoV2Interface.FeedDataWithProof calldata quoteCurrencyPrice,
         FtsoV2Interface.FeedDataWithProof calldata baseCurrencyPrice
     ) public payable {
-        uint256 price = getPriceInFlare(
-            quoteCurrency,
-            quoteCurrencyPrice,
-            baseCurrencyPrice
-        );
+        uint256 price = getPriceInFlare(quoteCurrency, quoteCurrencyPrice, baseCurrencyPrice);
         require(msg.value >= price, "Insufficient funds");
         _safeMint(msg.sender, currentIndex);
         NFTInfo memory nftInfo = availableOptions[optionIndex[quoteCurrency]];

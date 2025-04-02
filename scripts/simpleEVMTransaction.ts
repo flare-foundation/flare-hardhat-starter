@@ -10,7 +10,7 @@ const randomEthereumAddress = "0xFf02F742106B8a25C26e65C1f0d66BEC3C90d429";
 
 const { EVM_VERIFIER_URL, ATTESTATION_API_KEY, ATTESTATION_URL } = process.env;
 
-
+// TODO: GET ABIS FROM PERIPHERY OR OTHER PACKAGE
 const FallbackContract: FallbackContractContract = artifacts.require("FallbackContract");
 const EthereumPaymentCollector: EthereumPaymentCollectorContract = artifacts.require("EthereumPaymentCollector");
 // The same function can also be found in State Connector utils bundled with the artifact periphery package (`encodeAttestationName`)

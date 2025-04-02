@@ -28,10 +28,19 @@
     "solidity-coverage": "^0.8.0",
     "ts-node": ">=8.0.0",
     "typechain": "^8.3.0",
-    "typescript": ">=4.5.0"
+    "typescript": ">=4.5.0",
+    "prettier": "^3.2.5",
+    "prettier-plugin-solidity": "^1.3.1",
+    "solhint": "^4.1.1",
+    "solhint-plugin-prettier": "^0.1.0"
   },
   "dependencies": {
     "@flarenetwork/flare-periphery-contract-artifacts": "^0.1.15"
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e",
+  "scripts": {
+    "lint": "solhint contracts/**/*.sol",
+    "lint:fix": "solhint contracts/**/*.sol --fix",
+    "format": "prettier --write \"contracts/**/*.sol\" --plugin=prettier-plugin-solidity"
+  }
 }
