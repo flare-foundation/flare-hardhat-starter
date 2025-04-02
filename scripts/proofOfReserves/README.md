@@ -21,3 +21,5 @@ yarn hardhat run scripts/proofOfReserves/<FileName.ts> --network <network>
 You can copy the exact command from a comment at the top of each script, after the imports.
 
 The corresponding contracts are defined in `contracts/proofOfReserves/<FileName.ts>`.
+
+For an in-depth guide on the Proof of reserves, go to the [Flare Developer Hub](https://dev.flare.network/fdc/guides/hardhat/proof-of-reserves).
