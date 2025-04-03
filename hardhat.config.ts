@@ -51,30 +51,30 @@ const config: HardhatUserConfig = {
       accounts: [`${PRIVATE_KEY}`],
     },
     coston: {
-      url:
-        "https://coston-api.flare.network/ext/bc/C/rpc" +
-        (FLARE_API_KEY ? `?x-apikey=${FLARE_API_KEY}` : ""),
+      url: FLARE_API_KEY
+        ? `https://coston-api-tracer.flare.network/ext/C/rpc?x-apikey=${FLARE_API_KEY}`
+        : "https://coston-api.flare.network/ext/C/rpc",
       accounts: [`${PRIVATE_KEY}`],
       chainId: 16,
     },
     coston2: {
-      url:
-        "https://coston2-api.flare.network/ext/C/rpc" +
-        (FLARE_API_KEY ? `?x-apikey=${FLARE_API_KEY}` : ""),
+      url: FLARE_API_KEY
+        ? `https://coston2-api-tracer.flare.network/ext/C/rpc?x-apikey=${FLARE_API_KEY}`
+        : "https://coston2-api.flare.network/ext/C/rpc",
       accounts: [`${PRIVATE_KEY}`],
       chainId: 114,
     },
     songbird: {
-      url:
-        "https://songbird-api.flare.network/ext/bc/C/rpc" +
-        (FLARE_API_KEY ? `?x-apikey=${FLARE_API_KEY}` : ""),
+      url: FLARE_API_KEY
+        ? `https://songbird-api-tracer.flare.network/ext/C/rpc?x-apikey=${FLARE_API_KEY}`
+        : "https://songbird-api.flare.network/ext/C/rpc",
       accounts: [`${PRIVATE_KEY}`],
       chainId: 19,
     },
     flare: {
-      url:
-        "https://flare-api.flare.network/ext/C/rpc" +
-        (FLARE_API_KEY ? `?x-apikey=${FLARE_API_KEY}` : ""),
+      url: FLARE_API_KEY
+        ? `https://flare-api-tracer.flare.network/ext/C/rpc?x-apikey=${FLARE_API_KEY}`
+        : "https://flare-api.flare.network/ext/C/rpc",
       accounts: [`${PRIVATE_KEY}`],
       chainId: 14,
     },
