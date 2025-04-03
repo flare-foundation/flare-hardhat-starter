@@ -60,5 +60,5 @@ contract StarWarsCharacterList {
         return result;
     }
 
-    function abiSignatureHack(DataTransportObject calldata dto) private pure {}
+    function abiSignatureHack(DataTransportObject calldata dto) public pure {}
 }

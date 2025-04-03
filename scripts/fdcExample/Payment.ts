@@ -59,21 +59,21 @@ async function retrieveDataAndProof(
 
 async function deployAndVerifyContract() {
   const args: any[] = [];
-  const addressRegistry: PaymentRegistryInstance = await Payment.new(...args);
+  const paymentRegistry: PaymentRegistryInstance = await Payment.new(...args);
   try {
     await run("verify:verify", {
-      address: addressRegistry.address,
+      address: paymentRegistry.address,
       constructorArguments: args,
     });
   } catch (e: any) {
     console.log(e);
   }
-  console.log("Payment deployed to", addressRegistry.address, "\n");
-  return addressRegistry;
+  console.log("Payment deployed to", paymentRegistry.address, "\n");
+  return paymentRegistry;
 }
 
 async function interactWithContract(
-  addressRegistry: PaymentRegistryInstance,
+  paymentRegistry: PaymentRegistryInstance,
   proof: any
 ) {
   console.log("Proof hex:", proof.response_hex, "\n");
@@ -89,14 +89,14 @@ async function interactWithContract(
     proof.response_hex
   );
   console.log("Decoded proof:", decodedResponse, "\n");
-  const transaction = await addressRegistry.registerPayment({
+  const transaction = await paymentRegistry.registerPayment({
     merkleProof: proof.proof,
     data: decodedResponse,
   });
   console.log("Transaction:", transaction.tx, "\n");
   console.log(
     "Verified payment:",
-    await addressRegistry.verifiedPayments(0),
+    await paymentRegistry.verifiedPayments(0),
     "\n"
   );
 }
@@ -110,10 +110,10 @@ async function main() {
 
   const proof = await retrieveDataAndProof(abiEncodedRequest, roundId);
 
-  const addressRegistry: PaymentRegistryInstance =
+  const paymentRegistry: PaymentRegistryInstance =
     await deployAndVerifyContract();
 
-  await interactWithContract(addressRegistry, proof);
+  await interactWithContract(paymentRegistry, proof);
 }
 
 main().then((data) => {
