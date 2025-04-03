@@ -468,10 +468,10 @@
   resolved "https://registry.yarnpkg.com/@fastify/busboy/-/busboy-2.1.1.tgz#b9da6a878a371829a0502c9b6c1c143ef6663f4d"
   integrity sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==
 
-"@flarenetwork/flare-periphery-contracts@^0.1.21":
-  version "0.1.21"
-  resolved "https://registry.yarnpkg.com/@flarenetwork/flare-periphery-contracts/-/flare-periphery-contracts-0.1.21.tgz#ff50b20c26e34db6e1559756351a9e57e2a9c08a"
-  integrity sha512-zAm1cd8QEhaaMqwMVe27iFX00IV/dUdXv9aP+JwnJt5TsFHRuc31hg66k7IX+2ZrrFgQY2eVN7OqCRmsuZNCWA==
+"@flarenetwork/flare-periphery-contracts@^0.1.22":
+  version "0.1.22"
+  resolved "https://registry.yarnpkg.com/@flarenetwork/flare-periphery-contracts/-/flare-periphery-contracts-0.1.22.tgz#7cf2c95e0f30c27a77ce7f0107e199f9376ac806"
+  integrity sha512-iUsgy6IlGZSvz5rx67UPnLqvyokNua1hOV/ySjX+yc6WxZMjpwMnWbpepsvtN+uE/aC69lL9TEeKeJ2/FjoSqw==
   dependencies:
     "@openzeppelin/contracts" "^4.6.0"
     hardhat "^2.22.5"
