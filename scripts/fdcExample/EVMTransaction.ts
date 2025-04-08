@@ -6,7 +6,7 @@ import {
   retrieveDataAndProofBase,
 } from "./Base";
 
-const EVMTransaction = artifacts.require("TransferEventListener");
+const TransferEventListener = artifacts.require("TransferEventListener");
 
 const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } =
   process.env;
@@ -60,9 +60,8 @@ async function retrieveDataAndProof(
 
 async function deployAndVerifyContract() {
   const args: any[] = [];
-  const eventListener: TransferEventListenerInstance = await EVMTransaction.new(
-    ...args
-  );
+  const eventListener: TransferEventListenerInstance =
+    await TransferEventListener.new(...args);
   try {
     await run("verify:verify", {
       address: eventListener.address,
@@ -71,7 +70,7 @@ async function deployAndVerifyContract() {
   } catch (e: any) {
     console.log(e);
   }
-  console.log("EVMTransaction deployed to", eventListener.address, "\n");
+  console.log("TransferEventListener deployed to", eventListener.address, "\n");
   return eventListener;
 }
 

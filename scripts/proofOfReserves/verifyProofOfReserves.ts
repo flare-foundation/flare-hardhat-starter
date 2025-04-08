@@ -22,7 +22,7 @@ const {
   VERIFIER_URL_TESTNET,
   VERIFIER_API_KEY_TESTNET,
   JQ_VERIFIER_URL_TESTNET,
-  JQ_VERIFIER_API_KEY,
+  JQ_VERIFIER_API_KEY_TESTNET,
   COSTON2_DA_LAYER_URL,
 } = process.env;
 
@@ -42,11 +42,11 @@ const requests: AttestationRequest[] = [
     source: "jsonApi",
     sourceIdBase: "WEB2",
     verifierUrlBase: JQ_VERIFIER_URL_TESTNET!,
-    verifierApiKey: JQ_VERIFIER_API_KEY!,
+    verifierApiKey: JQ_VERIFIER_API_KEY_TESTNET!,
     urlTypeBase: "",
     data: {
       apiUrl:
-        "https://api.htdigitalassets.com/alm-stablecoin-db/metrics/current_reserves_amount",
+        "https://raw.githubusercontent.com/nikerzetic-aflabs/public-api/refs/heads/main/reserves.json",
       postprocessJq: `{reserves: .value | gsub(\",\";\"\") | sub(\"\\\\.\\\\d*\";\"\")}`,
       abiSignature: `{\"components\": [{\"internalType\": \"uint256\",\"name\": \"reserves\",\"type\": \"uint256\"}],\"internalType\": \"struct DataTransportObject\",\"name\": \"dto\",\"type\": \"tuple\"}`,
     },
