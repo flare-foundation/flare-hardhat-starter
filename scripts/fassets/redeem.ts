@@ -5,8 +5,7 @@ import {
   FAssetsRedeemContract, 
   FAssetsRedeemInstance, 
   IAssetManagerContract, 
-  ERC20Instance, 
-  ERC20Contract 
+  ERC20Instance 
 } from "../../typechain-types";
 
 // AssetManager address on Songbird Testnet Coston network

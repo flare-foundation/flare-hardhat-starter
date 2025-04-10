@@ -7,8 +7,6 @@ import {AssetManagerSettings} from "@flarenetwork/flare-periphery-contracts/cost
 contract FAssetsRedeem {
   IAssetManager public immutable assetManager;
 
-  event Redeemed(uint256 redeemedAmountUBA);
-
   constructor(address _assetManager) {
     assetManager = IAssetManager(_assetManager);
   }
@@ -31,7 +29,7 @@ contract FAssetsRedeem {
                 _redeemerUnderlyingAddressString,
                 payable(address(0))
             );
-            
+
         return redeemedAmountUBA;
     }
 }
