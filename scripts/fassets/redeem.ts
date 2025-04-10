@@ -1,8 +1,13 @@
 import { ethers, run } from "hardhat";
+import { ContractTransactionReceipt, formatUnits } from "ethers";
 
-import { FAssetsRedeemContract, FAssetsRedeemInstance } from "../../typechain-types";
-import { IAssetManagerContract } from "../../typechain-types";
-import { ERC20Instance, ERC20Contract,  } from "../../typechain-types";
+import {
+  FAssetsRedeemContract, 
+  FAssetsRedeemInstance, 
+  IAssetManagerContract, 
+  ERC20Instance, 
+  ERC20Contract 
+} from "../../typechain-types";
 
 // AssetManager address on Songbird Testnet Coston network
 const ASSET_MANAGER_ADDRESS = "0x56728e46908fB6FcC5BCD2cc0c0F9BB91C3e4D34";
@@ -32,23 +37,28 @@ async function deployAndVerifyContract() {
   return fAssetsRedeem;
 }
 
-async function transferFXRP(fAssetsRedeem: FAssetsRedeemInstance, amountToRedeem: number) {
+async function transferFXRP(fAssetsRedeemAddress: string, amountToRedeem: number) {
   // Get FXRP token contract
-  const ERC20Factory = await ethers.getContractFactory("ERC20") as ERC20Contract;
-  const fxrp = await ERC20Factory.attach(FXRP_ADDRESS) as ERC20Instance;
+  const fxrp = await ethers.getContractAt("IERC20", FXRP_ADDRESS) as ERC20Instance;
   
   // Transfer FXRP to the deployed contract
   console.log("Transferring FXRP to contract...");
-  const transferTx = await fxrp.transfer(fAssetsRedeem.address, amountToRedeem);
+  const transferTx = await fxrp.transfer(fAssetsRedeemAddress, amountToRedeem);
   await transferTx.wait();
   console.log("FXRP transfer completed");
 }
 
-async function parseRedemptionEvents(transactionReceipt: any, fAssetsRedeem: FAssetsRedeemInstance) {
+async function parseRedemptionEvents(
+  transactionReceipt: ContractTransactionReceipt, 
+  fAssetsRedeem: FAssetsRedeemInstance
+) {
   console.log("\nParsing events...", transactionReceipt.logs);
 
   // Get AssetManager contract interface
-  const assetManager = await ethers.getContractAt("IAssetManager", ASSET_MANAGER_ADDRESS) as IAssetManagerContract;
+  const assetManager = await ethers.getContractAt(
+      "IAssetManager", 
+      ASSET_MANAGER_ADDRESS
+    ) as IAssetManagerContract;
   
   for (const log of transactionReceipt.logs) {
     try {
@@ -76,12 +86,11 @@ async function main() {
   console.log("Asset decimals:", decimals);
 
   const amountToRedeem = (Number(lotSize) * Number(LOTS_TO_REDEEM));
-  const requiredAmountInFXRP = Number(amountToRedeem) / Math.pow(10, Number(decimals));
-  console.log(`Required FXRP amount for ${LOTS_TO_REDEEM} lot: ${requiredAmountInFXRP} FXRP`);
+  console.log(`Required FXRP amount ${formatUnits(amountToRedeem, decimals)} FXRP`);
   console.log(`Required amount in base units: ${amountToRedeem.toString()}`);
 
   // Transfer FXRP to the contract
-  await transferFXRP(fAssetsRedeem, amountToRedeem);
+  await transferFXRP(fAssetsRedeem.getAddress(), amountToRedeem);
 
   // Call redeem function and wait for transaction
   const tx = await fAssetsRedeem.redeem(LOTS_TO_REDEEM, UNDERLYING_ADDRESS);
