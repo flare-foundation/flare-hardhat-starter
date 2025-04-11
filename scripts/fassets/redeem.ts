@@ -12,7 +12,7 @@ import {
 const ASSET_MANAGER_ADDRESS = "0x56728e46908fB6FcC5BCD2cc0c0F9BB91C3e4D34";
 const LOTS_TO_REDEEM = 1;
 const UNDERLYING_ADDRESS = "rSHYuiEvsYsKR8uUHhBTuGP5zjRcGt4nm";
-const FXRP_ADDRESS = "0x36be8f2e1CC3339Cf6702CEfA69626271C36E2fd";
+const FXRP_TOKEN_ADDRESS = "0x36be8f2e1CC3339Cf6702CEfA69626271C36E2fd";
 
 async function deployAndVerifyContract() {
   const FAssetsRedeem = await ethers.getContractFactory("FAssetsRedeem") as FAssetsRedeemContract;
@@ -38,7 +38,7 @@ async function deployAndVerifyContract() {
 
 async function transferFXRP(fAssetsRedeemAddress: string, amountToRedeem: number) {
   // Get FXRP token contract
-  const fxrp = await ethers.getContractAt("IERC20", FXRP_ADDRESS) as ERC20Instance;
+  const fxrp = await ethers.getContractAt("IERC20", FXRP_TOKEN_ADDRESS) as ERC20Instance;
   
   // Transfer FXRP to the deployed contract
   console.log("Transferring FXRP to contract...");
@@ -61,10 +61,10 @@ async function parseRedemptionEvents(
   
   for (const log of transactionReceipt.logs) {
     try {
-      // Try to parse with AssetManager interface first
       const parsedLog = assetManager.interface.parseLog(log);
       if (parsedLog) {
-        if (parsedLog.name === "RedemptionTicketUpdated" || parsedLog.name === "RedemptionRequested") {
+        const redemptionEvents = ["RedemptionRequested", "RedemptionTicketUpdated"];
+        if (redemptionEvents.includes(parsedLog.name)) {
           console.log(`\nEvent: ${parsedLog.name}`);
           console.log('Arguments:', parsedLog.args);
         }
