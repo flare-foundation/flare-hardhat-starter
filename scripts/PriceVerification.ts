@@ -1,8 +1,5 @@
 import { run, web3 } from "hardhat";
-import {
-  PriceVerifierInstance,
-  PriceVerifierCustomFeedInstance,
-} from "../../typechain-types";
+import { PriceVerifierCustomFeedInstance } from "../../typechain-types";
 import {
   prepareAttestationRequestBase,
   submitAttestationRequest,
@@ -10,7 +7,6 @@ import {
 } from "./Base";
 
 // Import the contract artifacts
-const PriceVerifier = artifacts.require("PriceVerifier");
 const PriceVerifierCustomFeed = artifacts.require("PriceVerifierCustomFeed");
 
 const {
@@ -20,27 +16,35 @@ const {
 } = process.env;
 // --- Request Configuration ---
 
-// 1. API Endpoint to fetch Bitcoin's historical price in USD for a specific timestamp from CryptoCompare
-const timestamp = 1672531200; // Unix timestamp for Jan 1st, 2023 00:00:00 GMT
+// Define the price to fetch
+const price = "BTC"; // <--- CHANGE THIS SYMBOL AS NEEDED (e.g., "ETH", "FLR") depends on the API
+
+// Calculate yesterday's timestamp dynamically
+const yesterday = new Date();
+yesterday.setDate(yesterday.getDate() - 1);
+const timestamp = Math.floor(yesterday.getTime() / 1000); // Unix timestamp for yesterday
+
 const cryptoCompareApiKey = process.env.CRYPTOCOMPARE_API_KEY; // Add this to your .env if needed
 
-// Construct the URL - Add API key if required by CryptoCompare tier
-const apiUrl = `https://min-api.cryptocompare.com/data/pricehistorical?fsym=BTC&tsyms=USD&ts=${timestamp}${
+// Construct the URL - Use the price variable
+const apiUrl = `https://min-api.cryptocompare.com/data/pricehistorical?fsym=${price}&tsyms=USD&ts=${timestamp}${
   cryptoCompareApiKey ? `&api_key=${cryptoCompareApiKey}` : ""
 }`;
 
 // 2. JQ Filter to extract the historical price and format it as cents
 // IMPORTANT: Verify the actual response structure from CryptoCompare and adjust this filter!
-// Input (example guess): {"BTC":{"USD":16604.44}}
+// Input (example guess for BTC): {"BTC":{"USD":16604.44}}
 // Output: {"price": 1660444} (multiplies by 100 and takes floor)
-const postprocessJq = `{price: (.BTC.USD * 100 | floor)}`;
+// Use the price variable in the JQ filter path
+const postprocessJq = `{price: (.${price}.USD * 100 | floor)}`;
 
 // 3. ABI Signature matching the PriceData struct in Solidity
-const abiSignature = `{\"components\": [{\"internalType\": \"uint256\", \"name\": \"price\", \"type\": \"uint256\"}],\"name\": \"priceData\",\"type\": \"tuple\"}`;
+// Ensure this matches the struct definition in PriceVerifierCustomFeed.sol
+const abiSignature = `{"components": [{"internalType": "uint256","name": "price","type": "uint256"}],"internalType": "struct PriceData","name": "priceData","type": "tuple"}`;
 
 // --- FDC Configuration ---
 const attestationTypeBase = "IJsonApi"; // Attestation type for JSON API
-const sourceIdBase = "WEB2"; // Source ID for generic Web2 APIs (CoinGecko)
+const sourceIdBase = "WEB2"; // Source ID for generic Web2 APIs (CryptoCompare)
 const verifierUrlBase = JQ_VERIFIER_URL_TESTNET; // URL of the JQ Verifier service
 
 // --- Script Execution ---
@@ -91,39 +95,34 @@ async function retrieveDataAndProof(
   return await retrieveDataAndProofBase(url, abiEncodedRequest, roundId);
 }
 
-// Deploy both PriceVerifier and PriceVerifierCustomFeed
-async function deployAndVerifyContracts(): Promise<{
-  priceVerifier: PriceVerifierInstance;
+async function deployAndVerifyContract(): Promise<{
   customFeed: PriceVerifierCustomFeedInstance;
 }> {
-  console.log("Deploying PriceVerifier contract...");
-  const priceVerifierArgs: any[] = []; // Constructor arguments for PriceVerifier
-  const priceVerifier: PriceVerifierInstance = await PriceVerifier.new(
-    ...priceVerifierArgs
-  );
-  console.log("PriceVerifier deployed to:", priceVerifier.address);
-
-  // Optional: Verify PriceVerifier on block explorer
-  try {
-    await run("verify:verify", {
-      address: priceVerifier.address,
-      constructorArguments: priceVerifierArgs,
-    });
-    console.log("PriceVerifier verified successfully.");
-  } catch (e: any) {
-    if (e.message.toLowerCase().includes("already verified")) {
-      console.log("PriceVerifier already verified.");
-    } else {
-      console.error("PriceVerifier verification failed:", e);
-    }
-  }
-  console.log("");
-
   console.log("Deploying PriceVerifierCustomFeed contract...");
-  // Convert the string to hex and manually pad to bytes21 (42 hex chars + 0x prefix)
-  const feedIdString = "BTC/USD-HIST";
-  const feedIdHex = web3.utils.utf8ToHex(feedIdString).padEnd(44, "0"); // 42 chars + '0x' = 44
-  const customFeedArgs: any[] = [priceVerifier.address, feedIdHex]; // Pass PriceVerifier address and the correctly padded bytes21 feed ID
+  // Construct the feed ID using the price variable
+  const feedIdString = `${price}/USD-HIST`;
+  // Convert the string to hex and remove the '0x' prefix
+  const feedIdHex = web3.utils.utf8ToHex(feedIdString).substring(2);
+
+  // We need a total of 21 bytes (42 hex chars).
+  // The first byte is fixed as '21'.
+  // So, we need to pad the feedIdHex to 40 characters (20 bytes).
+  const paddedFeedIdHex = feedIdHex.padEnd(40, "0");
+
+  // Prepend the required '21' byte and the '0x' prefix
+  const finalFeedIdHex = `0x21${paddedFeedIdHex}`;
+
+  // Ensure the final length is correct (0x + 42 hex chars = 21 bytes)
+  if (finalFeedIdHex.length !== 44) {
+    throw new Error(
+      `Generated feed ID has incorrect length: ${finalFeedIdHex.length}. Expected 44 characters (0x + 42 hex). Feed string: ${feedIdString}`
+    );
+  }
+
+  console.log("Final Feed ID Hex (bytes21 with 0x21 prefix):", finalFeedIdHex);
+
+  // Pass the correctly formatted bytes21 value to the constructor
+  const customFeedArgs: any[] = [finalFeedIdHex];
   const customFeed: PriceVerifierCustomFeedInstance =
     await PriceVerifierCustomFeed.new(...customFeedArgs);
   console.log("PriceVerifierCustomFeed deployed to:", customFeed.address);
@@ -144,14 +143,15 @@ async function deployAndVerifyContracts(): Promise<{
   }
   console.log("");
 
-  return { priceVerifier, customFeed };
+  return { customFeed }; // Return only customFeed
 }
 
-async function interactWithVerifierContract(
-  priceVerifier: PriceVerifierInstance,
-  proof: any // Consider defining a more specific interface if the structure is stable
+// Renamed function to reflect its new role
+async function submitProofToCustomFeed(
+  customFeed: PriceVerifierCustomFeedInstance, // Takes customFeed directly
+  proof: any
 ) {
-  console.log("Interacting with PriceVerifier contract...");
+  console.log("Submitting proof to PriceVerifierCustomFeed contract...");
   // proof.response_hex contains the ABI-encoded 'data' part of the IJsonApi.Proof struct
   console.log(
     "Raw Proof Data Hex (IJsonApi.Proof.data):",
@@ -160,14 +160,9 @@ async function interactWithVerifierContract(
   );
 
   // --- Dynamically determine the ABI structure for decoding the proof data ---
-  // To ensure we decode proof.response_hex correctly according to the exact
-  // structure expected by the `verifyJsonApi` function on-chain, we dynamically
-  // retrieve the ABI definition of that function's input parameter from the
-  // verification contract's artifact. This avoids hardcoding the structure,
-  // making the script more resilient to potential updates in the Flare contracts.
   const IJsonApiVerification = await artifacts.require("IJsonApiVerification");
   const verifyJsonApiAbi = IJsonApiVerification._json.abi.find(
-    (item) => item.name === "verifyJsonApi" && item.type === "function" // Ensure it's the function ABI
+    (item: any) => item.name === "verifyJsonApi" && item.type === "function"
   );
 
   if (
@@ -180,20 +175,17 @@ async function interactWithVerifierContract(
     );
   }
 
-  // The function expects a single argument of type IJsonApi.Proof (which is a struct/tuple)
   const proofInputDefinition = verifyJsonApiAbi.inputs[0];
   if (
     !proofInputDefinition ||
-    proofInputDefinition.type !== "tuple" || // It must be a struct
-    !proofInputDefinition.components // It must have components
+    proofInputDefinition.type !== "tuple" ||
+    !proofInputDefinition.components
   ) {
     throw new Error(
       "Expected 'verifyJsonApi' input to be a tuple (struct IJsonApi.Proof) in IJsonApiVerification ABI. ABI structure might have changed."
     );
   }
 
-  // We need the specific ABI definition of the 'data' component within the IJsonApi.Proof struct,
-  // as proof.response_hex corresponds to this part.
   const proofDataAbiDefinition = proofInputDefinition.components.find(
     (comp) => comp.name === "data"
   );
@@ -212,43 +204,43 @@ async function interactWithVerifierContract(
 
   // Decode the raw hex data using the dynamically obtained ABI definition for the 'data' struct component
   const decodedProofData = web3.eth.abi.decodeParameter(
-    proofDataAbiDefinition, // Use the dynamically found type definition for 'data'
-    proof.response_hex // The raw hex data to decode
+    proofDataAbiDefinition,
+    proof.response_hex
   );
 
   console.log("Decoded Proof Data:", decodedProofData, "\n");
 
-  // Prepare the full proof structure for the contract call, matching the IJsonApi.Proof struct expected by verifyJsonApi
-  // The contract function `verifyPrice` likely takes this structure as input.
+  // Prepare the full proof structure for the contract call, matching the IJsonApi.Proof struct expected by verifyPrice
   const contractProofArgument = {
-    merkleProof: proof.proof, // The Merkle proof part from the DA layer response
-    data: decodedProofData, // The decoded 'data' part
+    merkleProof: proof.proof,
+    data: decodedProofData,
   };
 
   console.log(
-    "Calling verifyPrice function with structured proof argument:",
+    "Calling verifyPrice function on CustomFeed with structured proof argument:", // Updated log message
     contractProofArgument,
     "\n"
   );
-  const transaction = await priceVerifier.verifyPrice(contractProofArgument);
+  // Call verifyPrice on the customFeed contract instance
+  const transaction = await customFeed.verifyPrice(contractProofArgument);
   console.log("Transaction successful! TX Hash:", transaction.tx);
   console.log("Gas used:", transaction.receipt.gasUsed, "\n");
 
-  // Check the stored price
-  const latestPrice = await priceVerifier.getLatestPrice();
+  // Check the stored price directly from the custom feed contract's public state variable
+  const latestPrice = await customFeed.latestVerifiedPrice(); // Call the public getter
   console.log(
-    `Latest verified price stored in PriceVerifier (USD cents): ${latestPrice.toString()}`
+    `Latest verified price stored in PriceVerifierCustomFeed (USD cents): ${latestPrice.toString()}` // Updated log message
   );
   console.log(`Which is $${(Number(latestPrice) / 100).toFixed(4)}\n`);
 }
 
-// New function to interact with the Custom Feed contract
+// This function remains largely the same, just reads from the combined contract
 async function interactWithCustomFeedContract(
   customFeed: PriceVerifierCustomFeedInstance
 ) {
   console.log("Interacting with PriceVerifierCustomFeed contract...");
 
-  // Call the read() function (simulating FTSO system call)
+  // Call the read() function (simulating FTSO system call or consumer reading)
   const priceFromFeed = await customFeed.read();
   console.log(
     `Price read from Custom Feed contract via read() (USD cents): ${priceFromFeed.toString()}`
@@ -266,6 +258,10 @@ async function interactWithCustomFeedContract(
       10 ** Number(feedDecimals)
     ).toFixed(4)}\n`
   );
+
+  // Optionally, call feedId
+  const feedIdResult = await customFeed.feedId();
+  console.log(`  Feed ID (Hex): ${feedIdResult}\n`);
 }
 
 async function main() {
@@ -287,7 +283,6 @@ async function main() {
   );
 
   // 3. Retrieve the proof from the DA Layer after the round finalizes
-  // Note: retrieveDataAndProofBase includes waiting logic
   const proof = await retrieveDataAndProof(abiEncodedRequest, roundId);
   console.log("Proof Retrieved:", proof, "\n");
 
@@ -296,20 +291,21 @@ async function main() {
     return;
   }
 
-  // 4. Deploy the PriceVerifier and PriceVerifierCustomFeed contracts
-  const { priceVerifier, customFeed } = await deployAndVerifyContracts();
+  // 4. Deploy the combined PriceVerifierCustomFeed contract
+  const { customFeed } = await deployAndVerifyContract(); // Updated function call
 
-  // 5. Send the proof to the PriceVerifier contract for verification and storage
-  await interactWithVerifierContract(priceVerifier, proof);
+  // 5. Send the proof to the PriceVerifierCustomFeed contract for verification and storage
+  await submitProofToCustomFeed(customFeed, proof); // Updated function call
 
-  // 6. Interact with the PriceVerifierCustomFeed contract to read the price
+  // 6. Interact with the PriceVerifierCustomFeed contract to read the price/feed data
   await interactWithCustomFeedContract(customFeed);
 
   console.log("--- Price Verification Script Finished ---");
 }
 
-// Execute main function
-main().catch((error) => {
-  console.error("Script failed:", error);
-  process.exitCode = 1;
-});
+main()
+  .then(() => process.exit(0))
+  .catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });

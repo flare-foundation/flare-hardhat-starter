@@ -1,4 +1,4 @@
-import hre, { ethers, web3 } from "hardhat";
+import hre, { ethers } from "hardhat";
 import {
     HelpersInstance,
     IFlareSystemsManagerInstance,
@@ -60,39 +60,23 @@ async function getRelay() {
     return await IRelay.at(relayAddress);
 }
 
-/**
- * Converts a string to its bytes32 hexadecimal representation, padded right.
- * Example: "IJsonApi" -> "0x494a736f6e417069000000000000000000000000000000000000000000000000"
- */
-function stringToHexBytes32(str: string): string {
-  const hex = web3.utils.asciiToHex(str);
-  // Pad with zeros to 66 characters (0x + 64 hex chars for 32 bytes)
-  return hex.padEnd(66, "0");
-}
-
 async function prepareAttestationRequestBase(
   url: string,
   apiKey: string,
-  attestationTypeStr: string,
-  sourceIdStr: string,
-  innerRequestBody: any
-): Promise<{ abiEncodedRequest: string }> {
-  console.log(
-    `Preparing attestation request for type "${attestationTypeStr}", source "${sourceIdStr}" at ${url}`
-  );
+  attestationTypeBase: string,
+  sourceIdBase: string,
+  requestBody: any
+) {
+  console.log("Url:", url, "\n");
+  const attestationType = toUtf8HexString(attestationTypeBase);
+  const sourceId = toUtf8HexString(sourceIdBase);
 
-  // Convert strings to hex bytes32
-  const attestationTypeHex = stringToHexBytes32(attestationTypeStr);
-  const sourceIdHex = stringToHexBytes32(sourceIdStr);
-
-  // Construct the payload according to the API documentation
-  const requestPayload = {
-    attestationType: attestationTypeHex,
-    sourceId: sourceIdHex,
-    requestBody: innerRequestBody, // Nest the specific request body here
+  const request = {
+    attestationType: attestationType,
+    sourceId: sourceId,
+    requestBody: requestBody,
   };
-
-  console.log("Sending payload:", JSON.stringify(requestPayload, null, 2));
+  console.log("Prepared request:\n", request, "\n");
 
   const response = await fetch(url, {
     method: "POST",
@@ -100,35 +84,16 @@ async function prepareAttestationRequestBase(
       "X-API-KEY": apiKey,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(requestPayload), // Send the correctly structured payload
+    body: JSON.stringify(request),
   });
-
-  const responseText = await response.text(); // Get text first for better error reporting
-
-  if (!response.ok) {
+  if (response.status != 200) {
     throw new Error(
-      `API request to ${url} failed with status ${response.status}: ${responseText}`
+      `Response status is not OK, status ${response.status} ${response.statusText}\n`
     );
   }
+  console.log("Response status is OK\n");
 
-  try {
-    const responseData = JSON.parse(responseText);
-    console.log("Received response:", responseData);
-
-    if (responseData.status !== "VALID" || !responseData.abiEncodedRequest) {
-      throw new Error(
-        `API response indicates invalid request or missing data: ${JSON.stringify(
-          responseData
-        )}`
-      );
-    }
-    // Return the expected structure
-    return { abiEncodedRequest: responseData.abiEncodedRequest };
-  } catch (e) {
-    throw new Error(
-      `Failed to parse API response JSON: ${responseText}. Error: ${e}`
-    );
-  }
+  return await response.json();
 }
 
 async function calculateRoundId(transaction: any) {
@@ -223,5 +188,4 @@ export {
   getRelay,
   calculateRoundId,
   postRequestToDALayer,
-  stringToHexBytes32,
 };

@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-// Interface for the PriceVerifier contract providing the source data
-import {IPriceVerifier} from "../fdcExample/PriceVerifier.sol";
+import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import {IFdcVerification} from "@flarenetwork/flare-periphery-contracts/coston2/IFdcVerification.sol"; // Needed for auxiliary verification contract interface
+import {IJsonApi} from "@flarenetwork/flare-periphery-contracts/coston2/IJsonApi.sol";
 
 // The internal interface required for FTSO Custom Feeds (Based on FIP.13 description)
 // NOTE: You should import the actual IICustomFeed interface from the Flare Network contracts library
@@ -30,56 +31,89 @@ interface IICustomFeed {
     function calculateFee() external view returns (uint256 _fee);
 }
 
+struct PriceData {
+    uint256 price;
+}
+
 /**
  * @title PriceVerifierCustomFeed
- * @notice An FTSO Custom Feed contract that sources its value from a PriceVerifier contract.
- * @dev Implements the IICustomFeed interface to be compatible with the FTSO system.
+ * @notice An FTSO Custom Feed contract that sources its value from FDC-verified data.
+ * @dev Implements the IICustomFeed interface and includes verification logic.
  */
 contract PriceVerifierCustomFeed is IICustomFeed {
 
-    // The PriceVerifier contract instance that holds the latest FDC-verified price
-    IPriceVerifier public immutable priceVerifier;
+    // --- State Variables ---
 
     // The unique identifier for this custom feed. Assigned during deployment.
-    bytes21 public immutable feedIdentifier; // Renamed for clarity and made immutable
+    bytes21 public immutable feedIdentifier;
 
-    // Define the decimals for this feed. Since PriceVerifier stores price in USD cents, decimals = 2.
-    // This information is crucial for interpreting the feed's value correctly.
-    int8 public constant DECIMALS = 2; // Changed to int8 to match IICustomFeed interface
+    // Define the decimals for this feed. Price is stored in USD cents, decimals = 2.
+    int8 public constant DECIMALS = 2;
 
-    // Custom error for zero address initialization
-    error ZeroAddress();
-    // Custom error for invalid feed ID initialization
+    // Stores the latest price verified via FDC proof (from PriceVerifier.sol)
+    uint256 public latestVerifiedPrice;
+
+    // --- Events ---
+
+    // Event emitted when a new price is verified (from PriceVerifier.sol)
+    event PriceVerified(uint256 price);
+
+    // --- Errors ---
+
     error InvalidFeedId();
 
+    // --- Constructor ---
+
     /**
-     * @notice Constructor initializes the feed with the PriceVerifier contract address and the feed ID.
-     * @param _priceVerifierAddress The address of the deployed PriceVerifier contract.
+     * @notice Constructor initializes the feed with the feed ID.
      * @param _feedId The unique identifier for this feed (must not be zero).
      */
-    constructor(address _priceVerifierAddress, bytes21 _feedId) {
-        if (_priceVerifierAddress == address(0)) {
-            revert ZeroAddress();
-        }
+    constructor(bytes21 _feedId) {
         // Check if the feed ID is zero (invalid)
         if (_feedId == bytes21(0)) {
             revert InvalidFeedId();
         }
 
-        priceVerifier = IPriceVerifier(_priceVerifierAddress);
         feedIdentifier = _feedId; // Store the feed ID
     }
 
+    // --- FDC Verification Logic (from PriceVerifier.sol) ---
+
     /**
-     * @notice Reads the latest price from the configured PriceVerifier contract.
-     * @dev This is a helper function used by getCurrentFeed. It's not part of the IICustomFeed interface directly.
-     * @return value The latest price obtained from PriceVerifier (in USD cents).
+     * @notice Verifies a price proof obtained via FDC JSON API attestation and stores the price.
+     * @param _proof The proof data structure containing the attestation and response.
+     */
+    function verifyPrice(IJsonApi.Proof calldata _proof) external /* Removed override */ {
+        // 1. FDC Logic: Verify the proof using the appropriate verification contract
+        // For JSON API, we use the auxiliary IJsonApiVerification contract.
+        require(
+            ContractRegistry.auxiliaryGetIJsonApiVerification().verifyJsonApi(_proof),
+            "Invalid JSON API proof"
+        );
+
+        // 2. Business Logic: Decode the price data and store it
+        // The abi_encoded_data within the proof's response body should match the PriceData struct.
+        PriceData memory priceData = abi.decode(
+            _proof.data.responseBody.abi_encoded_data,
+            (PriceData)
+        );
+
+        latestVerifiedPrice = priceData.price;
+
+        emit PriceVerified(latestVerifiedPrice);
+    }
+
+    // --- Custom Feed Logic (IICustomFeed Implementation) ---
+
+    /**
+     * @notice Reads the latest verified price stored internally.
+     * @dev Helper function used by getCurrentFeed.
+     * @return value The latest price obtained from internal storage (in USD cents).
      */
     function read() public view returns (uint256 value) {
-        // Fetch the latest verified price directly from the PriceVerifier contract.
-        // This price originates from an FDC proof verification process.
-        value = priceVerifier.getLatestPrice();
-        // Note: The value returned is in USD cents, as defined in PriceVerifier.sol (line 10).
+        // Fetch the latest verified price directly from internal state.
+        value = latestVerifiedPrice; // Changed from priceVerifier.getLatestPrice()
+        // Note: The value returned is in USD cents.
         // The DECIMALS constant (2) should be used by consumers of this feed.
     }
 
@@ -95,40 +129,38 @@ contract PriceVerifierCustomFeed is IICustomFeed {
     /**
      * @notice Returns the current feed value, decimals, and timestamp.
      * @dev Implements the IICustomFeed interface requirement.
-     *      It's called by the FTSO system or consumers to get the feed's current state.
      *      Uses the internal `read()` function to get the value.
-     *      Uses `block.timestamp` as the timestamp; in a real scenario, this might need refinement
-     *      based on when the PriceVerifier data was actually updated (e.g., reading a timestamp from PriceVerifier if available).
-     * @return _value The latest price obtained from PriceVerifier (in USD cents).
+     *      Uses `block.timestamp` as the timestamp.
+     * @return _value The latest price obtained from internal storage (in USD cents).
      * @return _decimals The number of decimal places for the price value (always 2).
-     * @return _timestamp The timestamp when this function was called (approximates data freshness).
+     * @return _timestamp The timestamp when this function was called.
      */
     function getCurrentFeed() external payable override returns (uint256 _value, int8 _decimals, uint64 _timestamp) {
         _value = read();
         _decimals = DECIMALS;
         _timestamp = uint64(block.timestamp); // Use current block timestamp
-        // Note: The interface requires this function to be payable, even if no fee is collected here.
     }
 
     /**
      * @notice Calculates the fee for fetching the feed.
-     * @dev Implements the IICustomFeed interface requirement.
-     *      Returns 0 for this example, assuming no fee is charged.
+     * @dev Implements the IICustomFeed interface requirement. Returns 0.
      * @return _fee The fee (0).
      */
     function calculateFee() external view override returns (uint256 _fee) {
-        // For this example, we assume no fee is required to fetch the feed.
-        // In a real implementation, this could calculate a dynamic fee based on gas costs or other factors.
         return 0;
     }
 
+    // --- Helper Functions ---
+
     /**
      * @notice Helper function to explicitly return the decimals for this feed.
-     * @dev While decimals are returned by getCurrentFeed, this provides an
-     *      alternative on-chain way to verify them. It's not part of IICustomFeed.
-     * @return The number of decimal places for the price value (always 2 for USD cents).
+     * @return The number of decimal places for the price value (always 2).
      */
-    function decimals() external pure returns (int8) { // Changed to int8
-         return DECIMALS;
+    function decimals() external pure returns (int8) {
+        return DECIMALS;
     }
-} 
+
+    // --- Helper for ABI generation (from PriceVerifier.sol) ---
+    // Ensures ABI includes the PriceData struct definition.
+    function abiPriceDataHack(PriceData calldata) external pure {}
+}
