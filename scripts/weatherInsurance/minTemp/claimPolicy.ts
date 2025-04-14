@@ -3,9 +3,9 @@ import { MinTempAgencyInstance } from "../../../typechain-types";
 
 const MinTempAgency = artifacts.require("MinTempAgency");
 
-// yarn hardhat run scripts/weatherInsurance/MinTemp/claimPolicy.ts --network coston2
+// yarn hardhat run scripts/weatherInsurance/minTemp/claimPolicy.ts --network coston2
 
-const policyId = 0;
+const policyId = 3;
 
 async function getPolicyCoverage(
   agency: MinTempAgencyInstance,
@@ -29,6 +29,6 @@ async function main() {
   console.log("Transaction:", transaction.tx, "\n");
 }
 
-main().then((data) => {
+main().then(() => {
   process.exit(0);
 });

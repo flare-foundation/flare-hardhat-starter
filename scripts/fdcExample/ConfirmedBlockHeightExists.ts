@@ -70,6 +70,6 @@ async function main() {
   // await interactWithContract(addressRegistry, proof);
 }
 
-main().then((data) => {
+main().then(() => {
   process.exit(0);
 });

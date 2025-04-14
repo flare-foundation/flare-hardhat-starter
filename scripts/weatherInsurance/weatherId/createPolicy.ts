@@ -1,9 +1,9 @@
 import { agencyAddress } from "./config";
-import { MinTempAgencyInstance } from "../../../typechain-types";
+import { WeatherIdAgencyInstance } from "../../../typechain-types";
 
-const MinTempAgency = artifacts.require("MinTempAgency");
+const WeatherIdAgency = artifacts.require("WeatherIdAgency");
 
-// yarn hardhat run scripts/weatherInsurance/MinTemp/createPolicy.ts --network coston2
+// yarn hardhat run scripts/weatherInsurance/weatherId/createPolicy.ts --network coston2
 
 const latitude = 46.419402127862405;
 const longitude = 15.587079308221126;
@@ -15,7 +15,7 @@ const apiUrl = `https://api.openweathermap.org/data/2.5/weather\?lat\=${latitude
 
 const startTimestamp = Math.round(Date.now() / 1000) + 30;
 const expirationTimestamp = startTimestamp + 60 * 60;
-const minTempThreshold = 20 * 10 ** 6;
+const weatherIdThreshold = 800;
 const premium = 10;
 const coverage = 1000;
 
@@ -29,7 +29,7 @@ async function getWeatherStationCoordinates(apiUrl: string) {
 }
 
 async function createPolicy(
-  agency: MinTempAgencyInstance,
+  agency: WeatherIdAgencyInstance,
   policyParameters: any
 ) {
   const transaction = await agency.createPolicy(
@@ -37,7 +37,7 @@ async function createPolicy(
     policyParameters.longitude,
     policyParameters.startTimestamp,
     policyParameters.expirationTimestamp,
-    policyParameters.minTempThreshold,
+    policyParameters.weatherIdThreshold,
     policyParameters.coverage,
     { value: policyParameters.premium }
   );
@@ -53,18 +53,20 @@ async function main() {
     longitude: coordinates.lon * 10 ** 6,
     startTimestamp: startTimestamp,
     expirationTimestamp: expirationTimestamp,
-    minTempThreshold: minTempThreshold,
+    weatherIdThreshold: weatherIdThreshold,
     coverage: coverage,
     premium: premium,
   };
   console.log("Policy parameters:", policyParameters, "\n");
 
-  const agency: MinTempAgencyInstance = await MinTempAgency.at(agencyAddress);
-  console.log("MinTempAgency:", agency.address, "\n");
+  const agency: WeatherIdAgencyInstance = await WeatherIdAgency.at(
+    agencyAddress
+  );
+  console.log("WeatherIdAgency:", agency.address, "\n");
 
   await createPolicy(agency, policyParameters);
 }
 
-main().then((data) => {
+main().then(() => {
   process.exit(0);
 });

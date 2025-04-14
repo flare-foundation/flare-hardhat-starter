@@ -15,7 +15,7 @@ const {
 
 const WeatherIdAgency = artifacts.require("WeatherIdAgency");
 
-// yarn hardhat run scripts/weatherInsurance/WeatherId/resolvePolicy.ts --network coston2
+// yarn hardhat run scripts/weatherInsurance/weatherId/resolvePolicy.ts --network coston2
 
 const policyId = 0;
 
@@ -196,6 +196,6 @@ async function main() {
   await resolvePolicy(agency, policyId, proof);
 }
 
-main().then((data) => {
+main().then(() => {
   process.exit(0);
 });

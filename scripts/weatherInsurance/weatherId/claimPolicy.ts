@@ -3,7 +3,7 @@ import { WeatherIdAgencyInstance } from "../../../typechain-types";
 
 const WeatherIdAgency = artifacts.require("WeatherIdAgency");
 
-// yarn hardhat run scripts/weatherInsurance/WeatherId/claimPolicy.ts --network coston2
+// yarn hardhat run scripts/weatherInsurance/weatherId/claimPolicy.ts --network coston2
 
 const policyId = 0;
 
@@ -31,6 +31,6 @@ async function main() {
   console.log("Transaction:", transaction.tx, "\n");
 }
 
-main().then((data) => {
+main().then(() => {
   process.exit(0);
 });

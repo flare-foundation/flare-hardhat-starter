@@ -116,6 +116,6 @@ async function main() {
   await interactWithContract(paymentRegistry, proof);
 }
 
-main().then((data) => {
+main().then(() => {
   process.exit(0);
 });

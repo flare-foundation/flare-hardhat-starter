@@ -3,7 +3,7 @@ import { MinTempAgencyInstance } from "../../../typechain-types";
 
 const MinTempAgency = artifacts.require("MinTempAgency");
 
-// yarn hardhat run scripts/weatherInsurance/MinTemp/deployAgency.ts --network coston2
+// yarn hardhat run scripts/weatherInsurance/minTemp/deployAgency.ts --network coston2
 
 async function deployAndVerify() {
   const args: any[] = [];
@@ -23,6 +23,6 @@ async function deployAndVerify() {
   );
 }
 
-deployAndVerify().then((data) => {
+deployAndVerify().then(() => {
   process.exit(0);
 });

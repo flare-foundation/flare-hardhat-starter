@@ -15,17 +15,66 @@ const {
 
 const MinTempAgency = artifacts.require("MinTempAgency");
 
-// yarn hardhat run scripts/weatherInsurance/MinTemp/resolvePolicy.ts --network coston2
+// yarn hardhat run scripts/weatherInsurance/minTemp/resolvePolicy.ts --network coston2
 
-const policyId = 0;
+const policyId = 3;
 
 // Request data
 const apiId = process.env.OPEN_WEATHER_API_KEY ?? "";
 const units = "metric";
 
-const postprocessJq = `{latitude: (.coord.lat | if . != null then .*pow(10;6) else null end),longitude: (.coord.lon | if . != null then .*pow(10;6) else null end),description: .weather[0].description,temperature: (.main.temp | if . != null then .*pow(10;6) else null end),minTemp: (.main.temp_min | if . != null then .*pow(10;6) else null end),windSpeed: (.wind.speed | if . != null then . *pow(10;6) end),windDeg: .wind.deg}`;
+const postprocessJq = `{
+  latitude: (.coord.lat | if . != null then .*pow(10;6) else null end),
+  longitude: (.coord.lon | if . != null then .*pow(10;6) else null end),
+  description: .weather[0].description,
+  temperature: (.main.temp | if . != null then .*pow(10;6) else null end),
+  minTemp: (.main.temp_min | if . != null then .*pow(10;6) else null end),
+  windSpeed: (.wind.speed | if . != null then . *pow(10;6) end),
+  windDeg: .wind.deg
+  }`;
 
-const abiSignature = `{\"components\": [{\"internalType\": \"int256\",\"name\": \"latitude\",\"type\": \"int256\"},{\"internalType\": \"int256\",\"name\": \"longitude\",\"type\": \"int256\"},{\"internalType\": \"string\",\"name\": \"description\",\"type\": \"string\"},{\"internalType\": \"int256\",\"name\": \"temperature\",\"type\": \"uint256\"},{\"internalType\": \"int256\",\"name\": \"minTemp\",\"type\": \"uint256\"},{\"internalType\": \"uint256\",\"name\": \"windSpeed\",\"type\": \"uint256\"},{\"internalType\": \"uint256\",\"name\": \"windDeg\",\"type\": \"uint256\"}],\"name\": \"dto\",\"type\": \"tuple\"}`;
+const abiSignature = `{
+          "components": [
+            {
+              "internalType": "int256",
+              "name": "latitude",
+              "type": "int256"
+            },
+            {
+              "internalType": "int256",
+              "name": "longitude",
+              "type": "int256"
+            },
+            {
+              "internalType": "string",
+              "name": "description",
+              "type": "string"
+            },
+            {
+              "internalType": "int256",
+              "name": "temperature",
+              "type": "int256"
+            },
+            {
+              "internalType": "int256",
+              "name": "minTemp",
+              "type": "int256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "windSpeed",
+              "type": "uint256"
+            },
+            {
+              "internalType": "uint256",
+              "name": "windDeg",
+              "type": "uint256"
+            }
+          ],
+          "internalType": "struct DataTransportObject",
+          "name": "dto",
+          "type": "tuple"
+        }`;
 
 // Configuration constants
 const attestationTypeBase = "IJsonApi";
@@ -145,6 +194,6 @@ async function main() {
   await resolvePolicy(agency, policyId, proof);
 }
 
-main().then((data) => {
+main().then(() => {
   process.exit(0);
 });

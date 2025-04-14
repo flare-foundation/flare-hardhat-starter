@@ -272,6 +272,6 @@ async function main() {
   console.log("Sufficient reserves:", sufficientReserves);
 }
 
-main().then((data) => {
+main().then(() => {
   process.exit(0);
 });

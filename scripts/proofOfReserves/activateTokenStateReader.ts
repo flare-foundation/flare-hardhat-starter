@@ -19,6 +19,6 @@ async function main() {
   console.log(`(${network}) Transaction id:`, transaction.tx, "\n");
 }
 
-main().then((data) => {
+main().then(() => {
   process.exit(0);
 });

@@ -3,9 +3,9 @@ import { WeatherIdAgencyInstance } from "../../../typechain-types";
 
 const WeatherIdAgency = artifacts.require("WeatherIdAgency");
 
-// yarn hardhat run scripts/weatherInsurance/WeatherId/expirePolicy.ts --network coston2
+// yarn hardhat run scripts/weatherInsurance/weatherId/retireUnclaimedPolicy.ts --network coston2
 
-const policyId = 0;
+const policyId = 1;
 
 async function main() {
   const agency: WeatherIdAgencyInstance = await WeatherIdAgency.at(
@@ -13,10 +13,10 @@ async function main() {
   );
   console.log("WeatherIdAgency:", agency.address, "\n");
 
-  const transaction = await agency.expirePolicy(policyId);
+  const transaction = await agency.retireUnclaimedPolicy(policyId);
   console.log("Transaction:", transaction.tx, "\n");
 }
 
-main().then((data) => {
+main().then(() => {
   process.exit(0);
 });
