@@ -31,10 +31,11 @@ interface IICustomFeed {
     function calculateFee() external view returns (uint256 _fee);
 }
 
-// Updated struct to include the symbol
+// Updated struct to include the symbol and timestamp
 struct PriceData {
     string symbol; // e.g., "BTC"
     uint256 price; // e.g., 1660444 (for $16604.44)
+    uint64 timestamp; // Unix timestamp of when the price was valid
 }
 
 /**
@@ -58,10 +59,13 @@ contract PriceVerifierCustomFeed is IICustomFeed {
     // Stores the latest price verified via FDC proof (from PriceVerifier.sol)
     uint256 public latestVerifiedPrice;
 
+    // Stores the timestamp associated with the latest verified price
+    uint64 public latestVerifiedTimestamp; // <-- Added timestamp state variable
+
     // --- Events ---
 
     // Event emitted when a new price is verified (from PriceVerifier.sol)
-    event PriceVerified(string symbol, uint256 price); // <-- Added symbol to event
+    event PriceVerified(string symbol, uint256 price, uint64 timestamp); // <-- Added timestamp to event
 
     // --- Errors ---
 
@@ -104,11 +108,11 @@ contract PriceVerifierCustomFeed is IICustomFeed {
             "Invalid JSON API proof"
         );
 
-        // 2. Business Logic: Decode the price data
+        // 2. Business Logic: Decode the price data including the timestamp
         // The abi_encoded_data within the proof's response body should match the updated PriceData struct.
         PriceData memory priceData = abi.decode(
             _proof.data.responseBody.abi_encoded_data,
-            (PriceData)
+            (PriceData) // <-- Struct now includes timestamp
         );
 
         // 3. *** ADDED CHECK ***: Verify the symbol within the proof matches the expected symbol for this feed.
@@ -118,10 +122,11 @@ contract PriceVerifierCustomFeed is IICustomFeed {
             "ProofSymbolMismatch()" // Use custom error
         );
 
-        // 4. Store the verified price
+        // 4. Store the verified price and its timestamp
         latestVerifiedPrice = priceData.price;
+        latestVerifiedTimestamp = priceData.timestamp; // <-- Store the timestamp
 
-        emit PriceVerified(priceData.symbol, latestVerifiedPrice); // <-- Emit symbol in event
+        emit PriceVerified(priceData.symbol, latestVerifiedPrice, latestVerifiedTimestamp); // <-- Emit timestamp in event
     }
 
     // --- Custom Feed Logic (IICustomFeed Implementation) ---
@@ -149,17 +154,17 @@ contract PriceVerifierCustomFeed is IICustomFeed {
 
     /**
      * @notice Returns the current feed value, decimals, and timestamp.
-     * @dev Implements the IICustomFeed interface requirement.
+     * @dev Implements the IICustomFeed interface requirement (payable).
      *      Uses the internal `read()` function to get the value.
-     *      Uses `block.timestamp` as the timestamp.
+     *      Returns the timestamp associated with the verified price.
      * @return _value The latest price obtained from internal storage (in USD cents).
      * @return _decimals The number of decimal places for the price value (always 2).
-     * @return _timestamp The timestamp when this function was called.
+     * @return _timestamp The timestamp when the price was valid (from the proof).
      */
     function getCurrentFeed() external payable override returns (uint256 _value, int8 _decimals, uint64 _timestamp) {
-        _value = read();
+        _value = read(); // Assumes read() is view or pure
         _decimals = DECIMALS;
-        _timestamp = uint64(block.timestamp); // Use current block timestamp
+        _timestamp = latestVerifiedTimestamp;
     }
 
     /**
@@ -169,6 +174,20 @@ contract PriceVerifierCustomFeed is IICustomFeed {
      */
     function calculateFee() external view override returns (uint256 _fee) {
         return 0;
+    }
+
+    // *** ADDED: New view function for off-chain reading ***
+    /**
+     * @notice Returns the latest verified price, its decimals, and the timestamp it was valid for (view function).
+     * @dev Provides a non-payable way to read the feed data, suitable for off-chain calls.
+     * @return _value The latest price obtained from internal storage (in USD cents).
+     * @return _decimals The number of decimal places for the price value (always 2).
+     * @return _timestamp The timestamp when the price was valid (from the proof).
+     */
+    function getFeedDataView() external view returns (uint256 _value, int8 _decimals, uint64 _timestamp) {
+        _value = latestVerifiedPrice; // Directly access state variable
+        _decimals = DECIMALS;
+        _timestamp = latestVerifiedTimestamp;
     }
 
     // --- Helper Functions ---
