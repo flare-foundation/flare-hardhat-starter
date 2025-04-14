@@ -7,6 +7,7 @@ import {
 } from "./Base";
 
 // Import the contract artifacts
+// Removed: const PriceVerifier = artifacts.require("PriceVerifier");
 const PriceVerifierCustomFeed = artifacts.require("PriceVerifierCustomFeed");
 
 const {
@@ -34,13 +35,13 @@ const apiUrl = `https://min-api.cryptocompare.com/data/pricehistorical?fsym=${pr
 // 2. JQ Filter to extract the historical price and format it as cents
 // IMPORTANT: Verify the actual response structure from CryptoCompare and adjust this filter!
 // Input (example guess for BTC): {"BTC":{"USD":16604.44}}
-// Output: {"price": 1660444} (multiplies by 100 and takes floor)
+// Output: {"symbol": "BTC", "price": 1660444} (multiplies by 100 and takes floor)
 // Use the price variable in the JQ filter path
-const postprocessJq = `{price: (.${price}.USD * 100 | floor)}`;
+const postprocessJq = `{symbol: \"${price}\", price: (.${price}.USD * 100 | floor)}`;
 
-// 3. ABI Signature matching the PriceData struct in Solidity
+// 3. ABI Signature matching the updated PriceData struct in Solidity
 // Ensure this matches the struct definition in PriceVerifierCustomFeed.sol
-const abiSignature = `{"components": [{"internalType": "uint256","name": "price","type": "uint256"}],"internalType": "struct PriceData","name": "priceData","type": "tuple"}`;
+const abiSignature = `{"components": [{"internalType": "string","name": "symbol","type": "string"},{"internalType": "uint256","name": "price","type": "uint256"}],"internalType": "struct PriceData","name": "priceData","type": "tuple"}`;
 
 // --- FDC Configuration ---
 const attestationTypeBase = "IJsonApi"; // Attestation type for JSON API
@@ -121,8 +122,8 @@ async function deployAndVerifyContract(): Promise<{
 
   console.log("Final Feed ID Hex (bytes21 with 0x21 prefix):", finalFeedIdHex);
 
-  // Pass the correctly formatted bytes21 value to the constructor
-  const customFeedArgs: any[] = [finalFeedIdHex];
+  // Pass the correctly formatted bytes21 value AND the expected symbol to the constructor
+  const customFeedArgs: any[] = [finalFeedIdHex, price]; // <-- Add price symbol here
   const customFeed: PriceVerifierCustomFeedInstance =
     await PriceVerifierCustomFeed.new(...customFeedArgs);
   console.log("PriceVerifierCustomFeed deployed to:", customFeed.address);
@@ -131,7 +132,7 @@ async function deployAndVerifyContract(): Promise<{
   try {
     await run("verify:verify", {
       address: customFeed.address,
-      constructorArguments: customFeedArgs,
+      constructorArguments: customFeedArgs, // <-- Pass both args for verification
     });
     console.log("PriceVerifierCustomFeed verified successfully.");
   } catch (e: any) {
