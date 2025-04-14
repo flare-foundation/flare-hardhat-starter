@@ -140,7 +140,7 @@ contract WeatherIdAgency {
 
         policy.status = PolicyStatus.Settled;
         registeredPolicies[id] = policy;
-        payable(policy.holder).transfer(policy.premium);
+        payable(policy.holder).transfer(policy.coverage);
         emit PolicySettled(id);
     }
 
