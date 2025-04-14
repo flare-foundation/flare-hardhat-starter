@@ -31,8 +31,10 @@ interface IICustomFeed {
     function calculateFee() external view returns (uint256 _fee);
 }
 
+// Updated struct to include the symbol
 struct PriceData {
-    uint256 price;
+    string symbol; // e.g., "BTC"
+    uint256 price; // e.g., 1660444 (for $16604.44)
 }
 
 /**
@@ -45,7 +47,10 @@ contract PriceVerifierCustomFeed is IICustomFeed {
     // --- State Variables ---
 
     // The unique identifier for this custom feed. Assigned during deployment.
-    bytes21 public immutable feedIdentifier;
+    bytes21 public feedIdentifier;
+
+    // The symbol this feed is expected to represent (e.g., "BTC"). Set at deployment.
+    string public expectedSymbol;
 
     // Define the decimals for this feed. Price is stored in USD cents, decimals = 2.
     int8 public constant DECIMALS = 2;
@@ -56,51 +61,67 @@ contract PriceVerifierCustomFeed is IICustomFeed {
     // --- Events ---
 
     // Event emitted when a new price is verified (from PriceVerifier.sol)
-    event PriceVerified(uint256 price);
+    event PriceVerified(string symbol, uint256 price); // <-- Added symbol to event
 
     // --- Errors ---
 
     error InvalidFeedId();
+    error InvalidSymbol(); // <-- Added error
+    error ProofSymbolMismatch(); // <-- Added error
 
     // --- Constructor ---
 
     /**
-     * @notice Constructor initializes the feed with the feed ID.
+     * @notice Constructor initializes the feed with the feed ID and expected symbol.
      * @param _feedId The unique identifier for this feed (must not be zero).
+     * @param _expectedSymbol The asset symbol this feed should track (e.g., "BTC").
      */
-    constructor(bytes21 _feedId) {
+    constructor(bytes21 _feedId, string memory _expectedSymbol) { // <-- Added _expectedSymbol parameter
         // Check if the feed ID is zero (invalid)
         if (_feedId == bytes21(0)) {
             revert InvalidFeedId();
         }
+        // Check if the expected symbol is empty
+        if (bytes(_expectedSymbol).length == 0) {
+            revert InvalidSymbol();
+        }
 
         feedIdentifier = _feedId; // Store the feed ID
+        expectedSymbol = _expectedSymbol; // Store the expected symbol
     }
 
     // --- FDC Verification Logic (from PriceVerifier.sol) ---
 
     /**
      * @notice Verifies a price proof obtained via FDC JSON API attestation and stores the price.
+     * @dev Ensures the proof is valid AND corresponds to the expected asset symbol.
      * @param _proof The proof data structure containing the attestation and response.
      */
     function verifyPrice(IJsonApi.Proof calldata _proof) external /* Removed override */ {
-        // 1. FDC Logic: Verify the proof using the appropriate verification contract
-        // For JSON API, we use the auxiliary IJsonApiVerification contract.
+        // 1. FDC Logic: Verify the cryptographic integrity of the proof
         require(
             ContractRegistry.auxiliaryGetIJsonApiVerification().verifyJsonApi(_proof),
             "Invalid JSON API proof"
         );
 
-        // 2. Business Logic: Decode the price data and store it
-        // The abi_encoded_data within the proof's response body should match the PriceData struct.
+        // 2. Business Logic: Decode the price data
+        // The abi_encoded_data within the proof's response body should match the updated PriceData struct.
         PriceData memory priceData = abi.decode(
             _proof.data.responseBody.abi_encoded_data,
             (PriceData)
         );
 
+        // 3. *** ADDED CHECK ***: Verify the symbol within the proof matches the expected symbol for this feed.
+        // Use keccak256 for more gas-efficient string comparison.
+        require(
+            keccak256(abi.encodePacked(priceData.symbol)) == keccak256(abi.encodePacked(expectedSymbol)),
+            "ProofSymbolMismatch()" // Use custom error
+        );
+
+        // 4. Store the verified price
         latestVerifiedPrice = priceData.price;
 
-        emit PriceVerified(latestVerifiedPrice);
+        emit PriceVerified(priceData.symbol, latestVerifiedPrice); // <-- Emit symbol in event
     }
 
     // --- Custom Feed Logic (IICustomFeed Implementation) ---
@@ -161,6 +182,6 @@ contract PriceVerifierCustomFeed is IICustomFeed {
     }
 
     // --- Helper for ABI generation (from PriceVerifier.sol) ---
-    // Ensures ABI includes the PriceData struct definition.
-    function abiPriceDataHack(PriceData calldata) external pure {}
+    // Ensures ABI includes the updated PriceData struct definition.
+    function abiPriceDataHack(PriceData calldata) external pure {} // <-- Struct definition updated automatically by compiler
 }
