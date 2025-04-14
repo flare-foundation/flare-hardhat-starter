@@ -35,13 +35,13 @@ const apiUrl = `https://min-api.cryptocompare.com/data/pricehistorical?fsym=${pr
 // 2. JQ Filter to extract the historical price and format it as cents
 // IMPORTANT: Verify the actual response structure from CryptoCompare and adjust this filter!
 // Input (example guess for BTC): {"BTC":{"USD":16604.44}}
-// Output: {"symbol": "BTC", "price": 1660444} (multiplies by 100 and takes floor)
-// Use the price variable in the JQ filter path
-const postprocessJq = `{symbol: \"${price}\", price: (.${price}.USD * 100 | floor)}`;
+// Output: {"symbol": "BTC", "price": 1660444, "timestamp": 1678886400} (multiplies by 100, takes floor, adds timestamp)
+// Use the price variable in the JQ filter path and include the timestamp variable
+const postprocessJq = `{symbol: \"${price}\", price: (.${price}.USD * 100 | floor), timestamp: ${timestamp}}`;
 
 // 3. ABI Signature matching the updated PriceData struct in Solidity
 // Ensure this matches the struct definition in PriceVerifierCustomFeed.sol
-const abiSignature = `{"components": [{"internalType": "string","name": "symbol","type": "string"},{"internalType": "uint256","name": "price","type": "uint256"}],"internalType": "struct PriceData","name": "priceData","type": "tuple"}`;
+const abiSignature = `{"components": [{"internalType": "string","name": "symbol","type": "string"},{"internalType": "uint256","name": "price","type": "uint256"},{"internalType": "uint64","name": "timestamp","type": "uint64"}],"internalType": "struct PriceData","name": "priceData","type": "tuple"}`;
 
 // --- FDC Configuration ---
 const attestationTypeBase = "IJsonApi"; // Attestation type for JSON API
@@ -232,6 +232,16 @@ async function submitProofToCustomFeed(
   console.log(
     `Latest verified price stored in PriceVerifierCustomFeed (USD cents): ${latestPrice.toString()}` // Updated log message
   );
+  // Also fetch and log the timestamp
+  const latestTimestamp = await customFeed.latestVerifiedTimestamp();
+  console.log(
+    `Timestamp associated with the price: ${latestTimestamp.toString()} (Unix timestamp)`
+  );
+  console.log(
+    `Timestamp corresponds to: ${new Date(
+      Number(latestTimestamp) * 1000
+    ).toUTCString()}`
+  );
   console.log(`Which is $${(Number(latestPrice) / 100).toFixed(4)}\n`);
 }
 
@@ -263,6 +273,26 @@ async function interactWithCustomFeedContract(
   // Optionally, call feedId
   const feedIdResult = await customFeed.feedId();
   console.log(`  Feed ID (Hex): ${feedIdResult}\n`);
+
+  // Call the getFeedDataView() function for off-chain reading
+  console.log("Calling getFeedDataView() for off-chain reading:");
+  // *** FIX: Assign result to a variable first ***
+  const feedDataResult = await customFeed.getFeedDataView(); // <-- Call the view function
+
+  // *** FIX: Access values by numerical index from the result object ***
+  const currentValue = feedDataResult[0];
+  const currentDecimals = feedDataResult[1];
+  const currentTimestamp = feedDataResult[2];
+
+  // Log the results from getFeedDataView
+  console.log(`  Value: ${currentValue.toString()}`);
+  console.log(`  Decimals: ${currentDecimals.toString()}`); // Still okay to use toString() here
+  console.log(`  Timestamp: ${currentTimestamp.toString()}`);
+  console.log(
+    `  Timestamp corresponds to: ${new Date(
+      Number(currentTimestamp) * 1000 // Convert potential BigNumber/BN to Number
+    ).toUTCString()}\n`
+  );
 }
 
 async function main() {
