@@ -4,6 +4,7 @@ pragma solidity ^0.8.25;
 import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
 import {IEVMTransaction} from "@flarenetwork/flare-periphery-contracts/coston/IEVMTransaction.sol";
 import {IFdcVerification} from "@flarenetwork/flare-periphery-contracts/coston/IFdcVerification.sol";
+import {MyNFT} from "contracts/crossChainPayment/NFT.sol";
 
 struct TokenTransfer {
     address from;
@@ -11,13 +12,23 @@ struct TokenTransfer {
     uint256 value;
 }
 
-interface ITransferEventListener {
-    function collectTransferEvents(IEVMTransaction.Proof calldata _transaction) external;
+interface INFTMinter {
+    function collectAndProcessTransferEvents(IEVMTransaction.Proof calldata _transaction) external;
 }
 
-contract TransferEventListener is ITransferEventListener {
-    TokenTransfer[] public tokenTransfers;
+contract NFTMinter is INFTMinter {
     address public USDC_CONTRACT = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238; // USDC contract address on sepolia
+    address public OWNER = 0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD;
+
+    MyNFT public token;
+    TokenTransfer[] public tokenTransfers;
+    mapping(bytes32 => bool) processedTransactions;
+
+    event NFTMinted(address owner, uint256 tokenId);
+
+    constructor(MyNFT _token) {
+        token = _token;
+    }
 
     function isEVMTransactionProofValid(IEVMTransaction.Proof calldata transaction) public view returns (bool) {
         // Use the library to get the verifier contract and verify that this transaction was proved by state connector
@@ -26,12 +37,15 @@ contract TransferEventListener is ITransferEventListener {
         return fdc.verifyEVMTransaction(transaction);
     }
 
-    function collectTransferEvents(IEVMTransaction.Proof calldata _transaction) external {
-        // 1. FDC Logic
+    function collectAndProcessTransferEvents(IEVMTransaction.Proof calldata _transaction) external {
+        require(!processedTransactions[_transaction.data.requestBody.transactionHash], "Transaction already processed");
+
         // Check that this EVMTransaction has indeed been confirmed by the FDC
         require(isEVMTransactionProofValid(_transaction), "Invalid transaction proof");
 
-        // 2. Business logic
+        // Mark this transaction as processed
+        processedTransactions[_transaction.data.requestBody.transactionHash] = true;
+
         // Go through all events
         for (uint256 i = 0; i < _transaction.data.responseBody.events.length; i++) {
             // Get current event
@@ -59,8 +73,14 @@ contract TransferEventListener is ITransferEventListener {
             // Data is the amount
             uint256 value = abi.decode(_event.data, (uint256));
 
-            // Add the transfer to the list
+            // Disregard transfers that are not payments of at least 3000 to the owner
+            if (receiver != OWNER || value < 3000) {
+                continue;
+            }
+
             tokenTransfers.push(TokenTransfer({from: sender, to: receiver, value: value}));
+            uint256 tokenId = token.safeMint(sender);
+            emit NFTMinted(sender, tokenId);
         }
     }
 

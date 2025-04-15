@@ -18,8 +18,8 @@ const {
 
 // Request data
 const apiUrl = "https://swapi.dev/api/people/3/";
-const postprocessJq = `{name: .name, height: .height, mass: .mass, numberOfFilms: .films | length, uid: (.url | split(\"/\") | .[-2] | tonumber)}`;
-const abiSignature = `{\"components\": [{\"internalType\": \"string\", \"name\": \"name\", \"type\": \"string\"},{\"internalType\": \"uint256\", \"name\": \"height\", \"type\": \"uint256\"},{\"internalType\": \"uint256\", \"name\": \"mass\", \"type\": \"uint256\"},{\"internalType\": \"uint256\", \"name\": \"numberOfFilms\", \"type\": \"uint256\"},{\"internalType\": \"uint256\", \"name\": \"uid\", \"type\": \"uint256\"}],\"name\": \"task\",\"type\": \"tuple\"}`;
+const postprocessJq = `{name: .name, height: .height, mass: .mass, numberOfFilms: .films | length, uid: (.url | split("/") | .[-2] | tonumber)}`;
+const abiSignature = `{"components": [{"internalType": "string", "name": "name", "type": "string"},{"internalType": "uint256", "name": "height", "type": "uint256"},{"internalType": "uint256", "name": "mass", "type": "uint256"},{"internalType": "uint256", "name": "numberOfFilms", "type": "uint256"},{"internalType": "uint256", "name": "uid", "type": "uint256"}],"name": "task","type": "tuple"}`;
 
 // Configuration constants
 const attestationTypeBase = "IJsonApi";
@@ -54,7 +54,7 @@ async function retrieveDataAndProof(
   roundId: number
 ) {
   const url = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
-  console.log("Url:", url, "\n");
+  console.log("Url:", url, "n");
   return await retrieveDataAndProofBase(url, abiEncodedRequest, roundId);
 }
 
@@ -122,6 +122,6 @@ async function main() {
   await interactWithContract(characterList, proof);
 }
 
-main().then((data) => {
+main().then(() => {
   process.exit(0);
 });

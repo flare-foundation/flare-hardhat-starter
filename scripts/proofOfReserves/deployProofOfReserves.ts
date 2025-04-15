@@ -26,6 +26,6 @@ async function deployAndVerify() {
   );
 }
 
-deployAndVerify().then((data) => {
+deployAndVerify().then(() => {
   process.exit(0);
 });

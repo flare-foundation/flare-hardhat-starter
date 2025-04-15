@@ -2,9 +2,9 @@
 pragma solidity ^0.8.25;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IEVMTransaction} from "@flarenetwork/flare-periphery-contracts/coston2/IEVMTransaction.sol";
-import {IJsonApi} from "@flarenetwork/flare-periphery-contracts/coston2/IJsonApi.sol";
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import {IEVMTransaction} from "@flarenetwork/flare-periphery-contracts/coston/IEVMTransaction.sol";
+import {IJsonApi} from "@flarenetwork/flare-periphery-contracts/coston/IJsonApi.sol";
+import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 struct DataTransportObject {
@@ -12,15 +12,14 @@ struct DataTransportObject {
 }
 
 contract ProofOfReserves is Ownable {
-    // Two events for debug purposes
+    // Two events and values for debug purposes
     event GoodPair(address reader, address token, uint256 totalSupply);
     event BadPair(address reader, address token, uint256 totalSupply);
 
-    mapping(address => address) public tokenStateReaders;
-
-    // FIXME remove debug
     uint256 public debugTokenReserves = 0;
     uint256 public debugClaimedReserves = 0;
+
+    mapping(address => address) public tokenStateReaders;
 
     constructor() Ownable(msg.sender) {
         // TODO make this dynamic with hardhat and Ownable
@@ -54,10 +53,8 @@ contract ProofOfReserves is Ownable {
     }
 
     function readReserves(IEVMTransaction.Proof calldata proof) private returns (uint256) {
-        // TODO ignore wrong events
         require(isValidProof(proof), "Invalid transaction proof");
         uint256 totalSupply = 0;
-        // TODO
         for (uint256 i = 0; i < proof.data.responseBody.events.length; i++) {
             IEVMTransaction.Event memory _event = proof.data.responseBody.events[i];
             address readerAddress = _event.emitterAddress;

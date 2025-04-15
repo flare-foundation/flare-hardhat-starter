@@ -1,17 +1,18 @@
-import { run, web3 } from "hardhat";
-import { TransferEventListenerInstance } from "../../typechain-types";
+import { web3 } from "hardhat";
+import { NFTMinterInstance } from "../../typechain-types";
 import {
   prepareAttestationRequestBase,
-  submitAttestationRequest,
   retrieveDataAndProofBase,
-} from "./Base";
+  submitAttestationRequest,
+} from "../fdcExample/Base";
+import { minterAddress } from "./config";
 
-const TransferEventListener = artifacts.require("TransferEventListener");
+const NFTMinter = artifacts.require("NFTMinter");
 
 const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } =
   process.env;
 
-// yarn hardhat run scripts/fdcExample/EVMTransaction.ts --network coston2
+// yarn hardhat run scripts/crossChainPayment/collectAndProcessTransferEvents.ts --network coston2
 
 // Request data
 const transactionHash =
@@ -58,26 +59,7 @@ async function retrieveDataAndProof(
   return await retrieveDataAndProofBase(url, abiEncodedRequest, roundId);
 }
 
-async function deployAndVerifyContract() {
-  const args: any[] = [];
-  const eventListener: TransferEventListenerInstance =
-    await TransferEventListener.new(...args);
-  try {
-    await run("verify:verify", {
-      address: eventListener.address,
-      constructorArguments: args,
-    });
-  } catch (e: any) {
-    console.log(e);
-  }
-  console.log("TransferEventListener deployed to", eventListener.address, "\n");
-  return eventListener;
-}
-
-async function interactWithContract(
-  eventListener: TransferEventListenerInstance,
-  proof: any
-) {
+async function interactWithContract(nftMinter: NFTMinterInstance, proof: any) {
   console.log("Proof hex:", proof.response_hex, "\n");
 
   // A piece of black magic that allows us to read the response type from an artifact
@@ -93,12 +75,12 @@ async function interactWithContract(
     proof.response_hex
   );
   console.log("Decoded proof:", decodedResponse, "\n");
-  const transaction = await eventListener.collectTransferEvents({
+  const transaction = await nftMinter.collectAndProcessTransferEvents({
     merkleProof: proof.proof,
     data: decodedResponse,
   });
   console.log("Transaction:", transaction.tx, "\n");
-  console.log("Token transfer:", await eventListener.tokenTransfers(0), "\n");
+  console.log("Token transfer:", await nftMinter.tokenTransfers(0), "\n");
 }
 
 async function main() {
@@ -110,10 +92,9 @@ async function main() {
 
   const proof = await retrieveDataAndProof(abiEncodedRequest, roundId);
 
-  const eventListener: TransferEventListenerInstance =
-    await deployAndVerifyContract();
+  const nftMinter: NFTMinterInstance = await NFTMinter.at(minterAddress);
 
-  await interactWithContract(eventListener, proof);
+  await interactWithContract(nftMinter, proof);
 }
 
 main().then(() => {
