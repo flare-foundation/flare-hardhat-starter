@@ -1,8 +1,7 @@
 import { ethers, run } from "hardhat";
-import { ContractTransactionReceipt, formatUnits } from "ethers";
+import { formatUnits } from "ethers";
 
 import {
-  FAssetsRedeemContract, 
   FAssetsRedeemInstance, 
   IAssetManagerContract, 
   ERC20Instance 
@@ -15,12 +14,12 @@ const UNDERLYING_ADDRESS = "rSHYuiEvsYsKR8uUHhBTuGP5zjRcGt4nm";
 const FXRP_TOKEN_ADDRESS = "0x36be8f2e1CC3339Cf6702CEfA69626271C36E2fd";
 
 async function deployAndVerifyContract() {
-  const FAssetsRedeem = await ethers.getContractFactory("FAssetsRedeem") as FAssetsRedeemContract;
 
+  const FAssetsRedeem = artifacts.require("FAssetsRedeem");
   const args = [ASSET_MANAGER_ADDRESS];
-  const fAssetsRedeem = await FAssetsRedeem.deploy(...args) as FAssetsRedeemInstance;
-  await fAssetsRedeem.waitForDeployment();
-  const fAssetsRedeemAddress = await fAssetsRedeem.getAddress();
+  const fAssetsRedeem: FAssetsRedeemInstance = await FAssetsRedeem.new(...args);
+  
+  const fAssetsRedeemAddress = await fAssetsRedeem.address;
   
   try {
     await run("verify:verify", {
@@ -48,10 +47,10 @@ async function transferFXRP(fAssetsRedeemAddress: string, amountToRedeem: number
 }
 
 async function parseRedemptionEvents(
-  transactionReceipt: ContractTransactionReceipt, 
+  transactionReceipt: any, 
   fAssetsRedeem: FAssetsRedeemInstance
 ) {
-  console.log("\nParsing events...", transactionReceipt.logs);
+  console.log("\nParsing events...", transactionReceipt.rawLogs);
 
   // Get AssetManager contract interface
   const assetManager = await ethers.getContractAt(
@@ -59,9 +58,14 @@ async function parseRedemptionEvents(
       ASSET_MANAGER_ADDRESS
     ) as IAssetManagerContract;
   
-  for (const log of transactionReceipt.logs) {
+  for (const log of transactionReceipt.rawLogs) {
     try {
-      const parsedLog = assetManager.interface.parseLog(log);
+      // Try to parse the log using the AssetManager interface
+      const parsedLog = assetManager.interface.parseLog({
+        topics: log.topics,
+        data: log.data
+      });
+      
       if (parsedLog) {
         const redemptionEvents = ["RedemptionRequested", "RedemptionTicketUpdated"];
         if (redemptionEvents.includes(parsedLog.name)) {
@@ -76,28 +80,30 @@ async function parseRedemptionEvents(
 }
 
 async function main() {
+  // Deploy and verify the contract
   const fAssetsRedeem: FAssetsRedeemInstance = await deployAndVerifyContract();
   
+  // Get the lot size and decimals to calculate the amount to redeem
   const settings = await fAssetsRedeem.getSettings();
   const lotSize = settings[0];
   const decimals = settings[1];
-  console.log("Lot size:", lotSize);
-  console.log("Asset decimals:", decimals);
+  console.log("Lot size:", lotSize.toString());
+  console.log("Asset decimals:", decimals.toString());
 
+  // Calculate the amount to redeem according to the lot size and the number of lots to redeem
   const amountToRedeem = (Number(lotSize) * Number(LOTS_TO_REDEEM));
-  console.log(`Required FXRP amount ${formatUnits(amountToRedeem, decimals)} FXRP`);
+  console.log(`Required FXRP amount ${formatUnits(amountToRedeem, Number(decimals))} FXRP`);
   console.log(`Required amount in base units: ${amountToRedeem.toString()}`);
 
   // Transfer FXRP to the contract
-  await transferFXRP(fAssetsRedeem.getAddress(), amountToRedeem);
+  await transferFXRP(fAssetsRedeem.address, amountToRedeem);
 
   // Call redeem function and wait for transaction
   const tx = await fAssetsRedeem.redeem(LOTS_TO_REDEEM, UNDERLYING_ADDRESS);
-  const transactionReceipt = await tx.wait();
-  console.log("TX receipt", transactionReceipt);
+  console.log("TX receipt", tx.receipt);
 
   // Parse events from the transaction
-  await parseRedemptionEvents(transactionReceipt, fAssetsRedeem);
+  await parseRedemptionEvents(tx.receipt, fAssetsRedeem);
 }
 
 main().catch((error) => {
