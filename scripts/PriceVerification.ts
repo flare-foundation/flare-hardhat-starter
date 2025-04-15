@@ -6,8 +6,6 @@ import {
   retrieveDataAndProofBase,
 } from "./Base";
 
-// Import the contract artifacts
-// Removed: const PriceVerifier = artifacts.require("PriceVerifier");
 const PriceVerifierCustomFeed = artifacts.require("PriceVerifierCustomFeed");
 
 const {
@@ -149,7 +147,7 @@ async function deployAndVerifyContract(): Promise<{
 
 // Renamed function to reflect its new role
 async function submitProofToCustomFeed(
-  customFeed: PriceVerifierCustomFeedInstance, // Takes customFeed directly
+  customFeed: PriceVerifierCustomFeedInstance,
   proof: any
 ) {
   console.log("Submitting proof to PriceVerifierCustomFeed contract...");
@@ -218,10 +216,11 @@ async function submitProofToCustomFeed(
   };
 
   console.log(
-    "Calling verifyPrice function on CustomFeed with structured proof argument:", // Updated log message
+    "Calling verifyPrice function on CustomFeed with structured proof argument:",
     contractProofArgument,
     "\n"
   );
+
   // Call verifyPrice on the customFeed contract instance
   const transaction = await customFeed.verifyPrice(contractProofArgument);
   console.log("Transaction successful! TX Hash:", transaction.tx);
@@ -230,7 +229,7 @@ async function submitProofToCustomFeed(
   // Check the stored price directly from the custom feed contract's public state variable
   const latestPrice = await customFeed.latestVerifiedPrice(); // Call the public getter
   console.log(
-    `Latest verified price stored in PriceVerifierCustomFeed (USD cents): ${latestPrice.toString()}` // Updated log message
+    `Latest verified price stored in PriceVerifierCustomFeed (USD cents): ${latestPrice.toString()}`
   );
   // Also fetch and log the timestamp
   const latestTimestamp = await customFeed.latestVerifiedTimestamp();
