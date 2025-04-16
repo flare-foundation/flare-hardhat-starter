@@ -138,6 +138,26 @@ async function runFastUpdatesListener(hre: HardhatRuntimeEnvironment) {
   console.log("\nListening for new updates...");
 
   // Determine WebSocket URL based on network
+  let wsUrl: string;
+  switch (networkName) {
+    case "coston2":
+      wsUrl = process.env.COSTON2_WEBSOCKET_URL || "wss://coston2-api.flare.network/ext/C/ws";
+      break;
+    case "coston":
+      wsUrl = process.env.COSTON_WEBSOCKET_URL || "wss://coston-api.flare.network/ext/C/ws";
+      break;
+    case "songbird":
+      wsUrl = process.env.SONGBIRD_WEBSOCKET_URL || "wss://songbird-api.flare.network/ext/C/ws";
+      break;
+    case "flare":
+      wsUrl = process.env.FLARE_WEBSOCKET_URL || "wss://flare-api.flare.network/ext/C/ws";
+      break;
+    default:
+      // Should be caught by the initial check, but good practice
+      throw new Error(`WebSocket URL not configured for network: ${networkName}`);
+  }
+
+  // Determine WebSocket URL based on network
   let wsUrl: string | undefined; // Allow undefined initially
   switch (networkName) {
     case "coston2":
