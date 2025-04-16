@@ -31,15 +31,14 @@ const apiUrl = `https://min-api.cryptocompare.com/data/pricehistorical?fsym=${pr
 }`;
 
 // 2. JQ Filter to extract the historical price and format it as cents
-// IMPORTANT: Verify the actual response structure from CryptoCompare and adjust this filter!
 // Input (example guess for BTC): {"BTC":{"USD":16604.44}}
-// Output: {"symbol": "BTC", "price": 1660444, "timestamp": 1678886400} (multiplies by 100, takes floor, adds timestamp)
-// Use the price variable in the JQ filter path and include the timestamp variable
-const postprocessJq = `{symbol: \"${price}\", price: (.${price}.USD * 100 | floor), timestamp: ${timestamp}}`;
+// Output: {"price": 1660444} (multiplies by 100, takes floor)
+// Use the price variable in the JQ filter path
+const postprocessJq = `{price: (.${price}.USD * 100 | floor)}`;
 
-// 3. ABI Signature matching the updated PriceData struct in Solidity
+// 3. ABI Signature matching the simplified PriceOnlyData struct in Solidity
 // Ensure this matches the struct definition in PriceVerifierCustomFeed.sol
-const abiSignature = `{"components": [{"internalType": "string","name": "symbol","type": "string"},{"internalType": "uint256","name": "price","type": "uint256"},{"internalType": "uint64","name": "timestamp","type": "uint64"}],"internalType": "struct PriceData","name": "priceData","type": "tuple"}`;
+const abiSignature = `{"components": [{"internalType": "uint256","name": "price","type": "uint256"}],"internalType": "struct PriceOnlyData","name": "priceData","type": "tuple"}`;
 
 // --- FDC Configuration ---
 const attestationTypeBase = "IJsonApi"; // Attestation type for JSON API

@@ -31,10 +31,10 @@ interface IICustomFeed {
     function calculateFee() external view returns (uint256 _fee);
 }
 
-struct PriceData {
-    string symbol;
+//
+// Only contains the price, as symbol and timestamp are derived from the URL
+struct PriceOnlyData {
     uint256 price;
-    uint64 timestamp;
 }
 
 /**
@@ -59,29 +59,29 @@ contract PriceVerifierCustomFeed is IICustomFeed {
     uint256 public latestVerifiedPrice;
 
     // Stores the timestamp associated with the latest verified price
-    uint64 public latestVerifiedTimestamp
+    uint64 public latestVerifiedTimestamp;
 
     // --- Events ---
 
-    // Event emitted when a new price is verified
+    // Simplified event: Symbol comes from expectedSymbol, timestamp from URL parsing
     event PriceVerified(string symbol, uint256 price, uint64 timestamp, string apiUrl);
 
+    // Optional: Keep or remove this event based on debugging needs
     event UrlParsingCheck(
         string apiUrl,
         string symbolFromUrl,
-        uint256 timestampFromUrl,
-        string symbolFromProof,
+        uint64 timestampFromUrl,
         uint256 priceFromProof,
-        uint64 timestampFromProof
+        string symbolFromJq
     );
 
     // --- Errors ---
 
     error InvalidFeedId();
     error InvalidSymbol();
-    error ProofSymbolMismatch();
-    error UrlSymbolMismatch();
-    error UrlTimestampMismatch();
+    error UrlSymbolMismatchExpected(); // New error for URL symbol vs expected symbol mismatch
+    error TimestampParsingFailed(); // New error if timestamp parsing yields 0
+    error JqSymbolMismatchExpected(); // New error for JQ symbol vs expected symbol mismatch
 
     // --- Constructor ---
 
@@ -108,9 +108,8 @@ contract PriceVerifierCustomFeed is IICustomFeed {
 
     /**
      * @notice Verifies a price proof obtained via FDC JSON API attestation and stores the price.
-     * @dev Ensures the proof is valid AND corresponds to the expected asset symbol.
-     *      Also extracts the API URL, parses 'price' and 'ts' parameters from it,
-     *      and logs the parsed vs decoded values for comparison.
+     * @dev Ensures the proof is valid AND the API URL within the proof corresponds
+     *      to the expected asset symbol for this feed. Parses timestamp from URL.
      * @param _proof The proof data structure containing the attestation and response.
      */
     function verifyPrice(IJsonApi.Proof calldata _proof) external {
@@ -120,62 +119,62 @@ contract PriceVerifierCustomFeed is IICustomFeed {
             "Invalid JSON API proof"
         );
 
-        // Extract the API URL and convert to bytes
+        // 2. Extract API URL, JQ Filter, and Parse relevant data
         string memory apiUrl = _proof.data.requestBody.url;
+        string memory jqFilter = _proof.data.requestBody.postprocessJq;
         bytes memory apiUrlBytes = bytes(apiUrl);
+        bytes memory jqFilterBytes = bytes(jqFilter); // Convert JQ filter to bytes
 
-        // --- URL Parsing ---
-        // Parse the symbol ("fsym") and timestamp ("ts") from the URL
-        string memory symbolFromUrl = _parseStringParam(apiUrlBytes, "fsym"); // <-- Parse "fsym" as string
-        uint256 timestampFromUrl = _parseUintParam(apiUrlBytes, "ts"); // Parsed as uint256
-        // --- End URL Parsing ---
+        string memory symbolFromUrl = _parseStringParam(apiUrlBytes, "fsym");
+        uint256 timestampFromUrlUint256 = _parseUintParam(apiUrlBytes, "ts");
+        string memory symbolFromJq = _parseSymbolFromJq(jqFilterBytes); // <-- Parse STRING symbol from JQ
 
-        // 2. Business Logic: Decode the price data including the timestamp from the proof's response body
-        PriceData memory priceData = abi.decode(
+        // Ensure timestamp was parsed correctly and fits in uint64
+        require(timestampFromUrlUint256 > 0, "TimestampParsingFailed()");
+        require(timestampFromUrlUint256 <= type(uint64).max, "TimestampParsingFailed()"); // Overflow check
+        uint64 timestampFromUrl = uint64(timestampFromUrlUint256);
+
+        // 3. Business Logic: Decode ONLY the price from the proof's response body
+        PriceOnlyData memory priceData = abi.decode(
             _proof.data.responseBody.abi_encoded_data,
-            (PriceData) // Struct now includes timestamp
+            (PriceOnlyData) // Use the simplified struct
         );
 
-        // Emit log event with parsed symbol
+        // Optional: Emit parsing check event
         emit UrlParsingCheck(
             apiUrl,
-            symbolFromUrl,        // Value parsed from URL param "fsym"
-            timestampFromUrl,     // Value parsed from URL param "ts"
-            priceData.symbol,     // Symbol decoded from proof response body
-            priceData.price,      // Price decoded from proof response body
-            priceData.timestamp   // Timestamp decoded from proof response body
+            symbolFromUrl,
+            timestampFromUrl,
+            priceData.price,
+            symbolFromJq
         );
 
-        // 3. *** Primary Check ***: Verify the symbol *within the proof* matches the expected symbol for this feed.
-        // This is the crucial security check.
+        // 4. *** CRUCIAL CHECKS ***
+        // a) Verify the symbol *parsed from the URL* matches the expected symbol.
         require(
-            keccak256(abi.encodePacked(priceData.symbol)) == keccak256(abi.encodePacked(expectedSymbol)),
-            "ProofSymbolMismatch()"
+            keccak256(abi.encodePacked(symbolFromUrl)) == keccak256(abi.encodePacked(expectedSymbol)),
+            "UrlSymbolMismatchExpected()"
         );
 
-        // 4. *** ADDED SECURITY CHECKS ***: Verify parsed URL params match decoded proof data
-        // Ensure the symbol requested in the URL matches the symbol in the verified proof data.
+        // b) *** ADDED CHECK ***: Verify the STRING symbol *parsed from the JQ filter* also matches the expected symbol.
+        // This ensures the JQ filter is operating on the correct data path within the JSON.
         require(
-            keccak256(abi.encodePacked(symbolFromUrl)) == keccak256(abi.encodePacked(priceData.symbol)),
-             "UrlSymbolMismatch()"
-        );
-        // Ensure the timestamp requested in the URL matches the timestamp in the verified proof data.
-        // Note: We cast priceData.timestamp (uint64) to uint256 for comparison with timestampFromUrl (uint256).
-        // This is safe as uint64 fits within uint256.
-        require(
-            timestampFromUrl == uint256(priceData.timestamp),
-            "UrlTimestampMismatch()"
+            keccak256(abi.encodePacked(symbolFromJq)) == keccak256(abi.encodePacked(expectedSymbol)),
+            "JqSymbolMismatchExpected()" // Use the new custom error
         );
 
-        // 5. Store the verified price and its timestamp (from decoded data)
+        // 5. Store the verified price (from decoded data) and timestamp (from parsed URL)
         latestVerifiedPrice = priceData.price;
-        latestVerifiedTimestamp = priceData.timestamp;
+        latestVerifiedTimestamp = timestampFromUrl; // Store the parsed timestamp
 
-        // 6. Emit the main event including the extracted API URL
-        emit PriceVerified(priceData.symbol, latestVerifiedPrice, latestVerifiedTimestamp, apiUrl);
+        // 6. Emit the main event
+        // Use expectedSymbol as it's confirmed to match both URL and JQ symbols
+        emit PriceVerified(expectedSymbol, latestVerifiedPrice, latestVerifiedTimestamp, apiUrl);
+
+        // You now have 'symbolFromJq' (a string) available if needed for other logic.
     }
 
-    // --- Custom Feed Logic ---
+    // --- Custom Feed Logic (IICustomFeed Implementation) ---
 
     /**
      * @notice Reads the latest verified price stored internally.
@@ -391,7 +390,114 @@ contract PriceVerifierCustomFeed is IICustomFeed {
         // Returns extracted string, or "" if key not found or value empty
     }
 
+    /**
+     * @dev Parses a multiplier value (expected after '* ') from JQ filter bytes.
+     * Searches for "* ". Returns 0 if not found or not a valid number following it.
+     * NOTE: Assumes a specific structure like "... * 100 | ...". Minimal validation.
+     * @param _jqFilterBytes The JQ filter string as bytes.
+     * @return multiplier The parsed uint256 value, or 0 if not found/parsed.
+     */
+    function _parseMultiplierFromJq(bytes memory _jqFilterBytes) internal pure returns (uint256 multiplier) {
+        uint256 filterLen = _jqFilterBytes.length;
+        uint256 startIndex = 0; // Index where the number starts
+
+        // Find the start index after "* "
+        // We search for the two-byte sequence: '*' followed by ' '
+        for (uint256 i = 0; i < filterLen; ++i) {
+            // Check if there's enough space for the sequence "* "
+            if (i + 1 < filterLen) {
+                 if (_jqFilterBytes[i] == bytes1("*") && _jqFilterBytes[i+1] == bytes1(" ")) {
+                    startIndex = i + 2; // Number starts after "* "
+                    break; // Found the sequence, exit loop
+                 }
+            } else {
+                 // Not enough characters left to possibly contain "* "
+                 break;
+            }
+        }
+
+        // If "* " was found (startIndex > 0), parse the number
+        if (startIndex > 0) {
+            for (uint256 i = startIndex; i < filterLen; ++i) {
+                bytes1 char = _jqFilterBytes[i];
+                if (char >= bytes1("0") && char <= bytes1("9")) {
+                    // Implicit overflow check in Solidity >= 0.8.0
+                    multiplier = multiplier * 10 + (uint8(char) - uint8(bytes1("0")));
+                } else {
+                    break; // Stop at first non-digit
+                }
+            }
+        }
+        // Returns calculated multiplier, or 0 if "* " not found or no digits followed
+    }
+
+    /**
+     * @dev Parses a symbol (e.g., "BTC") from JQ filter bytes based on the pattern ".{symbol}.USD".
+     * Searches for the first '.' and then for '.USD' after it.
+     * Returns an empty string if the pattern is not found.
+     * NOTE: Assumes a specific JQ structure. Minimal validation.
+     * @param _jqFilterBytes The JQ filter string as bytes.
+     * @return symbol The parsed string symbol, or "" if not found.
+     */
+    function _parseSymbolFromJq(bytes memory _jqFilterBytes) internal pure returns (string memory symbol) {
+        uint256 filterLen = _jqFilterBytes.length;
+        uint256 firstDotIndex = filterLen; // Initialize to invalid index
+        uint256 secondDotIndex = filterLen; // Initialize to invalid index
+
+        // 1. Find the index of the first '.'
+        for (uint256 i = 0; i < filterLen; ++i) {
+            if (_jqFilterBytes[i] == bytes1(".")) {
+                firstDotIndex = i;
+                break;
+            }
+        }
+
+        // 2. If first dot found, search for ".USD" starting *after* the first dot
+        if (firstDotIndex < filterLen - 1) { // Ensure there's space after the first dot
+            // Define the target sequence ".USD"
+            bytes memory target = ".USD"; // 4 bytes
+            uint targetLen = 4;
+
+            // Start searching from the character after the first dot
+            for (uint256 i = firstDotIndex + 1; i < filterLen; ++i) {
+                // Check if there's enough space for ".USD"
+                if (i + targetLen <= filterLen) {
+                    bool foundMatch = true; // <-- Renamed variable
+                    for(uint k = 0; k < targetLen; ++k) {
+                        if (_jqFilterBytes[i+k] != target[k]) {
+                            foundMatch = false; // <-- Renamed variable
+                            break;
+                        }
+                    }
+                    if (foundMatch) { // <-- Renamed variable
+                        secondDotIndex = i; // Found the '.' of ".USD"
+                        break;
+                    }
+                } else {
+                    // Not enough characters left to possibly contain ".USD"
+                    break;
+                }
+            }
+        }
+
+        // 3. Extract the symbol if both dots were found correctly
+        // Ensure firstDotIndex is before secondDotIndex and there are chars between them
+        if (secondDotIndex < filterLen && firstDotIndex < secondDotIndex -1) {
+             uint256 symbolStartIndex = firstDotIndex + 1;
+             uint256 symbolLen = secondDotIndex - symbolStartIndex;
+             bytes memory resultBytes = new bytes(symbolLen);
+             for (uint256 i = 0; i < symbolLen; ++i) {
+                 resultBytes[i] = _jqFilterBytes[symbolStartIndex + i];
+             }
+             symbol = string(resultBytes);
+        } else {
+            // Pattern not found or symbol is empty
+            symbol = "";
+        }
+        // Returns extracted symbol string, or "" if pattern not found
+    }
+
     // --- Helper for ABI generation ---
-    // Ensures ABI includes the updated PriceData struct definition.
-    function abiPriceDataHack(PriceData calldata) external pure {} // <-- Struct definition updated automatically by compiler
+    // Update to reflect the new struct name
+    function abiPriceOnlyDataHack(PriceOnlyData calldata) external pure {}
 }
