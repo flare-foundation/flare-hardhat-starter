@@ -154,9 +154,17 @@ async function runFastUpdatesListener(hre: HardhatRuntimeEnvironment) {
       break;
     default:
       // Should be caught by the initial check, but good practice
-      throw new Error(`WebSocket URL not configured for network: ${networkName}`);
+      console.warn(
+        `WebSocket URL not configured in .env for network: ${networkName}. Listener will not start.`,
+      );
+    // Do not throw error here, allow script to finish initial data fetch
+    // throw new Error(`WebSocket URL not configured for network: ${networkName}`);
   }
 
+  // Only proceed with WebSocket if URL is defined
+  if (wsUrl) {
+    // Create a new provider with a WebSocket connection
+    const wsProvider = new hre.ethers.WebSocketProvider(wsUrl);
   // Determine WebSocket URL based on network
   let wsUrl: string | undefined; // Allow undefined initially
   switch (networkName) {
@@ -216,6 +224,25 @@ async function runFastUpdatesListener(hre: HardhatRuntimeEnvironment) {
 
     process.on("SIGINT", cleanup);
     process.on("SIGTERM", cleanup);
+
+    // Wait indefinitely only if WebSocket is active
+    console.log("WebSocket listener active. Press Ctrl+C to exit.");
+    await new Promise(() => {});
+  } else {
+    console.log("WebSocket URL not found. Skipping event listener setup.");
+    // Script will exit naturally after fetching initial data
+  }
+}
+
+// Main wrapper function for standalone execution
+async function main() {
+  await runFastUpdatesListener(hre);
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exit(1);
+});
 
     // Wait indefinitely only if WebSocket is active
     console.log("WebSocket listener active. Press Ctrl+C to exit.");
