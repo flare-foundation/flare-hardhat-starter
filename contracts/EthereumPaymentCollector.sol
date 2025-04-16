@@ -5,10 +5,6 @@ import { IEVMTransactionVerification } from "@flarenetwork/flare-periphery-contr
 import { IEVMTransaction } from "@flarenetwork/flare-periphery-contracts/coston/IEVMTransaction.sol";
 import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
 
-// Dummy import to get artifacts for IFDCHub
-import { IFdcHub } from "@flarenetwork/flare-periphery-contracts/coston/IFdcHub.sol";
-import { IFdcRequestFeeConfigurations } from "@flarenetwork/flare-periphery-contracts/coston/IFdcRequestFeeConfigurations.sol";
-
 struct EventInfo {
     address sender;
     uint256 value;
@@ -77,13 +73,5 @@ contract TransferEventListener {
             result[i] = tokenTransfers[i];
         }
         return result;
-    }
-
-    function getFdcHub() external view returns (IFdcHub) {
-        return ContractRegistry.getFdcHub();
-    }
-
-    function getFdcRequestFeeConfigurations() external view returns (IFdcRequestFeeConfigurations) {
-        return ContractRegistry.getFdcRequestFeeConfigurations();
     }
 }

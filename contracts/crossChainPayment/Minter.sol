@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
-import {IEVMTransaction} from "@flarenetwork/flare-periphery-contracts/coston/IEVMTransaction.sol";
-import {IFdcVerification} from "@flarenetwork/flare-periphery-contracts/coston/IFdcVerification.sol";
-import {MyNFT} from "contracts/crossChainPayment/NFT.sol";
+import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
+import { IEVMTransaction } from "@flarenetwork/flare-periphery-contracts/coston/IEVMTransaction.sol";
+import { IFdcVerification } from "@flarenetwork/flare-periphery-contracts/coston/IFdcVerification.sol";
+import { MyNFT } from "contracts/crossChainPayment/NFT.sol";
 
 struct TokenTransfer {
     address from;
@@ -30,7 +30,9 @@ contract NFTMinter is INFTMinter {
         token = _token;
     }
 
-    function isEVMTransactionProofValid(IEVMTransaction.Proof calldata transaction) public view returns (bool) {
+    function isEVMTransactionProofValid(
+        IEVMTransaction.Proof calldata transaction
+    ) public view returns (bool) {
         // Use the library to get the verifier contract and verify that this transaction was proved by state connector
         IFdcVerification fdc = ContractRegistry.getFdcVerification();
         // return true;
@@ -38,7 +40,10 @@ contract NFTMinter is INFTMinter {
     }
 
     function collectAndProcessTransferEvents(IEVMTransaction.Proof calldata _transaction) external {
-        require(!processedTransactions[_transaction.data.requestBody.transactionHash], "Transaction already processed");
+        require(
+            !processedTransactions[_transaction.data.requestBody.transactionHash],
+            "Transaction already processed"
+        );
 
         // Check that this EVMTransaction has indeed been confirmed by the FDC
         require(isEVMTransactionProofValid(_transaction), "Invalid transaction proof");
@@ -59,8 +64,8 @@ contract NFTMinter is INFTMinter {
             // Disregard non Transfer events
             if (
                 // The topic0 doesn't match the Transfer event
-                _event.topics.length == 0 // No topics
-                    || _event.topics[0] != keccak256(abi.encodePacked("Transfer(address,address,uint256)"))
+                _event.topics.length == 0 || // No topics
+                _event.topics[0] != keccak256(abi.encodePacked("Transfer(address,address,uint256)"))
             ) {
                 continue;
             }
@@ -78,7 +83,7 @@ contract NFTMinter is INFTMinter {
                 continue;
             }
 
-            tokenTransfers.push(TokenTransfer({from: sender, to: receiver, value: value}));
+            tokenTransfers.push(TokenTransfer({ from: sender, to: receiver, value: value }));
             uint256 tokenId = token.safeMint(sender);
             emit NFTMinted(sender, tokenId);
         }

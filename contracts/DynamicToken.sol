@@ -47,7 +47,6 @@ contract DynamicToken is ERC20 {
         denominatingTokenFeedId = feedIdConverter.getFeedId(1, _denominatingTokenSymbol);
     }
 
-    // TODO: Check this function
     function getTokenPriceWei() public view returns (uint256 natWeiPerToken) {
         // WARNING: This is a test contract, do not use it in production
         TestFtsoV2Interface ftsoV2 = ContractRegistry.getTestFtsoV2();
@@ -107,4 +106,3 @@ contract DynamicToken is ERC20 {
         payable(owner).transfer(address(this).balance);
     }
 }
-

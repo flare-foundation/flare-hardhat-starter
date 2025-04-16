@@ -123,4 +123,3 @@ contract CoinFuture {
         return winner;
     }
 }
-

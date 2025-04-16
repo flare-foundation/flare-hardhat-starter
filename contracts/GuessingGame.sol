@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
-import {RandomNumberV2Interface} from "@flarenetwork/flare-periphery-contracts/coston/RandomNumberV2Interface.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
+import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
+import { RandomNumberV2Interface } from "@flarenetwork/flare-periphery-contracts/coston/RandomNumberV2Interface.sol";
 
 contract GuessingGame {
     uint16 private _secretNumber;
@@ -36,7 +36,7 @@ contract GuessingGame {
     }
 
     function _setNewSecretNumber() private {
-        (uint256 randomNumber,,) = _generator.getRandomNumber();
+        (uint256 randomNumber, , ) = _generator.getRandomNumber();
         randomNumber %= _maxNumber;
         _secretNumber = uint16(randomNumber);
     }

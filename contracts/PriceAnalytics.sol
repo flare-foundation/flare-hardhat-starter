@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.6;
 
-import {FtsoV2Interface} from "@flarenetwork/flare-periphery-contracts/coston/FtsoV2Interface.sol";
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
+import { FtsoV2Interface } from "@flarenetwork/flare-periphery-contracts/coston/FtsoV2Interface.sol";
+import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
 
 contract PriceAnalytics {
     function convertToWei(int256 price, int8 decimals) public pure returns (int256) {
@@ -15,11 +15,9 @@ contract PriceAnalytics {
         }
     }
 
-    function provableCalculateVariance(FtsoV2Interface.FeedDataWithProof[] calldata priceFeeds)
-        public
-        view
-        returns (int256[] memory prices, int256 mean, int256 variance)
-    {
+    function provableCalculateVariance(
+        FtsoV2Interface.FeedDataWithProof[] calldata priceFeeds
+    ) public view returns (int256[] memory prices, int256 mean, int256 variance) {
         FtsoV2Interface FTSOv2 = ContractRegistry.getFtsoV2();
         prices = new int256[](priceFeeds.length);
 
