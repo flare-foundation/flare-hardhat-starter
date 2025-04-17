@@ -5,7 +5,7 @@ const MinTempAgency = artifacts.require("MinTempAgency");
 
 // yarn hardhat run scripts/weatherInsurance/minTemp/claimPolicy.ts --network coston2
 
-const policyId = 3;
+const policyId = 0;
 
 async function getPolicyCoverage(
   agency: MinTempAgencyInstance,

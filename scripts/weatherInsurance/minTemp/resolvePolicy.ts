@@ -17,7 +17,7 @@ const MinTempAgency = artifacts.require("MinTempAgency");
 
 // yarn hardhat run scripts/weatherInsurance/minTemp/resolvePolicy.ts --network coston2
 
-const policyId = 3;
+const policyId = 0;
 
 // Request data
 const apiId = process.env.OPEN_WEATHER_API_KEY ?? "";

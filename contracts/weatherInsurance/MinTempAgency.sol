@@ -78,9 +78,8 @@ contract MinTempAgency {
     function claimPolicy(uint256 id) public payable {
         Policy memory policy = registeredPolicies[id];
         require(policy.status == PolicyStatus.Unclaimed, "Policy already claimed");
-        if (block.timestamp > policy.expirationTimestamp) {
+        if (block.timestamp > policy.startTimestamp) {
             retireUnclaimedPolicy(id);
-            revert("Policy already expired");
         }
         require(msg.value >= policy.coverage, "Insufficient coverage paid");
 
@@ -156,7 +155,7 @@ contract MinTempAgency {
     function retireUnclaimedPolicy(uint256 id) public {
         Policy memory policy = registeredPolicies[id];
         require(policy.status == PolicyStatus.Unclaimed, "Policy not unclaimed");
-        require(block.timestamp > policy.expirationTimestamp, "Policy not yet expired");
+        require(block.timestamp > policy.startTimestamp, "Policy not yet expired");
         policy.status = PolicyStatus.Settled;
         registeredPolicies[id] = policy;
         payable(policy.holder).transfer(policy.premium);
