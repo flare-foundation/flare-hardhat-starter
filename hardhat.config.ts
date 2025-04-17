@@ -9,7 +9,7 @@ require("dotenv").config();
 
 // Load environment variables
 const PRIVATE_KEY = process.env.PRIVATE_KEY ?? "";
-const FLARE_API_KEY = process.env.FLARE_API_KEY ?? "";
+const FLARE_RPC_API_KEY = process.env.FLARE_RPC_API_KEY ?? "";
 const FLARESCAN_API_KEY = process.env.FLARESCAN_API_KEY ?? "";
 const FLARE_EXPLORER_API_KEY = process.env.FLARE_EXPLORER_API_KEY ?? "";
 
@@ -51,29 +51,29 @@ const config: HardhatUserConfig = {
       accounts: [`${PRIVATE_KEY}`],
     },
     coston: {
-      url: FLARE_API_KEY
-        ? `https://coston-api-tracer.flare.network/ext/C/rpc?x-apikey=${FLARE_API_KEY}`
+      url: FLARE_RPC_API_KEY
+        ? `https://coston-api-tracer.flare.network/ext/C/rpc?x-apikey=${FLARE_RPC_API_KEY}`
         : "https://coston-api.flare.network/ext/C/rpc",
       accounts: [`${PRIVATE_KEY}`],
       chainId: 16,
     },
     coston2: {
-      url: FLARE_API_KEY
-        ? `https://coston2-api-tracer.flare.network/ext/C/rpc?x-apikey=${FLARE_API_KEY}`
+      url: FLARE_RPC_API_KEY
+        ? `https://coston2-api-tracer.flare.network/ext/C/rpc?x-apikey=${FLARE_RPC_API_KEY}`
         : "https://coston2-api.flare.network/ext/C/rpc",
       accounts: [`${PRIVATE_KEY}`],
       chainId: 114,
     },
     songbird: {
-      url: FLARE_API_KEY
-        ? `https://songbird-api-tracer.flare.network/ext/C/rpc?x-apikey=${FLARE_API_KEY}`
+      url: FLARE_RPC_API_KEY
+        ? `https://songbird-api-tracer.flare.network/ext/C/rpc?x-apikey=${FLARE_RPC_API_KEY}`
         : "https://songbird-api.flare.network/ext/C/rpc",
       accounts: [`${PRIVATE_KEY}`],
       chainId: 19,
     },
     flare: {
-      url: FLARE_API_KEY
-        ? `https://flare-api-tracer.flare.network/ext/C/rpc?x-apikey=${FLARE_API_KEY}`
+      url: FLARE_RPC_API_KEY
+        ? `https://flare-api-tracer.flare.network/ext/C/rpc?x-apikey=${FLARE_RPC_API_KEY}`
         : "https://flare-api.flare.network/ext/C/rpc",
       accounts: [`${PRIVATE_KEY}`],
       chainId: 14,
