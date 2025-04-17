@@ -18,7 +18,7 @@ interface INFTMinter {
 
 contract NFTMinter is INFTMinter {
     address public USDC_CONTRACT = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238; // USDC contract address on sepolia
-    address public OWNER = 0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD;
+    address public OWNER = 0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD; // Our address on Sepolia
 
     MyNFT public token;
     TokenTransfer[] public tokenTransfers;

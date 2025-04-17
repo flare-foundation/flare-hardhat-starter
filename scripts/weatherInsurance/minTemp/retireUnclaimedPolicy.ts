@@ -5,7 +5,7 @@ const MinTempAgency = artifacts.require("MinTempAgency");
 
 // yarn hardhat run scripts/weatherInsurance/minTemp/retireUnclaimedPolicy.ts --network coston2
 
-const policyId = 1;
+const policyId = 0;
 
 async function main() {
   const agency: MinTempAgencyInstance = await MinTempAgency.at(agencyAddress);
