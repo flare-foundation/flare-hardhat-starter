@@ -87,6 +87,19 @@ If you are new to Hardhat please check the [Hardhat getting started doc](https:/
 └── yarn.lock
 ```
 
+## Clean repository
+
+If you want to start building your projects from a repository that is already setup to work with Flare correctly, but you do not want to keep any of the examples, these are the files you should delete:
+
+- all files in the `contracts/` folder
+- all files in the `scripts/` folder, except for the `scripts/fdcExample/Base.ts` which might come in useful
+
+A shell command that does this is:
+
+```sh
+rm -rf contracts/* & mv scripts/fdcExample/Base.ts ./Base.ts & rm -rf scripts/* & mv ./Base.ts scripts/Base.ts
+```
+
 ## Resources
 
 - [Flare Developer Hub](https://dev.flare.network/)
