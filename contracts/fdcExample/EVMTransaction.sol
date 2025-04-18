@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
-import {IEVMTransaction} from "@flarenetwork/flare-periphery-contracts/coston/IEVMTransaction.sol";
-import {IFdcVerification} from "@flarenetwork/flare-periphery-contracts/coston/IFdcVerification.sol";
+import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
+import { IEVMTransaction } from "@flarenetwork/flare-periphery-contracts/coston/IEVMTransaction.sol";
+import { IFdcVerification } from "@flarenetwork/flare-periphery-contracts/coston/IFdcVerification.sol";
 
 struct TokenTransfer {
     address from;
@@ -19,7 +19,9 @@ contract TransferEventListener is ITransferEventListener {
     TokenTransfer[] public tokenTransfers;
     address public USDC_CONTRACT = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238; // USDC contract address on sepolia
 
-    function isEVMTransactionProofValid(IEVMTransaction.Proof calldata transaction) public view returns (bool) {
+    function isEVMTransactionProofValid(
+        IEVMTransaction.Proof calldata transaction
+    ) public view returns (bool) {
         // Use the library to get the verifier contract and verify that this transaction was proved by state connector
         IFdcVerification fdc = ContractRegistry.getFdcVerification();
         // return true;
@@ -45,8 +47,8 @@ contract TransferEventListener is ITransferEventListener {
             // Disregard non Transfer events
             if (
                 // The topic0 doesn't match the Transfer event
-                _event.topics.length == 0 // No topics
-                    || _event.topics[0] != keccak256(abi.encodePacked("Transfer(address,address,uint256)"))
+                _event.topics.length == 0 || // No topics
+                _event.topics[0] != keccak256(abi.encodePacked("Transfer(address,address,uint256)"))
             ) {
                 continue;
             }
@@ -60,7 +62,7 @@ contract TransferEventListener is ITransferEventListener {
             uint256 value = abi.decode(_event.data, (uint256));
 
             // Add the transfer to the list
-            tokenTransfers.push(TokenTransfer({from: sender, to: receiver, value: value}));
+            tokenTransfers.push(TokenTransfer({ from: sender, to: receiver, value: value }));
         }
     }
 

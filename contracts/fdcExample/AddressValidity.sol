@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
-import {IFdcVerification} from "@flarenetwork/flare-periphery-contracts/coston/IFdcVerification.sol";
-import {IAddressValidity} from "@flarenetwork/flare-periphery-contracts/coston/IAddressValidity.sol";
+import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
+import { IFdcVerification } from "@flarenetwork/flare-periphery-contracts/coston/IFdcVerification.sol";
+import { IAddressValidity } from "@flarenetwork/flare-periphery-contracts/coston/IAddressValidity.sol";
 
 interface IAddressRegistry {
     function registerAddress(IAddressValidity.Proof memory _transaction) external;
@@ -12,7 +12,9 @@ interface IAddressRegistry {
 contract AddressRegistry is IAddressRegistry {
     string[] public verifiedAddresses;
 
-    function isAddressValidityProofValid(IAddressValidity.Proof memory transaction) public view returns (bool) {
+    function isAddressValidityProofValid(
+        IAddressValidity.Proof memory transaction
+    ) public view returns (bool) {
         // Use the library to get the verifier contract and verify that this transaction was proved by state connector
         IFdcVerification fdc = ContractRegistry.getFdcVerification();
         return fdc.verifyAddressValidity(transaction);

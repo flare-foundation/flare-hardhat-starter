@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {IJsonApi} from "@flarenetwork/flare-periphery-contracts/coston/IJsonApi.sol";
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
-import {IJsonApiVerification} from "@flarenetwork/flare-periphery-contracts/coston/IJsonApiVerification.sol";
+import { Strings } from "@openzeppelin/contracts/utils/Strings.sol";
+import { IJsonApi } from "@flarenetwork/flare-periphery-contracts/coston/IJsonApi.sol";
+import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
+import { IJsonApiVerification } from "@flarenetwork/flare-periphery-contracts/coston/IJsonApiVerification.sol";
 
 // All floats come multiplied by 10^6
 struct DataTransportObject {
@@ -55,7 +55,10 @@ contract MinTempAgency {
         uint256 coverage
     ) public payable {
         require(msg.value > 0, "No premium paid");
-        require(startTimestamp < expirationTimestamp, "Value of startTimestamp larger than expirationTimestamp");
+        require(
+            startTimestamp < expirationTimestamp,
+            "Value of startTimestamp larger than expirationTimestamp"
+        );
 
         Policy memory newPolicy = Policy({
             holder: msg.sender,
@@ -97,7 +100,10 @@ contract MinTempAgency {
         Policy memory policy = registeredPolicies[id];
         require(policy.status == PolicyStatus.Open, "Policy not open");
         require(isJsonApiProofValid(proof), "Invalid proof");
-        DataTransportObject memory dto = abi.decode(proof.data.responseBody.abi_encoded_data, (DataTransportObject));
+        DataTransportObject memory dto = abi.decode(
+            proof.data.responseBody.abi_encoded_data,
+            (DataTransportObject)
+        );
         require(
             block.timestamp >= policy.startTimestamp,
             string.concat(

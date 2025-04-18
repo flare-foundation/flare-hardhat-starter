@@ -1,10 +1,15 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.25;
+pragma solidity ^0.8.20;
 
-import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
+import { IEVMTransactionVerification } from "@flarenetwork/flare-periphery-contracts/coston/IEVMTransactionVerification.sol";
 import { IEVMTransaction } from "@flarenetwork/flare-periphery-contracts/coston/IEVMTransaction.sol";
-import { IFdcVerification } from "@flarenetwork/flare-periphery-contracts/coston/IFdcVerification.sol";
-import { MyNFT } from "contracts/crossChainPayment/NFT.sol";
+import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
+
+struct EventInfo {
+    address sender;
+    uint256 value;
+    bytes data;
+}
 
 struct TokenTransfer {
     address from;
@@ -12,45 +17,24 @@ struct TokenTransfer {
     uint256 value;
 }
 
-interface INFTMinter {
-    function collectAndProcessTransferEvents(IEVMTransaction.Proof calldata _transaction) external;
-}
-
-contract NFTMinter is INFTMinter {
-    address public USDC_CONTRACT = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238; // USDC contract address on sepolia
-    address public OWNER = 0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD; // Our address on Sepolia
-
-    MyNFT public token;
+contract TransferEventListener {
     TokenTransfer[] public tokenTransfers;
-    mapping(bytes32 => bool) processedTransactions;
-
-    event NFTMinted(address owner, uint256 tokenId);
-
-    constructor(MyNFT _token) {
-        token = _token;
-    }
+    address public USDC_CONTRACT = 0xadbf21cCdFfe308a8d83AC933EF5D3c98830397F; // USDC contract address on sepolia
 
     function isEVMTransactionProofValid(
         IEVMTransaction.Proof calldata transaction
     ) public view returns (bool) {
         // Use the library to get the verifier contract and verify that this transaction was proved by state connector
-        IFdcVerification fdc = ContractRegistry.getFdcVerification();
-        // return true;
-        return fdc.verifyEVMTransaction(transaction);
+
+        return ContractRegistry.getFdcVerification().verifyEVMTransaction(transaction);
     }
 
-    function collectAndProcessTransferEvents(IEVMTransaction.Proof calldata _transaction) external {
-        require(
-            !processedTransactions[_transaction.data.requestBody.transactionHash],
-            "Transaction already processed"
-        );
-
+    function collectTransferEvents(IEVMTransaction.Proof calldata _transaction) external {
+        // 1. FDC Logic
         // Check that this EVMTransaction has indeed been confirmed by the FDC
         require(isEVMTransactionProofValid(_transaction), "Invalid transaction proof");
 
-        // Mark this transaction as processed
-        processedTransactions[_transaction.data.requestBody.transactionHash] = true;
-
+        // 2. Business logic
         // Go through all events
         for (uint256 i = 0; i < _transaction.data.responseBody.events.length; i++) {
             // Get current event
@@ -63,8 +47,8 @@ contract NFTMinter is INFTMinter {
 
             // Disregard non Transfer events
             if (
-                // The topic0 doesn't match the Transfer event
                 _event.topics.length == 0 || // No topics
+                // The topic0 doesn't match the Transfer event
                 _event.topics[0] != keccak256(abi.encodePacked("Transfer(address,address,uint256)"))
             ) {
                 continue;
@@ -78,14 +62,8 @@ contract NFTMinter is INFTMinter {
             // Data is the amount
             uint256 value = abi.decode(_event.data, (uint256));
 
-            // Disregard transfers that are not payments of at least 3000 to the owner
-            if (receiver != OWNER || value < 3000) {
-                continue;
-            }
-
+            // Add the transfer to the list
             tokenTransfers.push(TokenTransfer({ from: sender, to: receiver, value: value }));
-            uint256 tokenId = token.safeMint(sender);
-            emit NFTMinted(sender, tokenId);
         }
     }
 
