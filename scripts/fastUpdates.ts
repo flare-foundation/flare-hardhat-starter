@@ -164,23 +164,19 @@ async function runFastUpdatesListener() {
   switch (networkName) {
     case "coston2":
       wsUrl =
-        process.env.COSTON2_WEBSOCKET_URL ||
-        "wss://coston2-api.flare.network/ext/C/ws";
+        process.env.COSTON2_WEBSOCKET_URL
       break;
     case "coston":
       wsUrl =
-        process.env.COSTON_WEBSOCKET_URL ||
-        "wss://coston-api.flare.network/ext/C/ws";
+        process.env.COSTON_WEBSOCKET_URL
       break;
     case "songbird":
       wsUrl =
-        process.env.SONGBIRD_WEBSOCKET_URL ||
-        "wss://songbird-api.flare.network/ext/C/ws";
+        process.env.SONGBIRD_WEBSOCKET_URL
       break;
     case "flare":
       wsUrl =
-        process.env.FLARE_WEBSOCKET_URL ||
-        "wss://flare-api.flare.network/ext/C/ws";
+        process.env.FLARE_WEBSOCKET_URL
       break;
     default:
       // Should be caught by the initial check, but good practice

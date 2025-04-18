@@ -1,5 +1,3 @@
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-import hre from "hardhat"; // Import hre directly for standalone execution
 import {
   FlareContractRegistryAddress,
   flare,
@@ -7,9 +5,14 @@ import {
   coston2,
   coston,
 } from "@flarenetwork/flare-periphery-contract-artifacts";
+import { Contract } from "ethers";
 
 // Helper type for network namespaces
-type FlareNetworkNamespace = typeof flare | typeof songbird | typeof coston2 | typeof coston;
+type FlareNetworkNamespace =
+  | typeof flare
+  | typeof songbird
+  | typeof coston2
+  | typeof coston;
 
 interface NetworkConfig {
   url: string | undefined;
@@ -53,51 +56,55 @@ const networkNamespaces: Record<string, FlareNetworkNamespace> = {
 
 // Warning: To avoid rate limiting, use only one feedId to check.
 async function initializeFtsoV2Contract(
-  hre: HardhatRuntimeEnvironment,
-  currentNetworkNamespace: FlareNetworkNamespace,
-) {
-  const web3 = hre.web3; // Using web3 as per original script
+  currentNetworkNamespace: FlareNetworkNamespace
+): Promise<Contract | any> {
+  const provider = hre.ethers.provider;
 
-  // Use the imported constant address
   const iFlareContractRegistryAddress = FlareContractRegistryAddress;
 
-  // Get ABI using the package's network-specific namespace
   const iFlareContractRegistryArtifact =
     currentNetworkNamespace.interfaceAbis.IFlareContractRegistry;
 
-  const flareRegistry = new web3.eth.Contract(
-    iFlareContractRegistryArtifact,
+  const flareRegistry = new hre.ethers.Contract(
     iFlareContractRegistryAddress,
+    iFlareContractRegistryArtifact,
+    provider
   );
 
-  const ftsoV2Address = await flareRegistry.methods.getContractAddressByName("FtsoV2").call();
+  const ftsoV2Address = await flareRegistry.getContractAddressByName("FtsoV2");
 
-  // Get FtsoV2 ABI using the package
   const ftsoV2Artifact = currentNetworkNamespace.interfaceAbis.FtsoV2Interface;
 
-  return new web3.eth.Contract(ftsoV2Artifact, ftsoV2Address);
+  return new hre.ethers.Contract(ftsoV2Address, ftsoV2Artifact, provider);
 }
 
-async function verifyFeedDataOnChain(ftsoV2Contract: any, feedDataWithProof: any) {
+async function verifyFeedDataOnChain(
+  ftsoV2Contract: Contract | any,
+  feedDataWithProof: any
+): Promise<boolean> {
   try {
-    // Ensure all parts of the body exist before calling
-    if (!feedDataWithProof || !feedDataWithProof.body || !feedDataWithProof.proof) {
-      console.error(`Invalid feed data structure for verification:`, feedDataWithProof);
+    if (
+      !feedDataWithProof ||
+      !feedDataWithProof.body ||
+      !feedDataWithProof.proof
+    ) {
+      console.error(
+        `Invalid feed data structure for verification:`,
+        feedDataWithProof
+      );
       return false;
     }
 
-    const isValid = await ftsoV2Contract.methods
-      .verifyFeedData({
-        proof: feedDataWithProof.proof,
-        body: {
-          votingRoundId: feedDataWithProof.body.votingRoundId,
-          id: feedDataWithProof.body.id,
-          value: feedDataWithProof.body.value,
-          turnoutBIPS: feedDataWithProof.body.turnoutBIPS,
-          decimals: feedDataWithProof.body.decimals,
-        },
-      })
-      .call();
+    const isValid = await ftsoV2Contract.verifyFeedData({
+      proof: feedDataWithProof.proof,
+      body: {
+        votingRoundId: feedDataWithProof.body.votingRoundId,
+        id: feedDataWithProof.body.id,
+        value: feedDataWithProof.body.value,
+        turnoutBIPS: feedDataWithProof.body.turnoutBIPS,
+        decimals: feedDataWithProof.body.decimals,
+      },
+    });
 
     return isValid;
   } catch (error) {
@@ -111,7 +118,7 @@ async function fetchPriceData(apiUrl: string, feedId: string): Promise<any> {
   const response = await fetch(apiUrl, {
     method: "POST",
     headers: {
-      "x-apikey": process.env.FLARE_API_KEY || "", // Ensure fallback for API key
+      "x-apikey": process.env.FLARE_API_KEY || "",
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
@@ -122,57 +129,52 @@ async function fetchPriceData(apiUrl: string, feedId: string): Promise<any> {
   if (!response.ok) {
     const errorBody = await response.text();
     throw new Error(
-      `HTTP error! Status: ${response.status} for feed_id: ${feedId}. Body: ${errorBody}`,
+      `HTTP error! Status: ${response.status} for feed_id: ${feedId}. Body: ${errorBody}`
     );
   }
 
   const responseData = await response.json();
-  // Check if responseData is an array and has at least one element
   if (!Array.isArray(responseData) || responseData.length === 0) {
-    throw new Error(`Unexpected response format or empty data for feed_id: ${feedId}`);
+    throw new Error(
+      `Unexpected response format or empty data for feed_id: ${feedId}`
+    );
   }
   return responseData[0];
 }
 
-// Helper function for creating a delay
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function processPriceFeeds(
-  ftsoV2Contract: any,
+  ftsoV2Contract: Contract | any,
   apiUrlGetProofs: string,
-  feedIds: string[],
+  feedIds: string[]
 ): Promise<PriceDataResult> {
   const allResponses = [];
   const verificationResults = [];
 
   for (const feedId of feedIds) {
     try {
-      // Add try...catch around the fetch and verify logic for individual feeds
       const feedData = await fetchPriceData(apiUrlGetProofs, feedId);
       allResponses.push(feedData);
 
       const isValid = await verifyFeedDataOnChain(ftsoV2Contract, feedData);
-      console.log(`Verification for ${feedId}: ${isValid}`); // Log which feed is being verified
+      console.log(`Verification for ${feedId}: ${isValid}`);
       verificationResults.push({
         feedId,
         isValid,
         data: feedData,
       });
 
-      // Introduce a delay (e.g., 200 milliseconds) between requests
-      await delay(200); // Adjust the delay time (in ms) as needed
+      await delay(200);
     } catch (error: any) {
-      // Log errors for individual feeds but continue processing others
       console.error(`Failed to process feed ${feedId}:`, error.message);
-      // Optionally push an error status to results if needed
       verificationResults.push({
         feedId,
-        isValid: false, // Mark as invalid or add an error field
-        data: null, // Or include error information
+        isValid: false,
+        data: null,
         error: error.message,
       });
-      // Decide if you want to add a delay even after an error
-      await delay(100); // Shorter delay after an error? Or maybe longer?
+      await delay(100);
     }
   }
 
@@ -182,31 +184,30 @@ async function processPriceFeeds(
   };
 }
 
-// Main execution function for standalone script
 async function main() {
   try {
     const networkName = hre.network.name;
 
-    // Get the correct namespace for the current network
     const currentNetworkNamespace = networkNamespaces[networkName];
     if (!currentNetworkNamespace) {
       throw new Error(
-        `Unsupported network: ${networkName}. Must be one of: ${Object.keys(networkNamespaces).join(", ")}`,
+        `Unsupported network: ${networkName}. Must be one of: ${Object.keys(networkNamespaces).join(", ")}`
       );
     }
 
     const currentNetwork = networks[networkName];
     if (!currentNetwork || !currentNetwork.url) {
       throw new Error(
-        `Network configuration or DA Layer URL not found for ${networkName} in .env file`,
+        `Network configuration or DA Layer URL not found for ${networkName} in .env file`
       );
     }
 
     const apiUrlFeedNames = `${currentNetwork.url}/api/v0/ftso/anchor-feed-names`;
     const apiUrlGetProofs = `${currentNetwork.url}/api/v0/ftso/anchor-feeds-with-proof`;
 
-    // Initialize contract using the correct network namespace
-    const ftsoV2Contract = await initializeFtsoV2Contract(hre, currentNetworkNamespace);
+    const ftsoV2Contract = await initializeFtsoV2Contract(
+      currentNetworkNamespace
+    );
 
     const response = await fetch(apiUrlFeedNames, {
       headers: {
@@ -218,33 +219,31 @@ async function main() {
     if (!response.ok) {
       const errorBody = await response.text();
       throw new Error(
-        `HTTP error fetching feed names! Status: ${response.status}. Body: ${errorBody}`,
+        `HTTP error fetching feed names! Status: ${response.status}. Body: ${errorBody}`
       );
     }
 
     const data = await response.json();
-    // Ensure data is an array before mapping
     if (!Array.isArray(data)) {
       throw new Error(
-        `Unexpected response format when fetching feed names. Expected array, got: ${JSON.stringify(data)}`,
+        `Unexpected response format when fetching feed names. Expected array, got: ${JSON.stringify(data)}`
       );
     }
     const feedIds = data.map((item: any) => item.feed_id);
 
-    // Log the result before returning from the function called by the task
-    const priceDataResult = await processPriceFeeds(ftsoV2Contract, apiUrlGetProofs, feedIds);
+    const priceDataResult = await processPriceFeeds(
+      ftsoV2Contract,
+      apiUrlGetProofs,
+      feedIds
+    );
     console.log("Price Data Fetch and Verification Complete:");
     console.log(JSON.stringify(priceDataResult, null, 2));
-    // return priceDataResult; // Return value is not typically used in standalone scripts like this
-  } catch (error) {
-    // Log the error but let the task handler manage exit codes
+  } catch (error: any) {
     console.error(`Error in main execution:`, error);
-    // Re-throw the error so the task runner catches it and exits with non-zero code
     throw error;
   }
 }
 
-// Standard Hardhat script execution pattern
 main()
   .then(() => process.exit(0))
   .catch((error) => {
