@@ -1,6 +1,3 @@
-import { HardhatRuntimeEnvironment } from "hardhat/types";
-import hre from "hardhat";
-import type { ethers } from "ethers";
 import {
   FlareContractRegistryAddress,
   flare,
@@ -10,7 +7,11 @@ import {
 } from "@flarenetwork/flare-periphery-contract-artifacts";
 
 // Helper type for network namespaces
-type FlareNetworkNamespace = typeof flare | typeof songbird | typeof coston2 | typeof coston;
+type FlareNetworkNamespace =
+  | typeof flare
+  | typeof songbird
+  | typeof coston2
+  | typeof coston;
 
 // Define a mapping for network namespaces
 const networkNamespaces: Record<string, FlareNetworkNamespace> = {
@@ -21,7 +22,7 @@ const networkNamespaces: Record<string, FlareNetworkNamespace> = {
 };
 
 // Renamed original function to avoid conflict with the new main wrapper
-async function runFastUpdatesListener(hre: HardhatRuntimeEnvironment) {
+async function runFastUpdatesListener() {
   const networkName = hre.network.name;
 
   // Get the correct namespace for the current network
@@ -29,7 +30,7 @@ async function runFastUpdatesListener(hre: HardhatRuntimeEnvironment) {
 
   if (!currentNetworkNamespace) {
     throw new Error(
-      `Unsupported network: ${networkName}. Must be one of: flare, songbird, coston2, or coston`,
+      `Unsupported network: ${networkName}. Must be one of: flare, songbird, coston2, or coston`
     );
   }
 
@@ -42,38 +43,51 @@ async function runFastUpdatesListener(hre: HardhatRuntimeEnvironment) {
   const registry = new hre.ethers.Contract(
     FlareContractRegistryAddress,
     currentNetworkNamespace.interfaceAbis.IFlareContractRegistry,
-    signer,
+    signer
   );
 
   // Get FastUpdater address
-  const fastUpdaterAddress = await registry.getContractAddressByName("FastUpdater");
+  const fastUpdaterAddress =
+    await registry.getContractAddressByName("FastUpdater");
   console.log(`FastUpdater contract address: ${fastUpdaterAddress}`);
 
   // Get FastUpdater ABI from the package
   const fastUpdaterAbi = currentNetworkNamespace.nameToAbi("FastUpdater");
   if (!fastUpdaterAbi) {
-    throw new Error(`Could not find ABI for FastUpdater on network ${networkName}`);
+    throw new Error(
+      `Could not find ABI for FastUpdater on network ${networkName}`
+    );
   }
 
   // Setup FastUpdater contract using package ABI and connect the signer
   const fastUpdater = new hre.ethers.Contract(
     fastUpdaterAddress,
     fastUpdaterAbi, // Use package ABI
-    signer, // Use signer instead of provider
+    signer // Use signer instead of provider
   );
 
   // Get current feeds
   console.log("Calling fastUpdater.fetchAllCurrentFeeds.staticCall()..."); // Update log message
   // Explicitly use staticCall for view functions when a signer is attached
   const allFeedsResult = await fastUpdater.fetchAllCurrentFeeds.staticCall();
-  console.log("Raw result from fetchAllCurrentFeeds.staticCall:", allFeedsResult); // Log the raw result
+  console.log(
+    "Raw result from fetchAllCurrentFeeds.staticCall:",
+    allFeedsResult
+  ); // Log the raw result
 
   // Check if the result is iterable (like an array) before destructuring
-  if (!allFeedsResult || typeof allFeedsResult[Symbol.iterator] !== "function") {
-    console.error("Error: fetchAllCurrentFeeds.staticCall did not return an iterable value.");
+  if (
+    !allFeedsResult ||
+    typeof allFeedsResult[Symbol.iterator] !== "function"
+  ) {
+    console.error(
+      "Error: fetchAllCurrentFeeds.staticCall did not return an iterable value."
+    );
     console.error("Received:", allFeedsResult);
     // You might want to investigate the ABI or contract state further here
-    throw new Error("Failed to fetch current feeds: Invalid response format from contract.");
+    throw new Error(
+      "Failed to fetch current feeds: Invalid response format from contract."
+    );
   }
 
   // If the check passes, proceed with destructuring
@@ -86,9 +100,9 @@ async function runFastUpdatesListener(hre: HardhatRuntimeEnvironment) {
       const decimalValue = parseInt(decimals[i].toString(), 10); // Ensure decimals is a number
       const decimalPower = BigInt(10) ** BigInt(decimalValue);
       // Convert to string first to handle large numbers
-      const price = (Number(feedValue.toString()) / Number(decimalPower.toString())).toFixed(
-        decimalValue,
-      ); // Use actual decimal count for precision
+      const price = (
+        Number(feedValue.toString()) / Number(decimalPower.toString())
+      ).toFixed(decimalValue); // Use actual decimal count for precision
       // Assuming feedIds are bytes, decode them carefully
       // Use ethers.decodeBytes32String if they are truly bytes32, otherwise adjust decoding
       // If they are shorter bytes (e.g., bytes21), padding might be needed or different decoding
@@ -105,17 +119,25 @@ async function runFastUpdatesListener(hre: HardhatRuntimeEnvironment) {
         // You might want to convert this hex to ASCII if applicable, e.g., using ethers.toUtf8String(bytes)
         // but only if you know it represents UTF8 text.
       } catch (decodeError) {
-        console.warn(`Could not decode feedId ${feedIds[i]} as bytes32 string:`, decodeError);
+        console.warn(
+          `Could not decode feedId ${feedIds[i]} as bytes32 string:`,
+          decodeError
+        );
       }
       console.log(`Feed ${decodedFeedId}: ${price} (${decimals[i]} decimals)`);
     } catch (processingError) {
-      console.error(`Error processing feed at index ${i} (ID: ${feedIds[i]}):`, processingError);
+      console.error(
+        `Error processing feed at index ${i} (ID: ${feedIds[i]}):`,
+        processingError
+      );
     }
   }
 
   // Convert timestamp to Date using BigInt
   const timestampMs = BigInt(timestamp.toString()) * BigInt(1000);
-  console.log(`Last Update Timestamp: ${new Date(Number(timestampMs)).toISOString()}`);
+  console.log(
+    `Last Update Timestamp: ${new Date(Number(timestampMs)).toISOString()}`
+  );
 
   // Get submission window
   const window = await fastUpdater.submissionWindow.staticCall(); // Use staticCall
@@ -141,49 +163,29 @@ async function runFastUpdatesListener(hre: HardhatRuntimeEnvironment) {
   let wsUrl: string;
   switch (networkName) {
     case "coston2":
-      wsUrl = process.env.COSTON2_WEBSOCKET_URL || "wss://coston2-api.flare.network/ext/C/ws";
+      wsUrl =
+        process.env.COSTON2_WEBSOCKET_URL ||
+        "wss://coston2-api.flare.network/ext/C/ws";
       break;
     case "coston":
-      wsUrl = process.env.COSTON_WEBSOCKET_URL || "wss://coston-api.flare.network/ext/C/ws";
+      wsUrl =
+        process.env.COSTON_WEBSOCKET_URL ||
+        "wss://coston-api.flare.network/ext/C/ws";
       break;
     case "songbird":
-      wsUrl = process.env.SONGBIRD_WEBSOCKET_URL || "wss://songbird-api.flare.network/ext/C/ws";
+      wsUrl =
+        process.env.SONGBIRD_WEBSOCKET_URL ||
+        "wss://songbird-api.flare.network/ext/C/ws";
       break;
     case "flare":
-      wsUrl = process.env.FLARE_WEBSOCKET_URL || "wss://flare-api.flare.network/ext/C/ws";
+      wsUrl =
+        process.env.FLARE_WEBSOCKET_URL ||
+        "wss://flare-api.flare.network/ext/C/ws";
       break;
     default:
       // Should be caught by the initial check, but good practice
       console.warn(
-        `WebSocket URL not configured in .env for network: ${networkName}. Listener will not start.`,
-      );
-    // Do not throw error here, allow script to finish initial data fetch
-    // throw new Error(`WebSocket URL not configured for network: ${networkName}`);
-  }
-
-  // Only proceed with WebSocket if URL is defined
-  if (wsUrl) {
-    // Create a new provider with a WebSocket connection
-    const wsProvider = new hre.ethers.WebSocketProvider(wsUrl);
-  // Determine WebSocket URL based on network
-  let wsUrl: string | undefined; // Allow undefined initially
-  switch (networkName) {
-    case "coston2":
-      wsUrl = process.env.COSTON2_WEBSOCKET_URL || "wss://coston2-api.flare.network/ext/C/ws";
-      break;
-    case "coston":
-      wsUrl = process.env.COSTON_WEBSOCKET_URL || "wss://coston-api.flare.network/ext/C/ws";
-      break;
-    case "songbird":
-      wsUrl = process.env.SONGBIRD_WEBSOCKET_URL || "wss://songbird-api.flare.network/ext/C/ws";
-      break;
-    case "flare":
-      wsUrl = process.env.FLARE_WEBSOCKET_URL || "wss://flare-api.flare.network/ext/C/ws";
-      break;
-    default:
-      // Should be caught by the initial check, but good practice
-      console.warn(
-        `WebSocket URL not configured in .env for network: ${networkName}. Listener will not start.`,
+        `WebSocket URL not configured in .env for network: ${networkName}. Listener will not start.`
       );
     // Do not throw error here, allow script to finish initial data fetch
     // throw new Error(`WebSocket URL not configured for network: ${networkName}`);
@@ -199,18 +201,22 @@ async function runFastUpdatesListener(hre: HardhatRuntimeEnvironment) {
     const fastUpdaterWs = new hre.ethers.Contract(
       fastUpdaterAddress,
       fastUpdaterAbi, // Use package ABI
-      wsProvider, // Use WebSocket provider for listening
+      wsProvider // Use WebSocket provider for listening
     );
 
-    fastUpdaterWs.on("FastUpdateFeedsSubmitted", (votingRoundId, signingPolicyAddress, event) => {
-      console.log(`\nNew Update Submitted:`);
-      console.log(`Voting Round ID: ${votingRoundId.toString()}`);
-      console.log(`Signing Policy Address: ${signingPolicyAddress}`);
-      // Access transactionHash via the event object's log property
-      // Note: ethers v6 uses event.log.transactionHash, v5 might just use event.transactionHash
-      const txHash = event?.log?.transactionHash || event?.transactionHash || "N/A";
-      console.log(`Transaction Hash: ${txHash}`);
-    });
+    fastUpdaterWs.on(
+      "FastUpdateFeedsSubmitted",
+      (votingRoundId, signingPolicyAddress, event) => {
+        console.log(`\nNew Update Submitted:`);
+        console.log(`Voting Round ID: ${votingRoundId.toString()}`);
+        console.log(`Signing Policy Address: ${signingPolicyAddress}`);
+        // Access transactionHash via the event object's log property
+        // Note: ethers v6 uses event.log.transactionHash, v5 might just use event.transactionHash
+        const txHash =
+          event?.log?.transactionHash || event?.transactionHash || "N/A";
+        console.log(`Transaction Hash: ${txHash}`);
+      }
+    );
 
     // Keep the script running and handle cleanup
     const cleanup = () => {
@@ -236,26 +242,7 @@ async function runFastUpdatesListener(hre: HardhatRuntimeEnvironment) {
 
 // Main wrapper function for standalone execution
 async function main() {
-  await runFastUpdatesListener(hre);
-}
-
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
-
-    // Wait indefinitely only if WebSocket is active
-    console.log("WebSocket listener active. Press Ctrl+C to exit.");
-    await new Promise(() => {});
-  } else {
-    console.log("WebSocket URL not found. Skipping event listener setup.");
-    // Script will exit naturally after fetching initial data
-  }
-}
-
-// Main wrapper function for standalone execution
-async function main() {
-  await runFastUpdatesListener(hre);
+  await runFastUpdatesListener();
 }
 
 main().catch((error) => {
