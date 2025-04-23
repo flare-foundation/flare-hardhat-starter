@@ -3,7 +3,30 @@
   "main": "index.js",
   "repository": "https://github.com/nikerzetic-aflabs/flare-hardhat-starter",
   "license": "MIT",
+  "scripts": {
+    "build": "nest build",
+    "start": "nest start",
+    "start:dev": "nest start --watch",
+    "start:debug": "nest start --debug --watch",
+    "start:prod": "node dist/main",
+    "-----Linting-----": "echo \"Linting scripts\"",
+    "lint:fix": "yarn lint:fix-typescript && yarn lint:fix-solidity",
+    "lint:check": "yarn lint:check-typescript && yarn lint:check-solidity",
+    "lint:fix-typescript": "eslint \"{scripts,test}/**/*.ts\" --fix",
+    "lint:fix-solidity": "solhint \"contracts/**/*.sol\" --fix",
+    "lint:check-typescript": "eslint \"{scripts,test}/**/*.ts\"",
+    "lint:check-solidity": "solhint \"contracts/**/*.sol\"",
+    "format:fix": "yarn format:fix-typescript && yarn format:fix-solidity",
+    "format:check": "yarn format:check-typescript && yarn format:check-solidity",
+    "format:check-typescript": "prettier --check \"scripts/**/*.ts\" \"test/**/*.ts\"",
+    "format:fix-typescript": "prettier --write \"scripts/**/*.ts\" \"test/**/*.ts\"",
+    "format:check-solidity": "prettier --check --plugin=prettier-plugin-solidity \"contracts/**/*.sol\"",
+    "format:fix-solidity": "prettier --write --plugin=prettier-plugin-solidity \"contracts/**/*.sol\"",
+    "-----Testing-----": "echo \"Testing scripts\"",
+    "test": ""
+  },
   "devDependencies": {
+    "@eslint/js": "^9.24.0",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
     "@nomicfoundation/hardhat-ignition": "^0.15.0",
@@ -21,16 +44,35 @@
     "@types/node": ">=18.0.0",
     "chai": "^4.2.0",
     "dotenv": "^16.4.7",
-    "ethers": "^6.4.0",
-    "hardhat": "^2.22.18",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-prettier": "^5.0.0",
     "hardhat-gas-reporter": "^1.0.8",
+    "prettier": "^3.0.0",
+    "prettier-plugin-solidity": "^1.4.2",
     "solidity-coverage": "^0.8.0",
     "ts-node": ">=8.0.0",
     "typechain": "^8.3.0",
-    "typescript": ">=4.5.0"
+    "typescript": ">=4.5.0",
+    "typescript-eslint": "^8.19.1"
   },
   "dependencies": {
     "@flarenetwork/flare-periphery-contracts": "^0.1.22",
-    "@openzeppelin/contracts": "^5.2.0"
+    "@openzeppelin/contracts": "^5.2.0",
+    "@typescript-eslint/eslint-plugin": "^7.3.1",
+    "@typescript-eslint/parser": "^7.3.1",
+    "ethers": "^6.4.0",
+    "hardhat": "^2.22.18",
+    "solhint": "^4.5.2"
+  },
+  "packageManager": "yarn@1.22.22",
+  "prettier": {
+    "printWidth": 120,
+    "semi": true,
+    "singleQuote": false,
+    "trailingComma": "es5",
+    "tabWidth": 2,
+    "arrowParens": "avoid"
   }
 }
