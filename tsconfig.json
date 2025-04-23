@@ -1,20 +1,32 @@
 {
   "compilerOptions": {
-    "target": "es2020",
     "module": "commonjs",
-    "esModuleInterop": true,
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
+    "declaration": true,
+    "removeComments": true,
+    "emitDecoratorMetadata": true,
+    "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2021",
+    "sourceMap": true,
+    "outDir": "./dist",
+    "baseUrl": "./",
+    "incremental": true,
     "skipLibCheck": true,
+    "strictNullChecks": false,
+    "noImplicitAny": false,
+    "strictBindCallApply": false,
+    "forceConsistentCasingInFileNames": false,
+    "noFallthroughCasesInSwitch": false,
+    // Added by me
+    "esModuleInterop": true,
+    "strict": true,
     "resolveJsonModule": true,
-    "outDir": "dist"
   },
   "include": [
     "./scripts",
     "./test",
     "./typechain-types",
-    "./lib",
-    
+    "eslint.config.mjs"
   ],
   "files": [
     "./hardhat.config.ts"
