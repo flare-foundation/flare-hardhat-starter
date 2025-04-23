@@ -11,7 +11,7 @@ const apiId = process.env.OPEN_WEATHER_API_KEY ?? "";
 
 const units = "metric";
 
-const apiUrl = `https://api.openweathermap.org/data/2.5/weather\?lat\=${latitude}\&lon\=${longitude}\&appid\=${apiId}\&units\=${units}`;
+const apiUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiId}&units=${units}`;
 
 const startTimestamp = Math.round(Date.now() / 1000) + 30;
 const expirationTimestamp = startTimestamp + 60 * 60;
@@ -28,10 +28,7 @@ async function getWeatherStationCoordinates(apiUrl: string) {
   return json.coord;
 }
 
-async function createPolicy(
-  agency: WeatherIdAgencyInstance,
-  policyParameters: any
-) {
+async function createPolicy(agency: WeatherIdAgencyInstance, policyParameters: any) {
   const transaction = await agency.createPolicy(
     policyParameters.latitude,
     policyParameters.longitude,
@@ -59,14 +56,12 @@ async function main() {
   };
   console.log("Policy parameters:", policyParameters, "\n");
 
-  const agency: WeatherIdAgencyInstance = await WeatherIdAgency.at(
-    agencyAddress
-  );
+  const agency: WeatherIdAgencyInstance = await WeatherIdAgency.at(agencyAddress);
   console.log("WeatherIdAgency:", agency.address, "\n");
 
   await createPolicy(agency, policyParameters);
 }
 
-main().then(() => {
+void main().then(() => {
   process.exit(0);
 });

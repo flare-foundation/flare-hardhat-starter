@@ -22,13 +22,6 @@ interface IPaymentRegistry {
 contract PaymentRegistry is IPaymentRegistry {
     Payment[] public verifiedPayments;
 
-    function isPaymentProofValid(IPayment.Proof calldata transaction) public view returns (bool) {
-        // Use the library to get the verifier contract and verify that this transaction was proved by state connector
-        IFdcVerification fdc = ContractRegistry.getFdcVerification();
-        // return true;
-        return fdc.verifyPayment(transaction);
-    }
-
     function registerPayment(IPayment.Proof calldata _transaction) external {
         // 1. FDC Logic
         // Check that this Payment has indeed been confirmed by the FDC
@@ -46,5 +39,12 @@ contract PaymentRegistry is IPaymentRegistry {
         );
 
         verifiedPayments.push(provedPayment);
+    }
+
+    function isPaymentProofValid(IPayment.Proof calldata transaction) public view returns (bool) {
+        // Use the library to get the verifier contract and verify that this transaction was proved by state connector
+        IFdcVerification fdc = ContractRegistry.getFdcVerification();
+        // return true;
+        return fdc.verifyPayment(transaction);
     }
 }

@@ -21,6 +21,6 @@ async function deployAndVerify() {
   console.log("GuessingGame deployed to", guessingGame.address);
 }
 
-deployAndVerify().then(() => {
+void deployAndVerify().then(() => {
   process.exit(0);
 });

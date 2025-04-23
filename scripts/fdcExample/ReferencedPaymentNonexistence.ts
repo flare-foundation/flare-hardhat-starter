@@ -1,13 +1,8 @@
 import { run, web3 } from "hardhat";
 // import { AddressRegistryInstance } from "../../typechain-types";
-import {
-  prepareAttestationRequestBase,
-  submitAttestationRequest,
-  retrieveDataAndProofBase,
-} from "./Base";
+import { prepareAttestationRequestBase, submitAttestationRequest, retrieveDataAndProofBase } from "./Base";
 
-const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } =
-  process.env;
+const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } = process.env;
 
 // yarn hardhat run scripts/fdcExample/ReferencedPaymentNonexistence.ts --network coston2
 
@@ -51,19 +46,10 @@ async function prepareAttestationRequest(
   const url = `${verifierUrlBase}verifier/${urlTypeBase}/ReferencedPaymentNonexistence/prepareRequest`;
   const apiKey = VERIFIER_API_KEY_TESTNET ?? "";
 
-  return await prepareAttestationRequestBase(
-    url,
-    apiKey,
-    attestationTypeBase,
-    sourceIdBase,
-    requestBody
-  );
+  return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, sourceIdBase, requestBody);
 }
 
-async function retrieveDataAndProof(
-  abiEncodedRequest: string,
-  roundId: number
-) {
+async function retrieveDataAndProof(abiEncodedRequest: string, roundId: number) {
   const url = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
   console.log("Url:", url, "\n");
   return await retrieveDataAndProofBase(url, abiEncodedRequest, roundId);
@@ -97,6 +83,6 @@ async function main() {
   // await interactWithContract(addressRegistry, proof);
 }
 
-main().then(() => {
+void main().then(() => {
   process.exit(0);
 });

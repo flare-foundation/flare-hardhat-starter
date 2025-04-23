@@ -7,11 +7,7 @@ import {
   sleep,
 } from "../../fdcExample/Base";
 
-const {
-  JQ_VERIFIER_URL_TESTNET,
-  JQ_VERIFIER_API_KEY_TESTNET,
-  COSTON2_DA_LAYER_URL,
-} = process.env;
+const { JQ_VERIFIER_URL_TESTNET, JQ_VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } = process.env;
 
 const MinTempAgency = artifacts.require("MinTempAgency");
 
@@ -98,17 +94,13 @@ async function getPolicy(agency: MinTempAgencyInstance, id: number) {
   return policy;
 }
 
-async function prepareUrl(policy: any) {
+function prepareUrl(policy: any) {
   return `https://api.openweathermap.org/data/2.5/weather?lat=${
     policy.latitude / 10 ** 6
   }&lon=${policy.longitude / 10 ** 6}&units=${units}&appid=${apiId}`;
 }
 
-async function prepareAttestationRequest(
-  apiUrl: string,
-  postprocessJq: string,
-  abiSignature: string
-) {
+async function prepareAttestationRequest(apiUrl: string, postprocessJq: string, abiSignature: string) {
   const requestBody = {
     url: apiUrl,
     postprocessJq: postprocessJq,
@@ -116,43 +108,26 @@ async function prepareAttestationRequest(
   };
 
   const url = `${verifierUrlBase}JsonApi/prepareRequest`;
-  const apiKey = JQ_VERIFIER_API_KEY_TESTNET!;
+  const apiKey = JQ_VERIFIER_API_KEY_TESTNET;
 
-  return await prepareAttestationRequestBase(
-    url,
-    apiKey,
-    attestationTypeBase,
-    sourceIdBase,
-    requestBody
-  );
+  return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, sourceIdBase, requestBody);
 }
 
-async function retrieveDataAndProof(
-  abiEncodedRequest: string,
-  roundId: number
-) {
+async function retrieveDataAndProof(abiEncodedRequest: string, roundId: number) {
   const url = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
   console.log("Url:", url, "\n");
   return await retrieveDataAndProofBase(url, abiEncodedRequest, roundId);
 }
 
-async function resolvePolicy(
-  agency: MinTempAgencyInstance,
-  id: number,
-  proof: any
-) {
+async function resolvePolicy(agency: MinTempAgencyInstance, id: number, proof: any) {
   console.log("Proof hex:", proof.response_hex, "\n");
 
   // A piece of black magic that allows us to read the response type from an artifact
   const IJsonApiVerification = await artifacts.require("IJsonApiVerification");
-  const responseType =
-    IJsonApiVerification._json.abi[0].inputs[0].components[1];
+  const responseType = IJsonApiVerification._json.abi[0].inputs[0].components[1];
   console.log("Response type:", responseType, "\n");
 
-  const decodedResponse = web3.eth.abi.decodeParameter(
-    responseType,
-    proof.response_hex
-  );
+  const decodedResponse = web3.eth.abi.decodeParameter(responseType, proof.response_hex);
   console.log("Decoded proof:", decodedResponse, "\n");
 
   while (true) {
@@ -165,7 +140,7 @@ async function resolvePolicy(
       break;
     } catch (error) {
       console.log("Error:", error, "\n");
-      sleep(20000);
+      await sleep(20000);
     }
   }
 }
@@ -176,13 +151,9 @@ async function main() {
 
   const policy = await getPolicy(agency, policyId);
 
-  const apiUrl = await prepareUrl(policy);
+  const apiUrl = prepareUrl(policy);
 
-  const data = await prepareAttestationRequest(
-    apiUrl,
-    postprocessJq,
-    abiSignature
-  );
+  const data = await prepareAttestationRequest(apiUrl, postprocessJq, abiSignature);
   console.log("Data:", data, "\n");
 
   const abiEncodedRequest = data.abiEncodedRequest;
@@ -194,6 +165,6 @@ async function main() {
   await resolvePolicy(agency, policyId, proof);
 }
 
-main().then(() => {
+void main().then(() => {
   process.exit(0);
 });

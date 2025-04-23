@@ -1,8 +1,7 @@
 import "@nomicfoundation/hardhat-verify";
 import { ethers, run } from "hardhat";
 import { SimpleFtsoExampleContract } from "../typechain-types";
-const SimpleFtsoExample: SimpleFtsoExampleContract =
-  artifacts.require("SimpleFtsoExample");
+const SimpleFtsoExample: SimpleFtsoExampleContract = artifacts.require("SimpleFtsoExample");
 
 async function main() {
   const [deployer] = await ethers.getSigners();
@@ -24,4 +23,4 @@ async function main() {
   }
   console.log("Deployed contract at:", simpleFtsoExample.address);
 }
-main().then(() => process.exit(0));
+void main().then(() => process.exit(0));

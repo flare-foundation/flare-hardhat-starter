@@ -8,9 +8,7 @@ import {
 
 const Helpers = artifacts.require("Helpers");
 const FdcHub = artifacts.require("IFdcHub");
-const FdcRequestFeeConfigurations = artifacts.require(
-  "IFdcRequestFeeConfigurations"
-);
+const FdcRequestFeeConfigurations = artifacts.require("IFdcRequestFeeConfigurations");
 const FlareSystemsManager = artifacts.require("IFlareSystemsManager");
 const IRelay = artifacts.require("IRelay");
 
@@ -20,8 +18,8 @@ async function getHelpers() {
 }
 
 function toHex(data: string) {
-  var result = "";
-  for (var i = 0; i < data.length; i++) {
+  let result = "";
+  for (let i = 0; i < data.length; i++) {
     result += data.charCodeAt(i).toString(16);
   }
   return result.padEnd(64, "0");
@@ -32,7 +30,7 @@ function toUtf8HexString(data: string) {
 }
 
 function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 async function getFdcHub() {
@@ -43,17 +41,16 @@ async function getFdcHub() {
 
 async function getFlareSystemsManager() {
   const helpers: HelpersInstance = await getHelpers();
-  const flareSystemsManagerAddress: string =
-    await helpers.getFlareSystemsManager();
+  const flareSystemsManagerAddress: string = await helpers.getFlareSystemsManager();
   return await FlareSystemsManager.at(flareSystemsManagerAddress);
 }
 
 async function getFdcRequestFee(abiEncodedRequest: string) {
   const helpers: HelpersInstance = await getHelpers();
-  const fdcRequestFeeConfigurationsAddress: string =
-    await helpers.getFdcRequestFeeConfigurations();
-  const fdcRequestFeeConfigurations: IFdcRequestFeeConfigurationsInstance =
-    await FdcRequestFeeConfigurations.at(fdcRequestFeeConfigurationsAddress);
+  const fdcRequestFeeConfigurationsAddress: string = await helpers.getFdcRequestFeeConfigurations();
+  const fdcRequestFeeConfigurations: IFdcRequestFeeConfigurationsInstance = await FdcRequestFeeConfigurations.at(
+    fdcRequestFeeConfigurationsAddress
+  );
   return await fdcRequestFeeConfigurations.getRequestFee(abiEncodedRequest);
 }
 
@@ -90,9 +87,7 @@ async function prepareAttestationRequestBase(
     body: JSON.stringify(request),
   });
   if (response.status != 200) {
-    throw new Error(
-      `Response status is not OK, status ${response.status} ${response.statusText}\n`
-    );
+    throw new Error(`Response status is not OK, status ${response.status} ${response.statusText}\n`);
   }
   console.log("Response status is OK\n");
 
@@ -102,34 +97,19 @@ async function prepareAttestationRequestBase(
 async function calculateRoundId(transaction: any) {
   const blockNumber = transaction.receipt.blockNumber;
   const block = await ethers.provider.getBlock(blockNumber);
-  const blockTimestamp = BigInt(block!.timestamp);
+  const blockTimestamp = BigInt(block.timestamp);
 
-  const flareSystemsManager: IFlareSystemsManagerInstance =
-    await getFlareSystemsManager();
-  const firsVotingRoundStartTs = BigInt(
-    await flareSystemsManager.firstVotingRoundStartTs()
-  );
-  const votingEpochDurationSeconds = BigInt(
-    await flareSystemsManager.votingEpochDurationSeconds()
-  );
+  const flareSystemsManager: IFlareSystemsManagerInstance = await getFlareSystemsManager();
+  const firsVotingRoundStartTs = BigInt(await flareSystemsManager.firstVotingRoundStartTs());
+  const votingEpochDurationSeconds = BigInt(await flareSystemsManager.votingEpochDurationSeconds());
 
   console.log("Block timestamp:", blockTimestamp, "\n");
   console.log("First voting round start ts:", firsVotingRoundStartTs, "\n");
-  console.log(
-    "Voting epoch duration seconds:",
-    votingEpochDurationSeconds,
-    "\n"
-  );
+  console.log("Voting epoch duration seconds:", votingEpochDurationSeconds, "\n");
 
-  const roundId = Number(
-    (blockTimestamp - firsVotingRoundStartTs) / votingEpochDurationSeconds
-  );
+  const roundId = Number((blockTimestamp - firsVotingRoundStartTs) / votingEpochDurationSeconds);
   console.log("Calculated round id:", roundId, "\n");
-  console.log(
-    "Received round id:",
-    Number(await flareSystemsManager.getCurrentVotingEpochId()),
-    "\n"
-  );
+  console.log("Received round id:", Number(await flareSystemsManager.getCurrentVotingEpochId()), "\n");
   return roundId;
 }
 
@@ -150,11 +130,7 @@ async function submitAttestationRequest(abiEncodedRequest: string) {
   return roundId;
 }
 
-async function postRequestToDALayer(
-  url: string,
-  request: any,
-  watchStatus: boolean = false
-) {
+async function postRequestToDALayer(url: string, request: any, watchStatus: boolean = false) {
   const response = await fetch(url, {
     method: "POST",
     headers: {
@@ -164,20 +140,14 @@ async function postRequestToDALayer(
     body: JSON.stringify(request),
   });
   if (watchStatus && response.status != 200) {
-    throw new Error(
-      `Response status is not OK, status ${response.status} ${response.statusText}\n`
-    );
+    throw new Error(`Response status is not OK, status ${response.status} ${response.statusText}\n`);
   } else if (watchStatus) {
     console.log("Response status is OK\n");
   }
   return await response.json();
 }
 
-async function retrieveDataAndProofBase(
-  url: string,
-  abiEncodedRequest: string,
-  roundId: number
-) {
+async function retrieveDataAndProofBase(url: string, abiEncodedRequest: string, roundId: number) {
   console.log("Waiting for the round to finalize...");
   // We check every 10 seconds if the round is finalized
   const relay: IRelayInstance = await getRelay();
@@ -193,7 +163,7 @@ async function retrieveDataAndProofBase(
   console.log("Prepared request:\n", request, "\n");
 
   await sleep(10000);
-  var proof = await postRequestToDALayer(url, request, true);
+  let proof = await postRequestToDALayer(url, request, true);
   console.log("Waiting for the DA Layer to generate the proof...");
   while (proof.response_hex == undefined) {
     await sleep(10000);

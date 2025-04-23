@@ -8,12 +8,16 @@ import {RandomNumberV2Interface} from "@flarenetwork/flare-periphery-contracts/c
 contract GuessingGame {
     uint16 private _secretNumber;
     uint256 public _maxNumber;
-    RandomNumberV2Interface _generator;
+    RandomNumberV2Interface public _generator;
 
     constructor(uint256 maxNumber) {
         require(maxNumber <= type(uint16).max, "Only numbers smaller than 65535 allowed");
         _maxNumber = maxNumber;
         _generator = ContractRegistry.getRandomNumberV2();
+        _setNewSecretNumber();
+    }
+
+    function resetGame() public {
         _setNewSecretNumber();
     }
 
@@ -29,10 +33,6 @@ contract GuessingGame {
         } else {
             return "IMPOSSIBLE!";
         }
-    }
-
-    function resetGame() public {
-        _setNewSecretNumber();
     }
 
     function _setNewSecretNumber() private {

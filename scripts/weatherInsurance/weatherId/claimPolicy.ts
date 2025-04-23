@@ -7,10 +7,7 @@ const WeatherIdAgency = artifacts.require("WeatherIdAgency");
 
 const policyId = 0;
 
-async function getPolicyCoverage(
-  agency: WeatherIdAgencyInstance,
-  policyId: number
-) {
+async function getPolicyCoverage(agency: WeatherIdAgencyInstance, policyId: number) {
   const policy = await agency.registeredPolicies(policyId);
   const policyCoverage = policy.coverage;
   console.log("Policy premium:", policyCoverage, "\n");
@@ -18,9 +15,7 @@ async function getPolicyCoverage(
 }
 
 async function main() {
-  const agency: WeatherIdAgencyInstance = await WeatherIdAgency.at(
-    agencyAddress
-  );
+  const agency: WeatherIdAgencyInstance = await WeatherIdAgency.at(agencyAddress);
   console.log("WeatherIdAgency:", agency.address, "\n");
 
   const policyCoverage = await getPolicyCoverage(agency, policyId);
@@ -31,6 +26,6 @@ async function main() {
   console.log("Transaction:", transaction.tx, "\n");
 }
 
-main().then(() => {
+void main().then(() => {
   process.exit(0);
 });

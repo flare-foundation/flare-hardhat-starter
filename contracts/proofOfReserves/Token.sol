@@ -7,7 +7,10 @@ import {ERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20P
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 contract MyStablecoin is ERC20, ERC20Burnable, Ownable, ERC20Permit {
-    constructor(address recipient, address initialOwner)
+    constructor(
+        address recipient,
+        address initialOwner
+    )
         ERC20("MyStablecoin", "MST")
         Ownable(initialOwner)
         ERC20Permit("MyStablecoin")

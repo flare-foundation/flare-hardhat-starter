@@ -2,7 +2,6 @@
 pragma solidity ^0.8.25;
 
 import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
-import {IFdcVerification} from "@flarenetwork/flare-periphery-contracts/coston/IFdcVerification.sol";
 import {IJsonApi} from "@flarenetwork/flare-periphery-contracts/coston/IJsonApi.sol";
 
 struct StarWarsCharacter {
@@ -28,11 +27,6 @@ interface IStarWarsCharacterList {
 contract StarWarsCharacterList {
     mapping(uint256 => StarWarsCharacter) public characters;
     uint256[] public characterIds;
-
-    function isJsonApiProofValid(IJsonApi.Proof calldata _proof) private view returns (bool) {
-        // Inline the check for now until we have an official contract deployed
-        return ContractRegistry.auxiliaryGetIJsonApiVerification().verifyJsonApi(_proof);
-    }
 
     function addCharacter(IJsonApi.Proof calldata data) public {
         require(isJsonApiProofValid(data), "Invalid proof");
@@ -61,4 +55,9 @@ contract StarWarsCharacterList {
     }
 
     function abiSignatureHack(DataTransportObject calldata dto) public pure {}
+
+    function isJsonApiProofValid(IJsonApi.Proof calldata _proof) private view returns (bool) {
+        // Inline the check for now until we have an official contract deployed
+        return ContractRegistry.auxiliaryGetIJsonApiVerification().verifyJsonApi(_proof);
+    }
 }

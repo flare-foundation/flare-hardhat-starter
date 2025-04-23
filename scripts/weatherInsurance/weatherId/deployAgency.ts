@@ -16,13 +16,9 @@ async function deployAndVerify() {
   } catch (e: any) {
     console.log(e);
   }
-  console.log(
-    `(${hre.network.name}) WeatherIdAgency deployed to`,
-    agency.address,
-    "\n"
-  );
+  console.log(`(${hre.network.name}) WeatherIdAgency deployed to`, agency.address, "\n");
 }
 
-deployAndVerify().then(() => {
+void deployAndVerify().then(() => {
   process.exit(0);
 });

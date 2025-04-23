@@ -13,7 +13,9 @@ contract MyNFT is ERC721, AccessControl {
         _grantRole(MINTER_ROLE, minter);
     }
 
-    function safeMint(address to) public onlyRole(MINTER_ROLE) returns (uint256) {
+    function safeMint(
+        address to
+    ) public onlyRole(MINTER_ROLE) returns (uint256) {
         uint256 tokenId = _nextTokenId++;
         _safeMint(to, tokenId);
         return tokenId;
@@ -21,7 +23,9 @@ contract MyNFT is ERC721, AccessControl {
 
     // The following functions are overrides required by Solidity.
 
-    function supportsInterface(bytes4 interfaceId) public view override(ERC721, AccessControl) returns (bool) {
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC721, AccessControl) returns (bool) {
         return super.supportsInterface(interfaceId);
     }
 }

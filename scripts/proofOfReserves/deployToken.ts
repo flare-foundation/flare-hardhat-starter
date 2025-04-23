@@ -18,13 +18,9 @@ async function deployAndVerify() {
   } catch (e: any) {
     console.log(e);
   }
-  console.log(
-    `(${hre.network.name}) MyStablecoin deployed to`,
-    myStablecoin.address,
-    "\n"
-  );
+  console.log(`(${hre.network.name}) MyStablecoin deployed to`, myStablecoin.address, "\n");
 }
 
-deployAndVerify().then(() => {
+void deployAndVerify().then(() => {
   process.exit(0);
 });

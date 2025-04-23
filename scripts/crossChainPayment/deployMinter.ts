@@ -1,4 +1,4 @@
-import hre, { run } from "hardhat";
+import { run } from "hardhat";
 import { NFTMinterInstance, MyNFTInstance } from "../../typechain-types";
 import { nftAddress } from "./config";
 
@@ -26,13 +26,9 @@ async function deployAndVerify() {
   console.log("MINTER_ROLE:", minterRole, "\n");
 
   await myNFT.grantRole(minterRole, nftMinter.address);
-  console.log(
-    "NFTMinter has MINTER_ROLE:",
-    await myNFT.hasRole(minterRole, nftMinter.address),
-    "\n"
-  );
+  console.log("NFTMinter has MINTER_ROLE:", await myNFT.hasRole(minterRole, nftMinter.address), "\n");
 }
 
-deployAndVerify().then(() => {
+void deployAndVerify().then(() => {
   process.exit(0);
 });

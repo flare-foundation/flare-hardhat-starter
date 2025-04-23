@@ -17,12 +17,14 @@ interface INFTMinter {
 }
 
 contract NFTMinter is INFTMinter {
-    address public USDC_CONTRACT = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238; // USDC contract address on sepolia
-    address public OWNER = 0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD; // Our address on Sepolia
+    // USDC contract address on sepolia
+    address public constant USDC_CONTRACT = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
+    // Our address on Sepolia
+    address public constant OWNER = 0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD;
 
     MyNFT public token;
     TokenTransfer[] public tokenTransfers;
-    mapping(bytes32 => bool) processedTransactions;
+    mapping(bytes32 => bool) public processedTransactions;
 
     event NFTMinted(address owner, uint256 tokenId);
 
@@ -30,15 +32,9 @@ contract NFTMinter is INFTMinter {
         token = _token;
     }
 
-    function isEVMTransactionProofValid(IEVMTransaction.Proof calldata transaction) public view returns (bool) {
-        // Use the library to get the verifier contract and verify that this transaction was proved by state connector
-        IFdcVerification fdc = ContractRegistry.getFdcVerification();
-        // return true;
-        return fdc.verifyEVMTransaction(transaction);
-    }
-
     function collectAndProcessTransferEvents(IEVMTransaction.Proof calldata _transaction) external {
-        require(!processedTransactions[_transaction.data.requestBody.transactionHash], "Transaction already processed");
+        bytes32 transactionHash = _transaction.data.requestBody.transactionHash;
+        require(!processedTransactions[transactionHash], "Transaction already processed");
 
         // Check that this EVMTransaction has indeed been confirmed by the FDC
         require(isEVMTransactionProofValid(_transaction), "Invalid transaction proof");
@@ -65,7 +61,8 @@ contract NFTMinter is INFTMinter {
                 continue;
             }
 
-            // We now know that this is a Transfer event from the USDC contract - and therefore know how to decode topics and data
+            // We now know that this is a Transfer event from the USDC contract - and therefore know how to decode
+            // the topics and data
             // Topic 1 is the sender
             address sender = address(uint160(uint256(_event.topics[1])));
             // Topic 2 is the receiver
@@ -90,5 +87,12 @@ contract NFTMinter is INFTMinter {
             result[i] = tokenTransfers[i];
         }
         return result;
+    }
+
+    function isEVMTransactionProofValid(IEVMTransaction.Proof calldata transaction) public view returns (bool) {
+        // Use the library to get the verifier contract and verify that this transaction was proved by state connector
+        IFdcVerification fdc = ContractRegistry.getFdcVerification();
+        // return true;
+        return fdc.verifyEVMTransaction(transaction);
     }
 }

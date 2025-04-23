@@ -1,4 +1,4 @@
-import hre, { run } from "hardhat";
+import { run } from "hardhat";
 import { MyNFTInstance } from "../../typechain-types";
 
 const MyNFT = artifacts.require("MyNFT");
@@ -21,6 +21,6 @@ async function deployAndVerify() {
   console.log(`MyNFT deployed to`, myStablecoin.address, "\n");
 }
 
-deployAndVerify().then(() => {
+void deployAndVerify().then(() => {
   process.exit(0);
 });
