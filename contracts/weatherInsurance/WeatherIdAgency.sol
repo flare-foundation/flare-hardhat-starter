@@ -4,7 +4,6 @@ pragma solidity ^0.8.25;
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
 import {IJsonApi} from "@flarenetwork/flare-periphery-contracts/coston/IJsonApi.sol";
 import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
-import {IJsonApiVerification} from "@flarenetwork/flare-periphery-contracts/coston/IJsonApiVerification.sol";
 
 // All floats come multiplied by 10^6
 struct DataTransportObject {
@@ -19,9 +18,6 @@ struct DataTransportObject {
 }
 
 contract WeatherIdAgency {
-    Policy[] public registeredPolicies;
-    mapping(uint256 => address) insurers;
-
     enum PolicyStatus {
         Unclaimed,
         Open,
@@ -40,6 +36,9 @@ contract WeatherIdAgency {
         PolicyStatus status;
         uint256 id;
     }
+
+    Policy[] public registeredPolicies;
+    mapping(uint256 => address) public insurers;
 
     event PolicyCreated(uint256 id);
     event PolicyClaimed(uint256 id);
@@ -172,9 +171,9 @@ contract WeatherIdAgency {
         return registeredPolicies;
     }
 
+    function abiSignatureHack(DataTransportObject memory dto) public pure {}
+
     function isJsonApiProofValid(IJsonApi.Proof calldata _proof) private view returns (bool) {
         return ContractRegistry.auxiliaryGetIJsonApiVerification().verifyJsonApi(_proof);
     }
-
-    function abiSignatureHack(DataTransportObject memory dto) public pure {}
 }

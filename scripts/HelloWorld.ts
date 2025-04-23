@@ -21,6 +21,6 @@ async function deployAndVerify() {
   console.log("HelloWorld deployed to", helloWorld.address);
 }
 
-deployAndVerify().then(() => {
+void deployAndVerify().then(() => {
   process.exit(0);
 });

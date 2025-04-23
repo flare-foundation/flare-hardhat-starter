@@ -11,14 +11,12 @@ async function main() {
   const network = hre.network.name;
   const tokenAddress = tokenAddresses.get(network);
   const readerAddress = readerAddresses.get(network);
-  const reader: TokenStateReaderInstance = await TokenStateReader.at(
-    readerAddress
-  );
+  const reader: TokenStateReaderInstance = await TokenStateReader.at(readerAddress);
 
   const transaction = await reader.broadcastTokenSupply(tokenAddress);
   console.log(`(${network}) Transaction id:`, transaction.tx, "\n");
 }
 
-main().then(() => {
+void main().then(() => {
   process.exit(0);
 });

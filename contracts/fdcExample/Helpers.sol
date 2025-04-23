@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {console} from "hardhat/console.sol";
 import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
 import {IFdcHub} from "@flarenetwork/flare-periphery-contracts/coston/IFdcHub.sol";
 import {IFdcRequestFeeConfigurations} from

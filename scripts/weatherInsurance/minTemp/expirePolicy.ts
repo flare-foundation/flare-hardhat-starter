@@ -15,6 +15,6 @@ async function main() {
   console.log("Transaction:", transaction.tx, "\n");
 }
 
-main().then(() => {
+void main().then(() => {
   process.exit(0);
 });

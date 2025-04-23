@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IEVMTransaction} from "@flarenetwork/flare-periphery-contracts/coston/IEVMTransaction.sol";
 import {IJsonApi} from "@flarenetwork/flare-periphery-contracts/coston/IJsonApi.sol";
 import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
@@ -12,21 +11,17 @@ struct DataTransportObject {
 }
 
 contract ProofOfReserves is Ownable {
-    // Two events and values for debug purposes
-    event GoodPair(address reader, address token, uint256 totalSupply);
-    event BadPair(address reader, address token, uint256 totalSupply);
-
     uint256 public debugTokenReserves = 0;
     uint256 public debugClaimedReserves = 0;
 
     mapping(address => address) public tokenStateReaders;
 
+    // Two events and values for debug purposes
+    event GoodPair(address reader, address token, uint256 totalSupply);
+    event BadPair(address reader, address token, uint256 totalSupply);
+
     constructor() Ownable(msg.sender) {
         // TODO make this dynamic with hardhat and Ownable
-    }
-
-    function updateAddress(address readerAddress, address tokenAddress) public onlyOwner {
-        tokenStateReaders[readerAddress] = tokenAddress;
     }
 
     function verifyReserves(IJsonApi.Proof calldata jsonProof, IEVMTransaction.Proof[] calldata transactionProofs)
@@ -43,6 +38,12 @@ contract ProofOfReserves is Ownable {
 
         return totalTokenReserves <= (claimedReserves * 1 ether);
     }
+
+    function updateAddress(address readerAddress, address tokenAddress) public onlyOwner {
+        tokenStateReaders[readerAddress] = tokenAddress;
+    }
+
+    function abiSignatureHack(DataTransportObject calldata dto) public pure {}
 
     function readReserves(IJsonApi.Proof calldata proof) private returns (uint256) {
         require(isValidProof(proof), "Invalid json proof");
@@ -77,6 +78,4 @@ contract ProofOfReserves is Ownable {
     function isValidProof(IEVMTransaction.Proof calldata proof) private view returns (bool) {
         return ContractRegistry.getFdcVerification().verifyEVMTransaction(proof);
     }
-
-    function abiSignatureHack(DataTransportObject calldata dto) external pure {}
 }

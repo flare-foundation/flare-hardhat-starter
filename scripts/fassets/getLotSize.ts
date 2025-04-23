@@ -8,12 +8,17 @@ async function main() {
   console.log("Deploying FAssetsSettings...");
 
   //Get the contract factory
-  const FAssetsSettings = await ethers.getContractFactory("FAssetsSettings") as FAssetsSettingsContract;
+  const FAssetsSettings = (await ethers.getContractFactory(
+    "FAssetsSettings",
+  )) as FAssetsSettingsContract;
 
   //Deploy the contract
   const fAssetsSettings = await FAssetsSettings.deploy(ASSET_MANAGER_ADDRESS);
   await fAssetsSettings.waitForDeployment();
-  console.log("FAssetsSettings deployed to:", await fAssetsSettings.getAddress());
+  console.log(
+    "FAssetsSettings deployed to:",
+    await fAssetsSettings.getAddress(),
+  );
 
   //Call getSettings function
   const lotSize = await fAssetsSettings.getLotSize();
@@ -22,7 +27,7 @@ async function main() {
 
   //Convert lot size to XRP
   const lotSizeFXRP = Number(lotSize[0]) / Math.pow(10, Number(lotSize[1]));
-  console.log("Lot size in XRP", lotSizeFXRP)
+  console.log("Lot size in XRP", lotSizeFXRP);
 }
 
 main().catch((error) => {

@@ -13,19 +13,8 @@ const readerAddresses = new Map([
 const proofOfReservesAddress = "0xCe109FE40e1860b7B659DA6C680E931b25d4E445";
 
 const transactionHashes = new Map([
-  [
-    "coston",
-    "0x192ff7eb839157d037f023d006aec47afaad6dc8ed98618a5e8803992518caeb",
-  ],
-  [
-    "coston2",
-    "0x7149c77b4ecb68ca9faea3991cf24864dc4fbf09c6c52f0c203c748456b80658",
-  ],
+  ["coston", "0x192ff7eb839157d037f023d006aec47afaad6dc8ed98618a5e8803992518caeb"],
+  ["coston2", "0x7149c77b4ecb68ca9faea3991cf24864dc4fbf09c6c52f0c203c748456b80658"],
 ]);
 
-export {
-  tokenAddresses,
-  readerAddresses,
-  proofOfReservesAddress,
-  transactionHashes,
-};
+export { tokenAddresses, readerAddresses, proofOfReservesAddress, transactionHashes };

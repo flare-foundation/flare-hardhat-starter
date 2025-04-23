@@ -17,14 +17,8 @@ interface ITransferEventListener {
 
 contract TransferEventListener is ITransferEventListener {
     TokenTransfer[] public tokenTransfers;
-    address public USDC_CONTRACT = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238; // USDC contract address on sepolia
-
-    function isEVMTransactionProofValid(IEVMTransaction.Proof calldata transaction) public view returns (bool) {
-        // Use the library to get the verifier contract and verify that this transaction was proved by state connector
-        IFdcVerification fdc = ContractRegistry.getFdcVerification();
-        // return true;
-        return fdc.verifyEVMTransaction(transaction);
-    }
+    // USDC contract address on sepolia
+    address public constant USDC_CONTRACT = 0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
 
     function collectTransferEvents(IEVMTransaction.Proof calldata _transaction) external {
         // 1. FDC Logic
@@ -51,7 +45,8 @@ contract TransferEventListener is ITransferEventListener {
                 continue;
             }
 
-            // We now know that this is a Transfer event from the USDC contract - and therefore know how to decode topics and data
+            // We now know that this is a Transfer event from the USDC contract - and therefore know how to decode
+            // the topics and data
             // Topic 1 is the sender
             address sender = address(uint160(uint256(_event.topics[1])));
             // Topic 2 is the receiver
@@ -70,5 +65,12 @@ contract TransferEventListener is ITransferEventListener {
             result[i] = tokenTransfers[i];
         }
         return result;
+    }
+
+    function isEVMTransactionProofValid(IEVMTransaction.Proof calldata transaction) public view returns (bool) {
+        // Use the library to get the verifier contract and verify that this transaction was proved by state connector
+        IFdcVerification fdc = ContractRegistry.getFdcVerification();
+        // return true;
+        return fdc.verifyEVMTransaction(transaction);
     }
 }

@@ -12,12 +12,6 @@ interface IAddressRegistry {
 contract AddressRegistry is IAddressRegistry {
     string[] public verifiedAddresses;
 
-    function isAddressValidityProofValid(IAddressValidity.Proof memory transaction) public view returns (bool) {
-        // Use the library to get the verifier contract and verify that this transaction was proved by state connector
-        IFdcVerification fdc = ContractRegistry.getFdcVerification();
-        return fdc.verifyAddressValidity(transaction);
-    }
-
     function registerAddress(IAddressValidity.Proof memory _transaction) public {
         // 1. FDC Logic
         // Check that this AddressValidity has indeed been confirmed by the FDC
@@ -27,5 +21,11 @@ contract AddressRegistry is IAddressRegistry {
         string memory provedAddress = _transaction.data.requestBody.addressStr;
 
         verifiedAddresses.push(provedAddress);
+    }
+
+    function isAddressValidityProofValid(IAddressValidity.Proof memory transaction) public view returns (bool) {
+        // Use the library to get the verifier contract and verify that this transaction was proved by state connector
+        IFdcVerification fdc = ContractRegistry.getFdcVerification();
+        return fdc.verifyAddressValidity(transaction);
     }
 }

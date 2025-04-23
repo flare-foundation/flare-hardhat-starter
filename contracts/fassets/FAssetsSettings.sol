@@ -18,7 +18,11 @@ contract FAssetsSettings {
     // * lotSizeAMG: The smallest amount you can trade (in AMG units)
     // * assetDecimals: How many decimal places the asset uses
     // FAssets Operation Parameters https://dev.flare.network/fassets/operational-parameters
-    function getLotSize() public view returns (uint64 lotSizeAMG, uint8 assetDecimals) {
+    function getLotSize()
+        public
+        view
+        returns (uint64 lotSizeAMG, uint8 assetDecimals)
+    {
         lotSizeAMG = assetManager.getSettings().lotSizeAMG;
         assetDecimals = assetManager.getSettings().assetDecimals;
 

@@ -8,9 +8,7 @@ const ProofOfReserves = artifacts.require("ProofOfReserves");
 
 async function deployAndVerify() {
   const args: any[] = [];
-  const proofOfReserves: ProofOfReservesInstance = await ProofOfReserves.new(
-    ...args
-  );
+  const proofOfReserves: ProofOfReservesInstance = await ProofOfReserves.new(...args);
   try {
     await run("verify:verify", {
       address: proofOfReserves.address,
@@ -19,13 +17,9 @@ async function deployAndVerify() {
   } catch (e: any) {
     console.log(e);
   }
-  console.log(
-    `(${hre.network.name}) ProofOfReserves deployed to`,
-    proofOfReserves.address,
-    "\n"
-  );
+  console.log(`(${hre.network.name}) ProofOfReserves deployed to`, proofOfReserves.address, "\n");
 }
 
-deployAndVerify().then(() => {
+void deployAndVerify().then(() => {
   process.exit(0);
 });
