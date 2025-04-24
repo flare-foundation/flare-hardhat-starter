@@ -1,10 +1,18 @@
+// ===============================================================================================================================
+//
+//
+// DEPRECATED: use Web2Json instead
+//
+//
+// ===============================================================================================================================
+
 import { run, web3 } from "hardhat";
 import { StarWarsCharacterListInstance } from "../../typechain-types";
 import { prepareAttestationRequestBase, submitAttestationRequest, retrieveDataAndProofBase } from "./Base";
 
 const StarWarsCharacterList = artifacts.require("StarWarsCharacterList");
 
-const { JQ_VERIFIER_URL_TESTNET, JQ_VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } = process.env;
+const { JQ_VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } = process.env;
 
 // yarn hardhat run scripts/fdcExample/JsonApi.ts --network coston2
 
@@ -25,8 +33,8 @@ async function prepareAttestationRequest(apiUrl: string, postprocessJq: string, 
         abi_signature: abiSignature,
     };
 
-    const url = `${verifierUrlBase}JsonApi/prepareRequest`;
-    const apiKey = JQ_VERIFIER_API_KEY_TESTNET;
+  const url = `${verifierUrlBase}JsonApi/prepareRequest`;
+  const apiKey = VERIFIER_API_KEY_TESTNET;
 
     return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, sourceIdBase, requestBody);
 }
