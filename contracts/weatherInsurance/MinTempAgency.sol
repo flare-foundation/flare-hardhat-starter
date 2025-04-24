@@ -2,7 +2,7 @@
 pragma solidity ^0.8.25;
 
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {IJsonApi} from "@flarenetwork/flare-periphery-contracts/coston/IJsonApi.sol";
+import {IWeb2Json} from "@flarenetwork/flare-periphery-contracts/coston/IWeb2Json.sol";
 import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
 
 // All floats come multiplied by 10^6
@@ -98,12 +98,12 @@ contract MinTempAgency {
     }
 
     // TODO rethink expirations of policy
-    function resolvePolicy(uint256 id, IJsonApi.Proof calldata proof) public {
+    function resolvePolicy(uint256 id, IWeb2Json.Proof calldata proof) public {
         Policy memory policy = registeredPolicies[id];
         require(policy.status == PolicyStatus.Open, "Policy not open");
         require(isJsonApiProofValid(proof), "Invalid proof");
         DataTransportObject memory dto = abi.decode(
-            proof.data.responseBody.abi_encoded_data,
+            proof.data.responseBody.abiEncodedData,
             (DataTransportObject)
         );
         require(
@@ -192,10 +192,10 @@ contract MinTempAgency {
     function abiSignatureHack(DataTransportObject memory dto) public pure {}
 
     function isJsonApiProofValid(
-        IJsonApi.Proof calldata _proof
+        IWeb2Json.Proof calldata _proof
     ) private view returns (bool) {
         return
-            ContractRegistry.auxiliaryGetIJsonApiVerification().verifyJsonApi(
+            ContractRegistry.auxiliaryGetIWeb2JsonVerification().verifyJsonApi(
                 _proof
             );
     }

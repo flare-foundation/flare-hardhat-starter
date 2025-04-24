@@ -7,7 +7,7 @@ import {
     sleep,
 } from "../../fdcExample/Base";
 
-const { JQ_VERIFIER_URL_TESTNET, JQ_VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } = process.env;
+const { WEB2JSON_VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } = process.env;
 
 const WeatherIdAgency = artifacts.require("WeatherIdAgency");
 
@@ -19,7 +19,12 @@ const policyId = 0;
 const apiId = process.env.OPEN_WEATHER_API_KEY ?? "";
 const units = "metric";
 
-const postprocessJq = `{
+const apiUrl = "https://api.openweathermap.org/data/2.5/weather";
+const httpMethod = "GET";
+const headers = JSON.stringify({ "Content-Type": "application/json" });
+const body = "{}";
+
+const postProcessJq = `{
 latitude: (.coord.lat | if . != null then .*pow(10;6) else null end),
 longitude: (.coord.lon | if . != null then .*pow(10;6) else null end),
 weatherId: .weather[0].id,
@@ -78,9 +83,9 @@ const abiSignature = `{
         }`;
 
 // Configuration constants
-const attestationTypeBase = "IJsonApi";
-const sourceIdBase = "WEB2";
-const verifierUrlBase = JQ_VERIFIER_URL_TESTNET;
+const attestationTypeBase = "Web2Json";
+const sourceIdBase = "PublicWeb2";
+const verifierUrlBase = WEB2JSON_VERIFIER_URL_TESTNET;
 
 async function getPolicy(agency: WeatherIdAgencyInstance, id: number) {
     const response = await agency.registeredPolicies(id);
@@ -99,21 +104,41 @@ async function getPolicy(agency: WeatherIdAgencyInstance, id: number) {
     return policy;
 }
 
-function prepareUrl(policy: any) {
-    return `https://api.openweathermap.org/data/2.5/weather?lat=${
-        policy.latitude / 10 ** 6
-    }&lon=${policy.longitude / 10 ** 6}&units=${units}&appid=${apiId}`;
+function prepareQueryParams(policy: any) {
+  const queryParams = {
+    lat: policy.latitude / 10 ** 6,
+    lon: policy.longitude / 10 ** 6,
+    units: units,
+    appid: apiId,
+  };
+  return JSON.stringify(queryParams);
 }
 
-async function prepareAttestationRequest(apiUrl: string, postprocessJq: string, abiSignature: string) {
-    const requestBody = {
-        url: apiUrl,
-        postprocessJq: postprocessJq,
-        abi_signature: abiSignature,
-    };
+async function prepareAttestationRequest(
+  apiUrl: string,
+  httpMethod: string,
+  headers: string,
+  queryParams: string,
+  body: string,
+  postProcessJq: string,
+  abiSignature: string
+) {
+  const requestBody = {
+    url: apiUrl,
+    httpMethod: httpMethod,
+    headers: headers,
+    queryParams: queryParams,
+    body: body,
+    postProcessJq: postProcessJq,
+    abiSignature: abiSignature,
+  };
 
-    const url = `${verifierUrlBase}JsonApi/prepareRequest`;
-    const apiKey = JQ_VERIFIER_API_KEY_TESTNET;
+  console.log(
+    `Query string: ${apiUrl}?${queryParams.replaceAll(":", "=").replaceAll(",", "&").replaceAll("{", "").replaceAll("}", "").replaceAll('"', "")}\n`
+  );
+
+  const url = `${verifierUrlBase}Web2Json/prepareRequest`;
+  const apiKey = VERIFIER_API_KEY_TESTNET;
 
     return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, sourceIdBase, requestBody);
 }
@@ -125,9 +150,9 @@ async function retrieveDataAndProof(abiEncodedRequest: string, roundId: number) 
 }
 
 async function resolvePolicy(agency: WeatherIdAgencyInstance, id: number, proof: any) {
-    // A piece of black magic that allows us to read the response type from an artifact
-    const IJsonApiVerification = await artifacts.require("IJsonApiVerification");
-    const responseType = IJsonApiVerification._json.abi[0].inputs[0].components[1];
+  // A piece of black magic that allows us to read the response type from an artifact
+  const IWeb2JsonVerification = await artifacts.require("IWeb2JsonVerification");
+  const responseType = IWeb2JsonVerification._json.abi[0].inputs[0].components[1];
 
     const decodedResponse = web3.eth.abi.decodeParameter(responseType, proof.response_hex);
 
@@ -152,11 +177,19 @@ async function main() {
 
     const policy = await getPolicy(agency, policyId);
 
-    const apiUrl = prepareUrl(policy);
+  const queryParams = prepareQueryParams(policy);
 
-    const data = await prepareAttestationRequest(apiUrl, postprocessJq, abiSignature);
-
-    const abiEncodedRequest = data.abiEncodedRequest;
+  const data = await prepareAttestationRequest(
+    apiUrl,
+    httpMethod,
+    headers,
+    queryParams,
+    body,
+    postProcessJq,
+    abiSignature
+  );
+  console.log("Data:", data, "\n");
+  const abiEncodedRequest = data.abiEncodedRequest;
 
     const roundId = await submitAttestationRequest(abiEncodedRequest);
 
