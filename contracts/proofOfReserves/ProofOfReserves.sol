@@ -2,7 +2,7 @@
 pragma solidity ^0.8.25;
 
 import {IEVMTransaction} from "@flarenetwork/flare-periphery-contracts/coston/IEVMTransaction.sol";
-import {IJsonApi} from "@flarenetwork/flare-periphery-contracts/coston/IJsonApi.sol";
+import {IWeb2Json} from "@flarenetwork/flare-periphery-contracts/coston/IWeb2Json.sol";
 import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
@@ -28,6 +28,10 @@ contract ProofOfReserves is Ownable {
         IJsonApi.Proof calldata jsonProof,
         IEVMTransaction.Proof[] calldata transactionProofs
     ) external returns (bool) {
+    function verifyReserves(IWeb2Json.Proof calldata jsonProof, IEVMTransaction.Proof[] calldata transactionProofs)
+        external
+        returns (bool)
+    {
         uint256 claimedReserves = readReserves(jsonProof);
 
         uint256 totalTokenReserves = 0;
@@ -51,11 +55,13 @@ contract ProofOfReserves is Ownable {
     function readReserves(
         IJsonApi.Proof calldata proof
     ) private returns (uint256) {
+    function readReserves(IWeb2Json.Proof calldata proof) private returns (uint256) {
         require(isValidProof(proof), "Invalid json proof");
         DataTransportObject memory data = abi.decode(
             proof.data.responseBody.abi_encoded_data,
             (DataTransportObject)
         );
+        DataTransportObject memory data = abi.decode(proof.data.responseBody.abiEncodedData, (DataTransportObject));
         debugClaimedReserves = data.reserves;
 
         return data.reserves;
@@ -96,6 +102,8 @@ contract ProofOfReserves is Ownable {
             ContractRegistry.auxiliaryGetIJsonApiVerification().verifyJsonApi(
                 proof
             );
+    function isValidProof(IWeb2Json.Proof calldata proof) private view returns (bool) {
+        return ContractRegistry.auxiliaryGetIWeb2JsonVerification().verifyJsonApi(proof);
     }
 
     function isValidProof(

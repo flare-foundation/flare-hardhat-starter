@@ -10,7 +10,7 @@ const readerAddresses = new Map([
     ["coston2", "0xD069D5c27211229afdCc173F2a46cc4aFb320911"],
 ]);
 
-const proofOfReservesAddress = "0xCe109FE40e1860b7B659DA6C680E931b25d4E445";
+const proofOfReservesAddress = "0x93159f8AEE952CBa03aB8Fd0a913E7935281E7dF";
 
 const transactionHashes = new Map([
     ["coston", "0x192ff7eb839157d037f023d006aec47afaad6dc8ed98618a5e8803992518caeb"],
