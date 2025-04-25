@@ -6,7 +6,6 @@ import {IFdcVerification} from "@flarenetwork/flare-periphery-contracts/coston2/
 import {IJsonApi} from "@flarenetwork/flare-periphery-contracts/coston2/IJsonApi.sol";
 import {IICustomFeed} from "@flarenetwork/flare-periphery-contracts/coston2/customFeeds/interface/IICustomFeed.sol";
 
-// Only contains the price, as symbol and timestamp are derived from the URL
 struct PriceOnlyData {
     uint256 price;
 }
@@ -40,7 +39,6 @@ contract PriceVerifierCustomFeed is IICustomFeed {
     // Simplified event: Symbol comes from expectedSymbol, timestamp from URL parsing
     event PriceVerified(string symbol, uint256 price, uint64 timestamp, string apiUrl);
 
-    // Optional: Keep or remove this event based on debugging needs
     event UrlParsingCheck(
         string apiUrl,
         string symbolFromUrl,
@@ -130,7 +128,7 @@ contract PriceVerifierCustomFeed is IICustomFeed {
             "UrlSymbolMismatchExpected()"
         );
 
-        // b) *** ADDED CHECK ***: Verify the STRING symbol *parsed from the JQ filter* also matches the expected symbol.
+        // b) Verify the STRING symbol *parsed from the JQ filter* also matches the expected symbol.
         // This ensures the JQ filter is operating on the correct data path within the JSON.
         require(
             keccak256(abi.encodePacked(symbolFromJq)) == keccak256(abi.encodePacked(expectedSymbol)),
@@ -181,7 +179,7 @@ contract PriceVerifierCustomFeed is IICustomFeed {
      * @return _timestamp The timestamp when the price was valid (from the proof).
      */
     function getCurrentFeed() external payable override returns (uint256 _value, int8 _decimals, uint64 _timestamp) {
-        _value = read(); // Assumes read() is view or pure
+        _value = read();
         _decimals = DECIMALS;
         _timestamp = latestVerifiedTimestamp;
     }
@@ -191,7 +189,7 @@ contract PriceVerifierCustomFeed is IICustomFeed {
      * @dev Implements the IICustomFeed interface requirement. Returns 0.
      * @return _fee The fee (0).
      */
-    function calculateFee() external view override returns (uint256 _fee) {
+    function calculateFee() external pure override returns (uint256 _fee) {
         return 0;
     }
 
@@ -470,8 +468,4 @@ contract PriceVerifierCustomFeed is IICustomFeed {
         }
         // Returns extracted symbol string, or "" if pattern not found
     }
-
-    // --- Helper for ABI generation ---
-    // Update to reflect the new struct name
-    function abiPriceOnlyDataHack(PriceOnlyData calldata) external pure {}
 }
