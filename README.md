@@ -87,6 +87,19 @@ If you are new to Hardhat please check the [Hardhat getting started doc](https:/
 └── yarn.lock
 ```
 
+## Contributing
+
+Before opening a pull request, lint and format the code.
+You can do that by running the following commands.
+
+```sh
+yarn format:fix
+```
+
+```sh
+yarn lint:fix
+```
+
 ## Clean repository
 
 If you want to start building your projects from a repository that is already setup to work with Flare correctly, but you do not want to keep any of the examples, these are the files you should delete:
