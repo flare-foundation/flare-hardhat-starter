@@ -4,34 +4,8 @@ pragma solidity ^0.8.25;
 import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
 import {IFdcVerification} from "@flarenetwork/flare-periphery-contracts/coston2/IFdcVerification.sol";
 import {IJsonApi} from "@flarenetwork/flare-periphery-contracts/coston2/IJsonApi.sol";
+import {IICustomFeed} from "@flarenetwork/flare-periphery-contracts/coston2/customFeeds/interface/IICustomFeed.sol";
 
-// The internal interface required for FTSO Custom Feeds (Based on FIP.13 description)
-// NOTE: You should import the actual IICustomFeed interface from the Flare Network contracts library
-// once it's available or confirmed. This is a likely structure based on FIP.13.
-interface IICustomFeed {
-
-    /**
-     * Returns the feed id.
-     * @return _feedId The feed id.
-     */
-    function feedId() external view returns (bytes21 _feedId);
-
-    /**
-     * Returns the current feed.
-     * @return _value The value of the feed.
-     * @return _decimals The decimals of the feed.
-     * @return _timestamp The timestamp of the feed.
-     */
-    function getCurrentFeed() external payable returns (uint256 _value, int8 _decimals, uint64 _timestamp);
-
-    /**
-     * Calculates the fee for fetching the feed.
-     * @return _fee The fee for fetching the feed.
-     */
-    function calculateFee() external view returns (uint256 _fee);
-}
-
-//
 // Only contains the price, as symbol and timestamp are derived from the URL
 struct PriceOnlyData {
     uint256 price;
