@@ -13,16 +13,15 @@ const {
   JQ_VERIFIER_API_KEY_TESTNET,
   COSTON2_DA_LAYER_URL,
 } = process.env;
+
 // --- Request Configuration ---
 
 // Define the price to fetch
-const priceSymbol = "BTC"; // <--- CHANGE THIS SYMBOL AS NEEDED (e.g., "ETH", "FLR") depends on the API
+const priceSymbol = "BTC"; // <--- CHANGE THIS SYMBOL AS NEEDED (e.g., "ETH")
 
-// Map common symbols to CoinGecko IDs
 const coinGeckoIds: { [key: string]: string } = {
   BTC: "bitcoin",
   ETH: "ethereum",
-  FLR: "flare-networks",
 };
 const coinGeckoId = coinGeckoIds[priceSymbol];
 if (!coinGeckoId) {
