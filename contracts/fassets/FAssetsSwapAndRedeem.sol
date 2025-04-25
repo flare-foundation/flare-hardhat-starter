@@ -35,7 +35,9 @@ contract FAssetsSwapAndRedeem {
 
     event SwapCompleted(uint256[] amountsSent, uint256[] amountsRecv);
 
-    event Redeemed(uint256 redeemedAmountUBA);
+    event Redeemed(uint256 lots, uint256 redeemedAmountUBA);
+
+    event RedeemStarted(uint256 lots, string redeemerUnderlyingAddressString);
 
     constructor(
         address _router,
@@ -89,7 +91,7 @@ contract FAssetsSwapAndRedeem {
 
         require(
             token.allowance(msg.sender, address(this)) >= _amountIn,
-            "Insufficient allowance"
+            "Insufficient FXRP allowance"
         );
 
         // Transfer tokens from msg.sender to this contract
@@ -122,9 +124,11 @@ contract FAssetsSwapAndRedeem {
 
         emit SwapCompleted(_amountsSent, _amountsRecv);
 
+        emit RedeemStarted(_lots, _redeemerUnderlyingAddressString);
+
         _redeemedAmountUBA = _redeem(_lots, _redeemerUnderlyingAddressString);
 
-        emit Redeemed(_redeemedAmountUBA);
+        emit Redeemed(_lots, _redeemedAmountUBA);
 
         return (
             _amountOut,
