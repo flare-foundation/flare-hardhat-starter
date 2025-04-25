@@ -58,6 +58,6 @@ contract StarWarsCharacterListV2 {
 
     function isJsonApiProofValid(IWeb2Json.Proof calldata _proof) private view returns (bool) {
         // Inline the check for now until we have an official contract deployed
-        return ContractRegistry.auxiliaryGetIWeb2JsonVerification().verifyJsonApi(_proof);
+        return ContractRegistry.getFdcVerification().verifyJsonApi(_proof);
     }
 }

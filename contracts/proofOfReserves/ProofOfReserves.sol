@@ -103,7 +103,7 @@ contract ProofOfReserves is Ownable {
                 proof
             );
     function isValidProof(IWeb2Json.Proof calldata proof) private view returns (bool) {
-        return ContractRegistry.auxiliaryGetIWeb2JsonVerification().verifyJsonApi(proof);
+        return ContractRegistry.getFdcVerification().verifyJsonApi(proof);
     }
 
     function isValidProof(
