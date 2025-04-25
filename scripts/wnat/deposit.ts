@@ -12,7 +12,7 @@ async function main() {
   // Deposit 0.1 ETH (or whatever amount you want)
   const depositAmount = ethers.parseEther("0.1").toString();
   const tx = await IWNat.deposit({ value: depositAmount });
-  console.log("Deposited 0.1 ETH to WNAT", tx);
+  console.log("Deposited native token to WNAT", tx);
 }
 
 main().catch((error) => {

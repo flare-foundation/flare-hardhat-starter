@@ -12,7 +12,7 @@ async function main() {
   const withdrawAmount = ethers.parseEther("0.1").toString();
 
   const tx = await IWNat.withdraw(withdrawAmount);
-  console.log("Withdrew", tx);
+  console.log("Withdrew from WNAT to native token", tx);
 }
 
 main().catch((error) => {
