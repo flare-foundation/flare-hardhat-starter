@@ -4,13 +4,14 @@ import {
   prepareAttestationRequestBase,
   submitAttestationRequest,
   retrieveDataAndProofBase,
+  toUtf8HexString
 } from "./fdcExample/Base";
 
 const PriceVerifierCustomFeed = artifacts.require("PriceVerifierCustomFeed");
 
 const {
   JQ_VERIFIER_URL_TESTNET,
-  JQ_VERIFIER_API_KEY_TESTNET,
+  JQ_VERIFIER_API_KEY,
   COSTON2_DA_LAYER_URL,
 } = process.env;
 
@@ -28,14 +29,14 @@ if (!coinGeckoId) {
   throw new Error(`CoinGecko ID not found for symbol: ${priceSymbol}`);
 }
 
-const yesterday = new Date();
-yesterday.setDate(yesterday.getDate() - 1);
-const timestamp = Math.floor(yesterday.getTime() / 1000); // Unix timestamp for yesterday
+const dateToFetch = new Date();
+dateToFetch.setDate(dateToFetch.getDate() - 2);
+const timestamp = Math.floor(dateToFetch.getTime() / 1000);
 
 // Format date for CoinGecko API (dd-mm-yyyy)
-const day = String(yesterday.getDate()).padStart(2, '0');
-const month = String(yesterday.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
-const year = yesterday.getFullYear();
+const day = String(dateToFetch.getDate()).padStart(2, '0');
+const month = String(dateToFetch.getMonth() + 1).padStart(2, '0'); // Month is 0-indexed
+const year = dateToFetch.getFullYear();
 const dateString = `${day}-${month}-${year}`;
 
 const apiUrl = `https://api.coingecko.com/api/v3/coins/${coinGeckoId}/history?date=${dateString}&localization=false`;
@@ -67,11 +68,11 @@ async function prepareAttestationRequest(
   };
 
   const url = `${verifierUrlBase}JsonApi/prepareRequest`;
-  const apiKey = JQ_VERIFIER_API_KEY_TESTNET!;
+  const apiKey = JQ_VERIFIER_API_KEY!;
 
   if (!apiKey) {
     throw new Error(
-      "JQ_VERIFIER_API_KEY_TESTNET environment variable not set!"
+      "JQ_VERIFIER_API_KEY environment variable not set!"
     );
   }
   if (!verifierUrlBase) {
@@ -104,20 +105,11 @@ async function deployAndVerifyContract(): Promise<{
   customFeed: PriceVerifierCustomFeedInstance;
 }> {
   console.log("Deploying PriceVerifierCustomFeed contract...");
-  // Construct the feed ID using the price variable
   const feedIdString = `${priceSymbol}/USD-HIST`;
-  // Convert the string to hex and remove the '0x' prefix
-  const feedIdHex = web3.utils.utf8ToHex(feedIdString).substring(2);
+  const feedIdHex = toUtf8HexString(feedIdString).substring(2);
+  const truncatedFeedIdHex = feedIdHex.substring(0, 40);
+  const finalFeedIdHex = `0x21${truncatedFeedIdHex}`;
 
-  // We need a total of 21 bytes (42 hex chars).
-  // The first byte is fixed as '21'.
-  // So, we need to pad the feedIdHex to 40 characters (20 bytes).
-  const paddedFeedIdHex = feedIdHex.padEnd(40, "0");
-
-  // Prepend the required '21' byte and the '0x' prefix
-  const finalFeedIdHex = `0x21${paddedFeedIdHex}`;
-
-  // Ensure the final length is correct (0x + 42 hex chars = 21 bytes)
   if (finalFeedIdHex.length !== 44) {
     throw new Error(
       `Generated feed ID has incorrect length: ${finalFeedIdHex.length}. Expected 44 characters (0x + 42 hex). Feed string: ${feedIdString}`
@@ -126,13 +118,11 @@ async function deployAndVerifyContract(): Promise<{
 
   console.log("Final Feed ID Hex (bytes21 with 0x21 prefix):", finalFeedIdHex);
 
-  // Pass the correctly formatted bytes21 value AND the expected symbol to the constructor
   const customFeedArgs: any[] = [finalFeedIdHex, priceSymbol];
   const customFeed: PriceVerifierCustomFeedInstance =
     await PriceVerifierCustomFeed.new(...customFeedArgs);
   console.log("PriceVerifierCustomFeed deployed to:", customFeed.address);
 
-  // Verify PriceVerifierCustomFeed on block explorer
   try {
     await run("verify:verify", {
       address: customFeed.address,
@@ -156,49 +146,27 @@ async function submitProofToCustomFeed(
   proof: any
 ) {
   console.log("Submitting proof to PriceVerifierCustomFeed contract...");
-  // proof.response_hex contains the ABI-encoded 'data' part of the IJsonApi.Proof struct
   console.log(
     "Raw Proof Data Hex (IJsonApi.Proof.data):",
     proof.response_hex,
     "\n"
   );
 
-  // --- Dynamically determine the ABI structure for decoding the proof data ---
-  const IJsonApiVerification = await artifacts.require("IJsonApiVerification");
-  const verifyJsonApiAbi = IJsonApiVerification._json.abi.find(
-    (item: any) => item.name === "verifyJsonApi" && item.type === "function"
+  // Get the ABI from the imported JSON file
+  const IJsonApiVerification = await artifacts.require(
+    "@flarenetwork/flare-periphery-contracts/coston2/IJsonApiVerification.sol:IJsonApiVerification"
+  );
+  const iJsonApiAbi = IJsonApiVerification.abi;
+
+  const proofDataAbiDefinition = (iJsonApiAbi as any[]).find( // Cast ABI to array to use find
+    (item: any) => item.name === "Data" && item.type === "tuple"
   );
 
-  if (
-    !verifyJsonApiAbi ||
-    !verifyJsonApiAbi.inputs ||
-    verifyJsonApiAbi.inputs.length === 0
-  ) {
-    throw new Error(
-      "Could not find 'verifyJsonApi(IJsonApi.Proof)' function definition in IJsonApiVerification ABI. Check contract artifacts."
-    );
-  }
-
-  const proofInputDefinition = verifyJsonApiAbi.inputs[0];
-  if (
-    !proofInputDefinition ||
-    proofInputDefinition.type !== "tuple" ||
-    !proofInputDefinition.components
-  ) {
-    throw new Error(
-      "Expected 'verifyJsonApi' input to be a tuple (struct IJsonApi.Proof) in IJsonApiVerification ABI. ABI structure might have changed."
-    );
-  }
-
-  const proofDataAbiDefinition = proofInputDefinition.components.find(
-    (comp) => comp.name === "data"
-  );
   if (!proofDataAbiDefinition) {
     throw new Error(
-      "Could not find 'data' component definition within IJsonApi.Proof struct in IJsonApiVerification ABI. ABI structure might have changed."
+      "Could not find 'IJsonApi.Data' struct definition in the ABI. Check contract artifacts and names."
     );
   }
-  // --- End of dynamic ABI structure determination ---
 
   console.log(
     "Dynamically Determined ABI Definition for Proof 'data':",
@@ -206,23 +174,21 @@ async function submitProofToCustomFeed(
     "\n"
   );
 
-  // Decode the raw hex data using the dynamically obtained ABI definition for the 'data' struct component
   const decodedProofData = web3.eth.abi.decodeParameter(
     proofDataAbiDefinition,
     proof.response_hex
   );
 
-  console.log("Decoded Proof Data:", decodedProofData, "\n");
+  console.log("Decoded Proof Data Struct (IJsonApi.Data):", decodedProofData, "\n");
 
-  // Prepare the full proof structure for the contract call, matching the IJsonApi.Proof struct expected by verifyPrice
   const contractProofArgument = {
     merkleProof: proof.proof,
-    data: decodedProofData,
+    data: decodedProofData, // Use the decoded object directly
   };
 
   console.log(
     "Calling verifyPrice function on CustomFeed with structured proof argument:",
-    contractProofArgument,
+    JSON.stringify(contractProofArgument, null, 2), // Use JSON.stringify for better object logging
     "\n"
   );
 
@@ -241,11 +207,13 @@ async function submitProofToCustomFeed(
   console.log(
     `Timestamp associated with the price: ${latestTimestamp.toString()} (Unix timestamp)`
   );
+  // Convert BigInt timestamp to Number for Date conversion (safe for typical Unix timestamps)
   console.log(
     `Timestamp corresponds to: ${new Date(
       Number(latestTimestamp) * 1000
     ).toUTCString()}`
   );
+  // Convert BigInt price to Number for calculation
   console.log(`Which is $${(Number(latestPrice) / 100).toFixed(4)}\n`);
 }
 
@@ -281,16 +249,9 @@ async function interactWithCustomFeedContract(
 
   const currentValue = feedDataResult[0];
   const currentDecimals = feedDataResult[1];
-  const currentTimestamp = feedDataResult[2];
 
   console.log(`  Value: ${currentValue.toString()}`);
   console.log(`  Decimals: ${currentDecimals.toString()}`);
-  console.log(`  Timestamp: ${currentTimestamp.toString()}`);
-  console.log(
-    `  Timestamp corresponds to: ${new Date(
-      Number(currentTimestamp) * 1000
-    ).toUTCString()}\n`
-  );
 }
 
 async function main() {
@@ -324,7 +285,7 @@ async function main() {
   const { customFeed } = await deployAndVerifyContract();
 
   // 5. Send the proof to the PriceVerifierCustomFeed contract for verification and storage
-  await submitProofToCustomFeed(customFeed, proof);
+  await submitProofToCustomFeed(customFeed, proof); // Pass the raw proof object
 
   // 6. Interact with the PriceVerifierCustomFeed contract to read the price/feed data
   await interactWithCustomFeedContract(customFeed);

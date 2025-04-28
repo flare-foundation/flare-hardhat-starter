@@ -2,7 +2,7 @@
 pragma solidity ^0.8.25;
 
 import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
-import {IFdcVerification} from "@flarenetwork/flare-periphery-contracts/coston2/IFdcVerification.sol"; // Keep for potential future use? Not strictly needed now.
+import {IFdcVerification} from "@flarenetwork/flare-periphery-contracts/coston2/IFdcVerification.sol";
 import {IJsonApi} from "@flarenetwork/flare-periphery-contracts/coston2/IJsonApi.sol";
 import {IICustomFeed} from "@flarenetwork/flare-periphery-contracts/coston2/customFeeds/interface/IICustomFeed.sol";
 
@@ -23,11 +23,10 @@ contract PriceVerifierCustomFeed is IICustomFeed {
     string public expectedSymbol;
     int8 public constant DECIMALS = 2;
     uint256 public latestVerifiedPrice;
-    uint64 public latestVerifiedTimestamp;
 
     // --- Events ---
     event PriceVerified(string indexed symbol, uint256 price, string apiUrl);
-    event UrlParsingCheck(string apiUrl, string coinGeckoId, string dateString, uint256 price);
+    event UrlParsingCheck(string apiUrl, string coinGeckoId, string dateString);
 
     // --- Errors ---
     error InvalidFeedId();
@@ -78,7 +77,7 @@ contract PriceVerifierCustomFeed is IICustomFeed {
         );
 
         // Emit parsing check event using parsed date string
-        emit UrlParsingCheck(apiUrl, coinGeckoIdFromUrl, dateStringFromUrl, priceData.price);
+        emit UrlParsingCheck(apiUrl, coinGeckoIdFromUrl, dateStringFromUrl);
 
         // 4. CRUCIAL CHECK: Verify CoinGecko ID matches expected
         string memory expectedCoinGeckoId = _getExpectedCoinGeckoId(expectedSymbol);
@@ -87,7 +86,7 @@ contract PriceVerifierCustomFeed is IICustomFeed {
             "UrlCoinGeckoIdMismatchExpected()"
         );
 
-        // 5. Store verified price and timestamp (from FDC proof)
+        // 5. Store verified price
         latestVerifiedPrice = priceData.price;
 
         // 6. Emit main event
@@ -110,6 +109,12 @@ contract PriceVerifierCustomFeed is IICustomFeed {
     function getFeedDataView() external view returns (uint256 _value, int8 _decimals) {
         _value = latestVerifiedPrice;
         _decimals = DECIMALS;
+    }
+
+    function getCurrentFeed() external payable override returns (uint256 _value, int8 _decimals, uint64 _timestamp) {
+        _value = latestVerifiedPrice;
+        _decimals = DECIMALS;
+        _timestamp = 0;
     }
 
     function decimals() external pure returns (int8) {
