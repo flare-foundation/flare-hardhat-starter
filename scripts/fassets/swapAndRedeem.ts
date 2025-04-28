@@ -1,7 +1,7 @@
 import { run } from "hardhat";
 
 import {
-  FAssetsSwapAndRedeemInstance
+  SwapAndRedeemInstance
 } from "../../typechain-types";
 import { ERC20Instance } from "../../typechain-types/@openzeppelin/contracts/token/ERC20/ERC20";
 
@@ -17,11 +17,11 @@ const SWAP_PATH = [
 ];
 
 async function deployAndVerifyContract() {
-  const FAssetsSwapAndRedeem = artifacts.require("FAssetsSwapAndRedeem");
+  const SwapAndRedeem = artifacts.require("SwapAndRedeem");
   const args = [SWAP_ROUTER_ADDRESS, ASSET_MANAGER_ADDRESS, SWAP_PATH];
-  const fassetsSwapAndRedeem: FAssetsSwapAndRedeemInstance = await FAssetsSwapAndRedeem.new(...args);
+  const swapAndRedeem: SwapAndRedeemInstance = await SwapAndRedeem.new(...args);
 
-  const fassetsSwapAndRedeemAddress = await fassetsSwapAndRedeem.address;
+  const fassetsSwapAndRedeemAddress = await swapAndRedeem.address;
 
   try {
     await run("verify:verify", {
@@ -34,14 +34,14 @@ async function deployAndVerifyContract() {
 
   console.log("FAssetsSwapAndRedeem deployed to:", fassetsSwapAndRedeemAddress);
 
-  return fassetsSwapAndRedeem;
+  return swapAndRedeem;
 }
 
 async function main() {
-  const fassetsSwapAndRedeem: FAssetsSwapAndRedeemInstance = await deployAndVerifyContract();
+  const swapAndRedeem: SwapAndRedeemInstance = await deployAndVerifyContract();
 
-  const fassetsSwapAndRedeemAddress = await fassetsSwapAndRedeem.address;
-  const amounts = await fassetsSwapAndRedeem.calculateRedemptionAmountIn(LOTS_TO_REDEEM);
+  const swapAndRedeemAddress = await swapAndRedeem.address;
+  const amounts = await swapAndRedeem.calculateRedemptionAmountIn(LOTS_TO_REDEEM);
   const amountIn = amounts.amountIn;
   const amountOut = amounts.amountOut;
   console.log("Amount of tokens out (FXRP): ", amountOut.toString());
@@ -51,11 +51,11 @@ async function main() {
   const ERC20 = artifacts.require("ERC20");
   const wcflr: ERC20Instance = await ERC20.at(SWAP_PATH[0]);
 
-  const approveTx = await wcflr.approve(fassetsSwapAndRedeemAddress, amountOut);
+  const approveTx = await wcflr.approve(swapAndRedeemAddress, amountOut);
   // console.log("Approve transaction: ", approveTx);
 
   // Swap and redeem
-  const swapResult = await fassetsSwapAndRedeem.swapAndRedeem(LOTS_TO_REDEEM, UNDERLYING_ADDRESS);
+  const swapResult = await swapAndRedeemAddress.swapAndRedeem(LOTS_TO_REDEEM, UNDERLYING_ADDRESS);
   console.log("Swap and redeem transaction: ", swapResult);
 }
 

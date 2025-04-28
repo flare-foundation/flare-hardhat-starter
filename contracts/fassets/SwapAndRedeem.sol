@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.25;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -24,7 +24,7 @@ interface ISwapRouter {
 }
 
 // Contract to swap WCFLR for FXRP and redeem FAssets
-contract FAssetsSwapAndRedeem {
+contract SwapAndRedeem {
     // Uniswap V2 Router interface to communicate with BlazeSwap
     ISwapRouter public immutable router;
     // FAssets assset manager interface
