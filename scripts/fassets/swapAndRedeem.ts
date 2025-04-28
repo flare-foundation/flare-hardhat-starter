@@ -9,6 +9,7 @@ import { ERC20Instance } from "../../typechain-types/@openzeppelin/contracts/tok
 const ASSET_MANAGER_ADDRESS = "0x56728e46908fB6FcC5BCD2cc0c0F9BB91C3e4D34";
 const LOTS_TO_REDEEM = 1;
 const UNDERLYING_ADDRESS = "rSHYuiEvsYsKR8uUHhBTuGP5zjRcGt4nm";
+// BlazeSwap router address on Songbird Testnet Coston network
 const SWAP_ROUTER_ADDRESS = "0xf0D01450C037DB2903CF5Ff638Dd1e2e6B0EEDF4";
 const SWAP_PATH = [
   "0x767b25A658E8FC8ab6eBbd52043495dB61b4ea91", // WCFLR
@@ -55,7 +56,6 @@ async function main() {
 
   // Swap and redeem
   const swapResult = await fassetsSwapAndRedeem.swapAndRedeem(LOTS_TO_REDEEM, UNDERLYING_ADDRESS);
-
   console.log("Swap and redeem transaction: ", swapResult);
 }
 
