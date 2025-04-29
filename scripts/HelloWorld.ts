@@ -8,19 +8,19 @@ const HelloWorld = artifacts.require("HelloWorld");
 const WORLD = "Alderaan";
 
 async function deployAndVerify() {
-  const args: any[] = [WORLD];
-  const helloWorld: HelloWorldInstance = await HelloWorld.new(...args);
-  try {
-    await run("verify:verify", {
-      address: helloWorld.address,
-      constructorArguments: args,
-    });
-  } catch (e: any) {
-    console.log(e);
-  }
-  console.log("HelloWorld deployed to", helloWorld.address);
+    const args: any[] = [WORLD];
+    const helloWorld: HelloWorldInstance = await HelloWorld.new(...args);
+    try {
+        await run("verify:verify", {
+            address: helloWorld.address,
+            constructorArguments: args,
+        });
+    } catch (e: any) {
+        console.log(e);
+    }
+    console.log("HelloWorld deployed to", helloWorld.address);
 }
 
 void deployAndVerify().then(() => {
-  process.exit(0);
+    process.exit(0);
 });

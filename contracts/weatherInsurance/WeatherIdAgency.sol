@@ -55,7 +55,10 @@ contract WeatherIdAgency {
         uint256 coverage
     ) public payable {
         require(msg.value > 0, "No premium paid");
-        require(startTimestamp < expirationTimestamp, "Value of startTimestamp larger than expirationTimestamp");
+        require(
+            startTimestamp < expirationTimestamp,
+            "Value of startTimestamp larger than expirationTimestamp"
+        );
 
         Policy memory newPolicy = Policy({
             holder: msg.sender,
@@ -77,7 +80,10 @@ contract WeatherIdAgency {
 
     function claimPolicy(uint256 id) public payable {
         Policy memory policy = registeredPolicies[id];
-        require(policy.status == PolicyStatus.Unclaimed, "Policy already claimed");
+        require(
+            policy.status == PolicyStatus.Unclaimed,
+            "Policy already claimed"
+        );
         if (block.timestamp > policy.startTimestamp) {
             retireUnclaimedPolicy(id);
         }
@@ -97,7 +103,10 @@ contract WeatherIdAgency {
         Policy memory policy = registeredPolicies[id];
         require(policy.status == PolicyStatus.Open, "Policy not open");
         require(isJsonApiProofValid(proof), "Invalid proof");
-        DataTransportObject memory dto = abi.decode(proof.data.responseBody.abi_encoded_data, (DataTransportObject));
+        DataTransportObject memory dto = abi.decode(
+            proof.data.responseBody.abi_encoded_data,
+            (DataTransportObject)
+        );
         require(
             block.timestamp >= policy.startTimestamp,
             string.concat(
@@ -113,7 +122,8 @@ contract WeatherIdAgency {
         }
 
         require(
-            dto.latitude == policy.latitude && dto.longitude == policy.longitude,
+            dto.latitude == policy.latitude &&
+                dto.longitude == policy.longitude,
             string.concat(
                 "Invalid coordinates: ",
                 Strings.toStringSigned(dto.latitude),
@@ -127,7 +137,8 @@ contract WeatherIdAgency {
         );
 
         require(
-            dto.weatherId >= policy.weatherIdThreshold && dto.weatherId / 100 == policy.weatherIdThreshold / 100,
+            dto.weatherId >= policy.weatherIdThreshold &&
+                dto.weatherId / 100 == policy.weatherIdThreshold / 100,
             string.concat(
                 "Weather Id mismatch: ",
                 Strings.toString(dto.weatherId),
@@ -145,7 +156,10 @@ contract WeatherIdAgency {
     function expirePolicy(uint256 id) public {
         Policy memory policy = registeredPolicies[id];
         require(policy.status == PolicyStatus.Open, "Policy not open");
-        require(block.timestamp > policy.expirationTimestamp, "Policy not yet expired");
+        require(
+            block.timestamp > policy.expirationTimestamp,
+            "Policy not yet expired"
+        );
         policy.status = PolicyStatus.Settled;
         registeredPolicies[id] = policy;
         payable(insurers[id]).transfer(policy.coverage);
@@ -154,8 +168,14 @@ contract WeatherIdAgency {
 
     function retireUnclaimedPolicy(uint256 id) public {
         Policy memory policy = registeredPolicies[id];
-        require(policy.status == PolicyStatus.Unclaimed, "Policy not unclaimed");
-        require(block.timestamp > policy.startTimestamp, "Policy not yet expired");
+        require(
+            policy.status == PolicyStatus.Unclaimed,
+            "Policy not unclaimed"
+        );
+        require(
+            block.timestamp > policy.startTimestamp,
+            "Policy not yet expired"
+        );
         policy.status = PolicyStatus.Settled;
         registeredPolicies[id] = policy;
         payable(policy.holder).transfer(policy.premium);
@@ -173,7 +193,12 @@ contract WeatherIdAgency {
 
     function abiSignatureHack(DataTransportObject memory dto) public pure {}
 
-    function isJsonApiProofValid(IJsonApi.Proof calldata _proof) private view returns (bool) {
-        return ContractRegistry.auxiliaryGetIJsonApiVerification().verifyJsonApi(_proof);
+    function isJsonApiProofValid(
+        IJsonApi.Proof calldata _proof
+    ) private view returns (bool) {
+        return
+            ContractRegistry.auxiliaryGetIJsonApiVerification().verifyJsonApi(
+                _proof
+            );
     }
 }

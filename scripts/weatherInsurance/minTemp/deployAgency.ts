@@ -6,19 +6,19 @@ const MinTempAgency = artifacts.require("MinTempAgency");
 // yarn hardhat run scripts/weatherInsurance/minTemp/deployAgency.ts --network coston2
 
 async function deployAndVerify() {
-  const args: any[] = [];
-  const agency: MinTempAgencyInstance = await MinTempAgency.new(...args);
-  try {
-    await run("verify:verify", {
-      address: agency.address,
-      constructorArguments: args,
-    });
-  } catch (e: any) {
-    console.log(e);
-  }
-  console.log(`(${hre.network.name}) MinTempAgency deployed to`, agency.address, "\n");
+    const args: any[] = [];
+    const agency: MinTempAgencyInstance = await MinTempAgency.new(...args);
+    try {
+        await run("verify:verify", {
+            address: agency.address,
+            constructorArguments: args,
+        });
+    } catch (e: any) {
+        console.log(e);
+    }
+    console.log(`(${hre.network.name}) MinTempAgency deployed to`, agency.address, "\n");
 }
 
 void deployAndVerify().then(() => {
-  process.exit(0);
+    process.exit(0);
 });

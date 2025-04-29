@@ -23,36 +23,36 @@ const verifierUrlBase = VERIFIER_URL_TESTNET;
 const urlTypeBase = "btc";
 
 async function prepareAttestationRequest(
-  minimalBlockNumber: string,
-  deadlineBlockNumber: string,
-  deadlineTimestamp: string,
-  destinationAddressHash: string,
-  amount: string,
-  standardPaymentReference: string,
-  checkSourceAddresses: string,
-  sourceAddressesRoot: string
+    minimalBlockNumber: string,
+    deadlineBlockNumber: string,
+    deadlineTimestamp: string,
+    destinationAddressHash: string,
+    amount: string,
+    standardPaymentReference: string,
+    checkSourceAddresses: string,
+    sourceAddressesRoot: string
 ) {
-  const requestBody = {
-    minimalBlockNumber: minimalBlockNumber,
-    deadlineBlockNumber: deadlineBlockNumber,
-    deadlineTimestamp: deadlineTimestamp,
-    destinationAddressHash: destinationAddressHash,
-    amount: amount,
-    standardPaymentReference: standardPaymentReference,
-    checkSourceAddresses: checkSourceAddresses,
-    sourceAddressesRoot: sourceAddressesRoot,
-  };
+    const requestBody = {
+        minimalBlockNumber: minimalBlockNumber,
+        deadlineBlockNumber: deadlineBlockNumber,
+        deadlineTimestamp: deadlineTimestamp,
+        destinationAddressHash: destinationAddressHash,
+        amount: amount,
+        standardPaymentReference: standardPaymentReference,
+        checkSourceAddresses: checkSourceAddresses,
+        sourceAddressesRoot: sourceAddressesRoot,
+    };
 
-  const url = `${verifierUrlBase}verifier/${urlTypeBase}/ReferencedPaymentNonexistence/prepareRequest`;
-  const apiKey = VERIFIER_API_KEY_TESTNET ?? "";
+    const url = `${verifierUrlBase}verifier/${urlTypeBase}/ReferencedPaymentNonexistence/prepareRequest`;
+    const apiKey = VERIFIER_API_KEY_TESTNET ?? "";
 
-  return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, sourceIdBase, requestBody);
+    return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, sourceIdBase, requestBody);
 }
 
 async function retrieveDataAndProof(abiEncodedRequest: string, roundId: number) {
-  const url = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
-  console.log("Url:", url, "\n");
-  return await retrieveDataAndProofBase(url, abiEncodedRequest, roundId);
+    const url = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
+    console.log("Url:", url, "\n");
+    return await retrieveDataAndProofBase(url, abiEncodedRequest, roundId);
 }
 
 async function deployAndVerifyContract() {}
@@ -60,29 +60,29 @@ async function deployAndVerifyContract() {}
 async function interactWithContract() {}
 
 async function main() {
-  const data = await prepareAttestationRequest(
-    minimalBlockNumber,
-    deadlineBlockNumber,
-    deadlineTimestamp,
-    destinationAddressHash,
-    amount,
-    standardPaymentReference,
-    checkSourceAddresses,
-    sourceAddressesRoot
-  );
-  console.log("Data:", data, "\n");
+    const data = await prepareAttestationRequest(
+        minimalBlockNumber,
+        deadlineBlockNumber,
+        deadlineTimestamp,
+        destinationAddressHash,
+        amount,
+        standardPaymentReference,
+        checkSourceAddresses,
+        sourceAddressesRoot
+    );
+    console.log("Data:", data, "\n");
 
-  const abiEncodedRequest = data.abiEncodedRequest;
-  const roundId = await submitAttestationRequest(abiEncodedRequest);
+    const abiEncodedRequest = data.abiEncodedRequest;
+    const roundId = await submitAttestationRequest(abiEncodedRequest);
 
-  const proof = await retrieveDataAndProof(abiEncodedRequest, roundId);
+    const proof = await retrieveDataAndProof(abiEncodedRequest, roundId);
 
-  // const addressRegistry: AddressRegistryInstance =
-  //   await deployAndVerifyContract();
+    // const addressRegistry: AddressRegistryInstance =
+    //   await deployAndVerifyContract();
 
-  // await interactWithContract(addressRegistry, proof);
+    // await interactWithContract(addressRegistry, proof);
 }
 
 void main().then(() => {
-  process.exit(0);
+    process.exit(0);
 });

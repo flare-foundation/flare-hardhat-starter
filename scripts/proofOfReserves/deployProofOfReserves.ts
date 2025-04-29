@@ -7,19 +7,19 @@ const ProofOfReserves = artifacts.require("ProofOfReserves");
 // yarn hardhat run scripts/proofOfReserves/deployProofOfReserves.ts --network coston2
 
 async function deployAndVerify() {
-  const args: any[] = [];
-  const proofOfReserves: ProofOfReservesInstance = await ProofOfReserves.new(...args);
-  try {
-    await run("verify:verify", {
-      address: proofOfReserves.address,
-      constructorArguments: args,
-    });
-  } catch (e: any) {
-    console.log(e);
-  }
-  console.log(`(${hre.network.name}) ProofOfReserves deployed to`, proofOfReserves.address, "\n");
+    const args: any[] = [];
+    const proofOfReserves: ProofOfReservesInstance = await ProofOfReserves.new(...args);
+    try {
+        await run("verify:verify", {
+            address: proofOfReserves.address,
+            constructorArguments: args,
+        });
+    } catch (e: any) {
+        console.log(e);
+    }
+    console.log(`(${hre.network.name}) ProofOfReserves deployed to`, proofOfReserves.address, "\n");
 }
 
 void deployAndVerify().then(() => {
-  process.exit(0);
+    process.exit(0);
 });
