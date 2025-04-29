@@ -8,24 +8,24 @@ const MinTempAgency = artifacts.require("MinTempAgency");
 const policyId = 0;
 
 async function getPolicyCoverage(agency: MinTempAgencyInstance, policyId: number) {
-  const policy = await agency.registeredPolicies(policyId);
-  const policyCoverage = policy.coverage;
-  console.log("Policy premium:", policyCoverage, "\n");
-  return policyCoverage;
+    const policy = await agency.registeredPolicies(policyId);
+    const policyCoverage = policy.coverage;
+    console.log("Policy premium:", policyCoverage, "\n");
+    return policyCoverage;
 }
 
 async function main() {
-  const agency: MinTempAgencyInstance = await MinTempAgency.at(agencyAddress);
-  console.log("MinTempAgency:", agency.address, "\n");
+    const agency: MinTempAgencyInstance = await MinTempAgency.at(agencyAddress);
+    console.log("MinTempAgency:", agency.address, "\n");
 
-  const policyCoverage = await getPolicyCoverage(agency, policyId);
+    const policyCoverage = await getPolicyCoverage(agency, policyId);
 
-  const transaction = await agency.claimPolicy(policyId, {
-    value: policyCoverage,
-  });
-  console.log("Transaction:", transaction.tx, "\n");
+    const transaction = await agency.claimPolicy(policyId, {
+        value: policyCoverage,
+    });
+    console.log("Transaction:", transaction.tx, "\n");
 }
 
 void main().then(() => {
-  process.exit(0);
+    process.exit(0);
 });

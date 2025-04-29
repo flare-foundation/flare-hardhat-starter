@@ -24,10 +24,10 @@ contract ProofOfReserves is Ownable {
         // TODO make this dynamic with hardhat and Ownable
     }
 
-    function verifyReserves(IJsonApi.Proof calldata jsonProof, IEVMTransaction.Proof[] calldata transactionProofs)
-        external
-        returns (bool)
-    {
+    function verifyReserves(
+        IJsonApi.Proof calldata jsonProof,
+        IEVMTransaction.Proof[] calldata transactionProofs
+    ) external returns (bool) {
         uint256 claimedReserves = readReserves(jsonProof);
 
         uint256 totalTokenReserves = 0;
@@ -39,28 +39,46 @@ contract ProofOfReserves is Ownable {
         return totalTokenReserves <= (claimedReserves * 1 ether);
     }
 
-    function updateAddress(address readerAddress, address tokenAddress) public onlyOwner {
+    function updateAddress(
+        address readerAddress,
+        address tokenAddress
+    ) public onlyOwner {
         tokenStateReaders[readerAddress] = tokenAddress;
     }
 
     function abiSignatureHack(DataTransportObject calldata dto) public pure {}
 
-    function readReserves(IJsonApi.Proof calldata proof) private returns (uint256) {
+    function readReserves(
+        IJsonApi.Proof calldata proof
+    ) private returns (uint256) {
         require(isValidProof(proof), "Invalid json proof");
-        DataTransportObject memory data = abi.decode(proof.data.responseBody.abi_encoded_data, (DataTransportObject));
+        DataTransportObject memory data = abi.decode(
+            proof.data.responseBody.abi_encoded_data,
+            (DataTransportObject)
+        );
         debugClaimedReserves = data.reserves;
 
         return data.reserves;
     }
 
-    function readReserves(IEVMTransaction.Proof calldata proof) private returns (uint256) {
+    function readReserves(
+        IEVMTransaction.Proof calldata proof
+    ) private returns (uint256) {
         require(isValidProof(proof), "Invalid transaction proof");
         uint256 totalSupply = 0;
         for (uint256 i = 0; i < proof.data.responseBody.events.length; i++) {
-            IEVMTransaction.Event memory _event = proof.data.responseBody.events[i];
+            IEVMTransaction.Event memory _event = proof
+                .data
+                .responseBody
+                .events[i];
             address readerAddress = _event.emitterAddress;
-            (address tokenAddress, uint256 supply) = abi.decode(_event.data, (address, uint256));
-            bool correctTokenAndReaderAddress = tokenStateReaders[readerAddress] == tokenAddress;
+            (address tokenAddress, uint256 supply) = abi.decode(
+                _event.data,
+                (address, uint256)
+            );
+            bool correctTokenAndReaderAddress = tokenStateReaders[
+                readerAddress
+            ] == tokenAddress;
             if (correctTokenAndReaderAddress) {
                 totalSupply += supply;
                 emit GoodPair(readerAddress, tokenAddress, supply);
@@ -71,11 +89,19 @@ contract ProofOfReserves is Ownable {
         return totalSupply;
     }
 
-    function isValidProof(IJsonApi.Proof calldata proof) private view returns (bool) {
-        return ContractRegistry.auxiliaryGetIJsonApiVerification().verifyJsonApi(proof);
+    function isValidProof(
+        IJsonApi.Proof calldata proof
+    ) private view returns (bool) {
+        return
+            ContractRegistry.auxiliaryGetIJsonApiVerification().verifyJsonApi(
+                proof
+            );
     }
 
-    function isValidProof(IEVMTransaction.Proof calldata proof) private view returns (bool) {
-        return ContractRegistry.getFdcVerification().verifyEVMTransaction(proof);
+    function isValidProof(
+        IEVMTransaction.Proof calldata proof
+    ) private view returns (bool) {
+        return
+            ContractRegistry.getFdcVerification().verifyEVMTransaction(proof);
     }
 }

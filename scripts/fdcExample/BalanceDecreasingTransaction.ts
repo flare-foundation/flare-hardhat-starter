@@ -17,23 +17,23 @@ const verifierUrlBase = VERIFIER_URL_TESTNET;
 const urlTypeBase = "xrp";
 
 async function prepareAttestationRequest(transactionId: string, sourceAddress: string) {
-  const sourceAddressIndicator = web3.utils.keccak256(sourceAddress);
+    const sourceAddressIndicator = web3.utils.keccak256(sourceAddress);
 
-  const requestBody = {
-    transactionId: transactionId,
-    sourceAddressIndicator: sourceAddressIndicator,
-  };
+    const requestBody = {
+        transactionId: transactionId,
+        sourceAddressIndicator: sourceAddressIndicator,
+    };
 
-  const url = `${verifierUrlBase}verifier/${urlTypeBase}/BalanceDecreasingTransaction/prepareRequest`;
-  const apiKey = VERIFIER_API_KEY_TESTNET ?? "";
+    const url = `${verifierUrlBase}verifier/${urlTypeBase}/BalanceDecreasingTransaction/prepareRequest`;
+    const apiKey = VERIFIER_API_KEY_TESTNET ?? "";
 
-  return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, sourceIdBase, requestBody);
+    return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, sourceIdBase, requestBody);
 }
 
 async function retrieveDataAndProof(abiEncodedRequest: string, roundId: number) {
-  const url = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
-  console.log("Url:", url, "\n");
-  return await retrieveDataAndProofBase(url, abiEncodedRequest, roundId);
+    const url = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
+    console.log("Url:", url, "\n");
+    return await retrieveDataAndProofBase(url, abiEncodedRequest, roundId);
 }
 
 async function deployAndVerifyContract() {}
@@ -41,20 +41,20 @@ async function deployAndVerifyContract() {}
 async function interactWithContract() {}
 
 async function main() {
-  const data = await prepareAttestationRequest(transactionId, sourceAddress);
-  console.log("Data:", data, "\n");
+    const data = await prepareAttestationRequest(transactionId, sourceAddress);
+    console.log("Data:", data, "\n");
 
-  const abiEncodedRequest = data.abiEncodedRequest;
-  const roundId = await submitAttestationRequest(abiEncodedRequest);
+    const abiEncodedRequest = data.abiEncodedRequest;
+    const roundId = await submitAttestationRequest(abiEncodedRequest);
 
-  const proof = await retrieveDataAndProof(abiEncodedRequest, roundId);
+    const proof = await retrieveDataAndProof(abiEncodedRequest, roundId);
 
-  // const addressRegistry: AddressRegistryInstance =
-  //   await deployAndVerifyContract();
+    // const addressRegistry: AddressRegistryInstance =
+    //   await deployAndVerifyContract();
 
-  // await interactWithContract(addressRegistry, proof);
+    // await interactWithContract(addressRegistry, proof);
 }
 
 void main().then(() => {
-  process.exit(0);
+    process.exit(0);
 });

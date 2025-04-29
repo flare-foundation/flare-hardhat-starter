@@ -1,10 +1,10 @@
 import { agencyAddress } from "./config";
 import { MinTempAgencyInstance } from "../../../typechain-types";
 import {
-  prepareAttestationRequestBase,
-  submitAttestationRequest,
-  retrieveDataAndProofBase,
-  sleep,
+    prepareAttestationRequestBase,
+    submitAttestationRequest,
+    retrieveDataAndProofBase,
+    sleep,
 } from "../../fdcExample/Base";
 
 const { JQ_VERIFIER_URL_TESTNET, JQ_VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } = process.env;
@@ -78,93 +78,93 @@ const sourceIdBase = "WEB2";
 const verifierUrlBase = JQ_VERIFIER_URL_TESTNET;
 
 async function getPolicy(agency: MinTempAgencyInstance, id: number) {
-  const response = await agency.registeredPolicies(id);
-  const policy = {
-    latitude: response.latitude,
-    longitude: response.longitude,
-    startTimestamp: response.startTimestamp,
-    expirationTimestamp: response.expirationTimestamp,
-    minTempThreshold: response.minTempThreshold,
-    premium: response.premium,
-    coverage: response.coverage,
-    status: response.status,
-    id: response.id,
-  };
-  console.log("Policy:", policy, "\n");
-  return policy;
+    const response = await agency.registeredPolicies(id);
+    const policy = {
+        latitude: response.latitude,
+        longitude: response.longitude,
+        startTimestamp: response.startTimestamp,
+        expirationTimestamp: response.expirationTimestamp,
+        minTempThreshold: response.minTempThreshold,
+        premium: response.premium,
+        coverage: response.coverage,
+        status: response.status,
+        id: response.id,
+    };
+    console.log("Policy:", policy, "\n");
+    return policy;
 }
 
 function prepareUrl(policy: any) {
-  return `https://api.openweathermap.org/data/2.5/weather?lat=${
-    policy.latitude / 10 ** 6
-  }&lon=${policy.longitude / 10 ** 6}&units=${units}&appid=${apiId}`;
+    return `https://api.openweathermap.org/data/2.5/weather?lat=${
+        policy.latitude / 10 ** 6
+    }&lon=${policy.longitude / 10 ** 6}&units=${units}&appid=${apiId}`;
 }
 
 async function prepareAttestationRequest(apiUrl: string, postprocessJq: string, abiSignature: string) {
-  const requestBody = {
-    url: apiUrl,
-    postprocessJq: postprocessJq,
-    abi_signature: abiSignature,
-  };
+    const requestBody = {
+        url: apiUrl,
+        postprocessJq: postprocessJq,
+        abi_signature: abiSignature,
+    };
 
-  const url = `${verifierUrlBase}JsonApi/prepareRequest`;
-  const apiKey = JQ_VERIFIER_API_KEY_TESTNET;
+    const url = `${verifierUrlBase}JsonApi/prepareRequest`;
+    const apiKey = JQ_VERIFIER_API_KEY_TESTNET;
 
-  return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, sourceIdBase, requestBody);
+    return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, sourceIdBase, requestBody);
 }
 
 async function retrieveDataAndProof(abiEncodedRequest: string, roundId: number) {
-  const url = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
-  console.log("Url:", url, "\n");
-  return await retrieveDataAndProofBase(url, abiEncodedRequest, roundId);
+    const url = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
+    console.log("Url:", url, "\n");
+    return await retrieveDataAndProofBase(url, abiEncodedRequest, roundId);
 }
 
 async function resolvePolicy(agency: MinTempAgencyInstance, id: number, proof: any) {
-  console.log("Proof hex:", proof.response_hex, "\n");
+    console.log("Proof hex:", proof.response_hex, "\n");
 
-  // A piece of black magic that allows us to read the response type from an artifact
-  const IJsonApiVerification = await artifacts.require("IJsonApiVerification");
-  const responseType = IJsonApiVerification._json.abi[0].inputs[0].components[1];
-  console.log("Response type:", responseType, "\n");
+    // A piece of black magic that allows us to read the response type from an artifact
+    const IJsonApiVerification = await artifacts.require("IJsonApiVerification");
+    const responseType = IJsonApiVerification._json.abi[0].inputs[0].components[1];
+    console.log("Response type:", responseType, "\n");
 
-  const decodedResponse = web3.eth.abi.decodeParameter(responseType, proof.response_hex);
-  console.log("Decoded proof:", decodedResponse, "\n");
+    const decodedResponse = web3.eth.abi.decodeParameter(responseType, proof.response_hex);
+    console.log("Decoded proof:", decodedResponse, "\n");
 
-  while (true) {
-    try {
-      const transaction = await agency.resolvePolicy(id, {
-        merkleProof: proof.proof,
-        data: decodedResponse,
-      });
-      console.log("Transaction:", transaction.tx, "\n");
-      break;
-    } catch (error) {
-      console.log("Error:", error, "\n");
-      await sleep(20000);
+    while (true) {
+        try {
+            const transaction = await agency.resolvePolicy(id, {
+                merkleProof: proof.proof,
+                data: decodedResponse,
+            });
+            console.log("Transaction:", transaction.tx, "\n");
+            break;
+        } catch (error) {
+            console.log("Error:", error, "\n");
+            await sleep(20000);
+        }
     }
-  }
 }
 
 async function main() {
-  const agency: MinTempAgencyInstance = await MinTempAgency.at(agencyAddress);
-  console.log("MinTempAgency:", agency.address, "\n");
+    const agency: MinTempAgencyInstance = await MinTempAgency.at(agencyAddress);
+    console.log("MinTempAgency:", agency.address, "\n");
 
-  const policy = await getPolicy(agency, policyId);
+    const policy = await getPolicy(agency, policyId);
 
-  const apiUrl = prepareUrl(policy);
+    const apiUrl = prepareUrl(policy);
 
-  const data = await prepareAttestationRequest(apiUrl, postprocessJq, abiSignature);
-  console.log("Data:", data, "\n");
+    const data = await prepareAttestationRequest(apiUrl, postprocessJq, abiSignature);
+    console.log("Data:", data, "\n");
 
-  const abiEncodedRequest = data.abiEncodedRequest;
+    const abiEncodedRequest = data.abiEncodedRequest;
 
-  const roundId = await submitAttestationRequest(abiEncodedRequest);
+    const roundId = await submitAttestationRequest(abiEncodedRequest);
 
-  const proof = await retrieveDataAndProof(abiEncodedRequest, roundId);
+    const proof = await retrieveDataAndProof(abiEncodedRequest, roundId);
 
-  await resolvePolicy(agency, policyId, proof);
+    await resolvePolicy(agency, policyId, proof);
 }
 
 void main().then(() => {
-  process.exit(0);
+    process.exit(0);
 });
