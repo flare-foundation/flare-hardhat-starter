@@ -61,39 +61,37 @@ async function getRelay() {
 }
 
 async function prepareAttestationRequestBase(
-  url: string,
-  apiKey: string,
-  attestationTypeBase: string,
-  sourceIdBase: string,
-  requestBody: any
+    url: string,
+    apiKey: string,
+    attestationTypeBase: string,
+    sourceIdBase: string,
+    requestBody: any
 ) {
-  console.log("Url:", url, "\n");
-  const attestationType = toUtf8HexString(attestationTypeBase);
-  const sourceId = toUtf8HexString(sourceIdBase);
+    console.log("Url:", url, "\n");
+    const attestationType = toUtf8HexString(attestationTypeBase);
+    const sourceId = toUtf8HexString(sourceIdBase);
 
-  const request = {
-    attestationType: attestationType,
-    sourceId: sourceId,
-    requestBody: requestBody,
-  };
-  console.log("Prepared request:\n", request, "\n");
+    const request = {
+        attestationType: attestationType,
+        sourceId: sourceId,
+        requestBody: requestBody,
+    };
+    console.log("Prepared request:\n", request, "\n");
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "X-API-KEY": apiKey,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(request),
-  });
-  if (response.status != 200) {
-    throw new Error(
-      `Response status is not OK, status ${response.status} ${response.statusText}\n`
-    );
-  }
-  console.log("Response status is OK\n");
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "X-API-KEY": apiKey,
+            "Content-Type": "application/json",
+        },
+        body: JSON.stringify(request),
+    });
+    if (response.status != 200) {
+        throw new Error(`Response status is not OK, status ${response.status} ${response.statusText}\n`);
+    }
+    console.log("Response status is OK\n");
 
-  return await response.json();
+    return await response.json();
 }
 
 async function calculateRoundId(transaction: any) {
@@ -178,14 +176,14 @@ async function retrieveDataAndProofBase(url: string, abiEncodedRequest: string, 
 }
 
 export {
-  toUtf8HexString,
-  sleep,
-  prepareAttestationRequestBase,
-  submitAttestationRequest,
-  retrieveDataAndProofBase,
-  getFdcHub,
-  getFdcRequestFee,
-  getRelay,
-  calculateRoundId,
-  postRequestToDALayer,
+    toUtf8HexString,
+    sleep,
+    prepareAttestationRequestBase,
+    submitAttestationRequest,
+    retrieveDataAndProofBase,
+    getFdcHub,
+    getFdcRequestFee,
+    getRelay,
+    calculateRoundId,
+    postRequestToDALayer,
 };

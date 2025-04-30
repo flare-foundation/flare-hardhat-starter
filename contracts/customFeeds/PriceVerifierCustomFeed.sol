@@ -16,7 +16,6 @@ struct PriceOnlyData {
  * @dev Implements the IICustomFeed interface and includes verification logic specific to CoinGecko API structure.
  */
 contract PriceVerifierCustomFeed is IICustomFeed {
-
     // --- State Variables ---
 
     bytes21 public immutable feedIdentifier;
@@ -57,18 +56,29 @@ contract PriceVerifierCustomFeed is IICustomFeed {
     function verifyPrice(IJsonApi.Proof calldata _proof) external {
         // 1. FDC Verification
         require(
-            ContractRegistry.auxiliaryGetIJsonApiVerification().verifyJsonApi(_proof),
+            ContractRegistry.auxiliaryGetIJsonApiVerification().verifyJsonApi(
+                _proof
+            ),
             "Invalid JSON API proof"
         );
 
         // 2. Extract API URL and Parse CoinGecko ID and Date String
         string memory apiUrl = _proof.data.requestBody.url;
         bytes memory apiUrlBytes = bytes(apiUrl);
-        (string memory coinGeckoIdFromUrl, string memory dateStringFromUrl) = _parseUrlData(apiUrlBytes);
+        (
+            string memory coinGeckoIdFromUrl,
+            string memory dateStringFromUrl
+        ) = _parseUrlData(apiUrlBytes);
 
         // Check if parsing succeeded
-        require(bytes(coinGeckoIdFromUrl).length > 0, "CoinGeckoIdParsingFailed()");
-        require(bytes(dateStringFromUrl).length > 0, "DateStringParsingFailed()");
+        require(
+            bytes(coinGeckoIdFromUrl).length > 0,
+            "CoinGeckoIdParsingFailed()"
+        );
+        require(
+            bytes(dateStringFromUrl).length > 0,
+            "DateStringParsingFailed()"
+        );
 
         // 3. Decode Price Data (relies on correct JQ filter in the *script*)
         PriceOnlyData memory priceData = abi.decode(
@@ -80,9 +90,12 @@ contract PriceVerifierCustomFeed is IICustomFeed {
         emit UrlParsingCheck(apiUrl, coinGeckoIdFromUrl, dateStringFromUrl);
 
         // 4. CRUCIAL CHECK: Verify CoinGecko ID matches expected
-        string memory expectedCoinGeckoId = _getExpectedCoinGeckoId(expectedSymbol);
+        string memory expectedCoinGeckoId = _getExpectedCoinGeckoId(
+            expectedSymbol
+        );
         require(
-            keccak256(abi.encodePacked(coinGeckoIdFromUrl)) == keccak256(abi.encodePacked(expectedCoinGeckoId)),
+            keccak256(abi.encodePacked(coinGeckoIdFromUrl)) ==
+                keccak256(abi.encodePacked(expectedCoinGeckoId)),
             "UrlCoinGeckoIdMismatchExpected()"
         );
 
@@ -106,12 +119,21 @@ contract PriceVerifierCustomFeed is IICustomFeed {
         return 0;
     }
 
-    function getFeedDataView() external view returns (uint256 _value, int8 _decimals) {
+    function getFeedDataView()
+        external
+        view
+        returns (uint256 _value, int8 _decimals)
+    {
         _value = latestVerifiedPrice;
         _decimals = DECIMALS;
     }
 
-    function getCurrentFeed() external payable override returns (uint256 _value, int8 _decimals, uint64 _timestamp) {
+    function getCurrentFeed()
+        external
+        payable
+        override
+        returns (uint256 _value, int8 _decimals, uint64 _timestamp)
+    {
         _value = latestVerifiedPrice;
         _decimals = DECIMALS;
         _timestamp = 0;
@@ -130,7 +152,11 @@ contract PriceVerifierCustomFeed is IICustomFeed {
      * @param end The ending index (exclusive).
      * @return The sliced bytes.
      */
-    function slice(bytes memory data, uint256 start, uint256 end) internal pure returns (bytes memory) {
+    function slice(
+        bytes memory data,
+        uint256 start,
+        uint256 end
+    ) internal pure returns (bytes memory) {
         require(end >= start, "Slice: end before start");
         require(data.length >= end, "Slice: end out of bounds");
         bytes memory result = new bytes(end - start);
@@ -147,7 +173,11 @@ contract PriceVerifierCustomFeed is IICustomFeed {
      * @param searchStart The index to start searching from.
      * @return The starting index of the marker, or type(uint256).max if not found.
      */
-    function _findMarker(bytes memory data, bytes memory marker, uint256 searchStart) internal pure returns (uint256) {
+    function _findMarker(
+        bytes memory data,
+        bytes memory marker,
+        uint256 searchStart
+    ) internal pure returns (uint256) {
         uint256 dataLen = data.length;
         uint256 markerLen = marker.length;
         if (markerLen == 0 || dataLen < markerLen + searchStart) {
@@ -176,7 +206,9 @@ contract PriceVerifierCustomFeed is IICustomFeed {
      * @return coinGeckoId The parsed CoinGecko ID (e.g., "bitcoin").
      * @return dateString The parsed date string (e.g., "30-12-2022").
      */
-    function _parseUrlData(bytes memory apiUrlBytes)
+    function _parseUrlData(
+        bytes memory apiUrlBytes
+    )
         internal
         pure
         returns (string memory coinGeckoId, string memory dateString)
@@ -194,7 +226,11 @@ contract PriceVerifierCustomFeed is IICustomFeed {
         uint256 idEndIndex = _findMarker(apiUrlBytes, historyMarker, idStart);
         if (idEndIndex == type(uint256).max) return ("", "");
 
-        uint256 dateStartIndex = _findMarker(apiUrlBytes, dateMarker, idEndIndex);
+        uint256 dateStartIndex = _findMarker(
+            apiUrlBytes,
+            dateMarker,
+            idEndIndex
+        );
         if (dateStartIndex == type(uint256).max) return ("", "");
 
         uint256 dateStart = dateStartIndex + dateMarker.length;
@@ -214,7 +250,9 @@ contract PriceVerifierCustomFeed is IICustomFeed {
      * @param _symbol The trading symbol (e.g., "BTC", "ETH").
      * @return The CoinGecko ID string (e.g., "bitcoin", "ethereum").
      */
-    function _getExpectedCoinGeckoId(string memory _symbol) internal pure returns (string memory) {
+    function _getExpectedCoinGeckoId(
+        string memory _symbol
+    ) internal pure returns (string memory) {
         bytes32 symbolHash = keccak256(abi.encodePacked(_symbol));
         if (symbolHash == keccak256(abi.encodePacked("BTC"))) return "bitcoin";
         if (symbolHash == keccak256(abi.encodePacked("ETH"))) return "ethereum";
