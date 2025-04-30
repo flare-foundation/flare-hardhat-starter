@@ -16,10 +16,11 @@
     "lint:fix-solidity": "solhint \"contracts/**/*.sol\" --fix",
     "lint:check-typescript": "eslint \"{scripts,test}/**/*.ts\"",
     "lint:check-solidity": "solhint \"contracts/**/*.sol\"",
+    "-----Formatting-----": "echo \"Formatting scripts\"",
     "format:fix": "yarn format:fix-typescript && yarn format:fix-solidity",
     "format:check": "yarn format:check-typescript && yarn format:check-solidity",
-    "format:check-typescript": "prettier --check \"scripts/**/*.ts\" \"test/**/*.ts\"",
-    "format:fix-typescript": "prettier --write \"scripts/**/*.ts\" \"test/**/*.ts\"",
+    "format:check-typescript": "prettier --check \"scripts/**/*.ts\" ",
+    "format:fix-typescript": "prettier --write \"scripts/**/*.ts\" ",
     "format:check-solidity": "prettier --check --plugin=prettier-plugin-solidity \"contracts/**/*.sol\"",
     "format:fix-solidity": "prettier --write --plugin=prettier-plugin-solidity \"contracts/**/*.sol\"",
     "-----Testing-----": "echo \"Testing scripts\"",
@@ -58,13 +59,8 @@
     "typescript-eslint": "^8.19.1"
   },
   "dependencies": {
-<<<<<<< HEAD
-    "@flarenetwork/flare-periphery-contract-artifacts": "0.1.24",
+    "@flarenetwork/flare-periphery-contract-artifacts": "^0.1.23",
     "@flarenetwork/flare-periphery-contracts": "^0.1.23",
-=======
-    "@flarenetwork/flare-periphery-contract-artifacts": "^0.1.22",
-    "@flarenetwork/flare-periphery-contracts": "^0.1.22",
->>>>>>> 97c3b0f (feat: Add FTSO V2 Consumer, Anchor, FastUpdates, utils, and READMEs)
     "@openzeppelin/contracts": "^5.2.0",
     "@typescript-eslint/eslint-plugin": "^7.3.1",
     "@typescript-eslint/parser": "^7.3.1",
@@ -78,7 +74,6 @@
     "semi": true,
     "singleQuote": false,
     "trailingComma": "es5",
-<<<<<<< HEAD
     "tabWidth": 4,
     "arrowParens": "avoid",
     "plugins": [
@@ -97,9 +92,5 @@
         }
       }
     ]
-=======
-    "tabWidth": 2,
-    "arrowParens": "avoid"
->>>>>>> 97c3b0f (feat: Add FTSO V2 Consumer, Anchor, FastUpdates, utils, and READMEs)
   }
 }
