@@ -1,4 +1,4 @@
-import { run, web3 } from "hardhat";
+import { run } from "hardhat";
 import { PriceVerifierCustomFeedInstance } from "../typechain-types";
 import {
   prepareAttestationRequestBase,
@@ -6,6 +6,7 @@ import {
   retrieveDataAndProofBase,
   toUtf8HexString
 } from "./fdcExample/Base";
+import { coston } from "@flarenetwork/flare-periphery-contract-artifacts";
 
 const PriceVerifierCustomFeed = artifacts.require("PriceVerifierCustomFeed");
 
@@ -152,13 +153,9 @@ async function submitProofToCustomFeed(
     "\n"
   );
 
-  // Get the ABI from the imported JSON file
-  const IJsonApiVerification = await artifacts.require(
-    "@flarenetwork/flare-periphery-contracts/coston2/IJsonApiVerification.sol:IJsonApiVerification"
-  );
-  const iJsonApiAbi = IJsonApiVerification.abi;
+  const iJsonApiAbi = coston.interfaceAbis.IJsonApiVerification;
 
-  const proofDataAbiDefinition = (iJsonApiAbi as any[]).find( // Cast ABI to array to use find
+  const proofDataAbiDefinition = (iJsonApiAbi as any[]).find(
     (item: any) => item.name === "Data" && item.type === "tuple"
   );
 
@@ -174,8 +171,8 @@ async function submitProofToCustomFeed(
     "\n"
   );
 
-  const decodedProofData = web3.eth.abi.decodeParameter(
-    proofDataAbiDefinition,
+  const decodedProofData = ethers.utils.defaultAbiCoder.decode(
+    [proofDataAbiDefinition],
     proof.response_hex
   );
 
@@ -183,12 +180,12 @@ async function submitProofToCustomFeed(
 
   const contractProofArgument = {
     merkleProof: proof.proof,
-    data: decodedProofData, // Use the decoded object directly
+    data: decodedProofData,
   };
 
   console.log(
     "Calling verifyPrice function on CustomFeed with structured proof argument:",
-    JSON.stringify(contractProofArgument, null, 2), // Use JSON.stringify for better object logging
+    JSON.stringify(contractProofArgument, null, 2),
     "\n"
   );
 
