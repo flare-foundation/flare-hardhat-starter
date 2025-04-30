@@ -196,9 +196,6 @@ contract WeatherIdAgency {
     function isJsonApiProofValid(
         IWeb2Json.Proof calldata _proof
     ) private view returns (bool) {
-        return
-            ContractRegistry.auxiliaryGetIWeb2JsonVerification().verifyJsonApi(
-                _proof
-            );
+        return ContractRegistry.getFdcVerification().verifyJsonApi(_proof);
     }
 }

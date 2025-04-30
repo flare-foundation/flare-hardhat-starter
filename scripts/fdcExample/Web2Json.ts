@@ -9,13 +9,15 @@ const { WEB2JSON_VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYE
 // yarn hardhat run scripts/fdcExample/Web2Json.ts --network coston2
 
 // Request data
-const apiUrl = "https://swapi.dev/api/people/3/";
+// const apiUrl = "https://swapi.dev/api/people/3/";
+// const postProcessJq = `{name: .name, height: .height, mass: .mass, numberOfFilms: .films | length, uid: (.url | split("/") | .[-2] | tonumber)}`;
+const apiUrl = "https://swapi.info/api/people/3";
+const postProcessJq = `{name: .name, height: .height, mass: .mass, numberOfFilms: .films | length, uid: (.url | split("/") | .[-1] | tonumber)}`;
 const httpMethod = "GET";
 // Defaults to "Content-Type": "application/json"
 const headers = "{}";
 const queryParams = "{}";
 const body = "{}";
-const postProcessJq = `{name: .name, height: .height, mass: .mass, numberOfFilms: .films | length, uid: (.url | split("/") | .[-2] | tonumber)}`;
 const abiSignature = `{"components": [{"internalType": "string", "name": "name", "type": "string"},{"internalType": "uint256", "name": "height", "type": "uint256"},{"internalType": "uint256", "name": "mass", "type": "uint256"},{"internalType": "uint256", "name": "numberOfFilms", "type": "uint256"},{"internalType": "uint256", "name": "uid", "type": "uint256"}],"name": "task","type": "tuple"}`;
 
 // Configuration constants
