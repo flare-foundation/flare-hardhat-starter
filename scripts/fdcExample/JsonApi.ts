@@ -33,8 +33,8 @@ async function prepareAttestationRequest(apiUrl: string, postprocessJq: string, 
         abi_signature: abiSignature,
     };
 
-  const url = `${verifierUrlBase}JsonApi/prepareRequest`;
-  const apiKey = VERIFIER_API_KEY_TESTNET;
+    const url = `${verifierUrlBase}JsonApi/prepareRequest`;
+    const apiKey = VERIFIER_API_KEY_TESTNET;
 
     return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, sourceIdBase, requestBody);
 }

@@ -21,7 +21,10 @@ struct DataTransportObject {
 
 interface IStarWarsCharacterListV2 {
     function addCharacter(IWeb2Json.Proof calldata data) external;
-    function getAllCharacters() external view returns (StarWarsCharacter[] memory);
+    function getAllCharacters()
+        external
+        view
+        returns (StarWarsCharacter[] memory);
 }
 
 contract StarWarsCharacterListV2 {
@@ -31,7 +34,10 @@ contract StarWarsCharacterListV2 {
     function addCharacter(IWeb2Json.Proof calldata data) public {
         require(isJsonApiProofValid(data), "Invalid proof");
 
-        DataTransportObject memory dto = abi.decode(data.data.responseBody.abiEncodedData, (DataTransportObject));
+        DataTransportObject memory dto = abi.decode(
+            data.data.responseBody.abiEncodedData,
+            (DataTransportObject)
+        );
 
         require(characters[dto.apiUid].apiUid == 0, "Character already exists");
 
@@ -46,8 +52,14 @@ contract StarWarsCharacterListV2 {
         characterIds.push(dto.apiUid);
     }
 
-    function getAllCharacters() public view returns (StarWarsCharacter[] memory) {
-        StarWarsCharacter[] memory result = new StarWarsCharacter[](characterIds.length);
+    function getAllCharacters()
+        public
+        view
+        returns (StarWarsCharacter[] memory)
+    {
+        StarWarsCharacter[] memory result = new StarWarsCharacter[](
+            characterIds.length
+        );
         for (uint256 i = 0; i < characterIds.length; i++) {
             result[i] = characters[characterIds[i]];
         }
@@ -56,7 +68,9 @@ contract StarWarsCharacterListV2 {
 
     function abiSignatureHack(DataTransportObject calldata dto) public pure {}
 
-    function isJsonApiProofValid(IWeb2Json.Proof calldata _proof) private view returns (bool) {
+    function isJsonApiProofValid(
+        IWeb2Json.Proof calldata _proof
+    ) private view returns (bool) {
         // Inline the check for now until we have an official contract deployed
         return ContractRegistry.getFdcVerification().verifyJsonApi(_proof);
     }

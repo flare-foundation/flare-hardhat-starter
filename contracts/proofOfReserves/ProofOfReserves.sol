@@ -25,13 +25,9 @@ contract ProofOfReserves is Ownable {
     }
 
     function verifyReserves(
-        IJsonApi.Proof calldata jsonProof,
+        IWeb2Json.Proof calldata jsonProof,
         IEVMTransaction.Proof[] calldata transactionProofs
     ) external returns (bool) {
-    function verifyReserves(IWeb2Json.Proof calldata jsonProof, IEVMTransaction.Proof[] calldata transactionProofs)
-        external
-        returns (bool)
-    {
         uint256 claimedReserves = readReserves(jsonProof);
 
         uint256 totalTokenReserves = 0;
@@ -53,15 +49,13 @@ contract ProofOfReserves is Ownable {
     function abiSignatureHack(DataTransportObject calldata dto) public pure {}
 
     function readReserves(
-        IJsonApi.Proof calldata proof
+        IWeb2Json.Proof calldata proof
     ) private returns (uint256) {
-    function readReserves(IWeb2Json.Proof calldata proof) private returns (uint256) {
         require(isValidProof(proof), "Invalid json proof");
         DataTransportObject memory data = abi.decode(
-            proof.data.responseBody.abi_encoded_data,
+            proof.data.responseBody.abiEncodedData,
             (DataTransportObject)
         );
-        DataTransportObject memory data = abi.decode(proof.data.responseBody.abiEncodedData, (DataTransportObject));
         debugClaimedReserves = data.reserves;
 
         return data.reserves;
@@ -96,13 +90,8 @@ contract ProofOfReserves is Ownable {
     }
 
     function isValidProof(
-        IJsonApi.Proof calldata proof
+        IWeb2Json.Proof calldata proof
     ) private view returns (bool) {
-        return
-            ContractRegistry.auxiliaryGetIJsonApiVerification().verifyJsonApi(
-                proof
-            );
-    function isValidProof(IWeb2Json.Proof calldata proof) private view returns (bool) {
         return ContractRegistry.getFdcVerification().verifyJsonApi(proof);
     }
 

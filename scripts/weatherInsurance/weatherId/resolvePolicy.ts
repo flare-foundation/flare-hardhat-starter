@@ -105,40 +105,40 @@ async function getPolicy(agency: WeatherIdAgencyInstance, id: number) {
 }
 
 function prepareQueryParams(policy: any) {
-  const queryParams = {
-    lat: policy.latitude / 10 ** 6,
-    lon: policy.longitude / 10 ** 6,
-    units: units,
-    appid: apiId,
-  };
-  return JSON.stringify(queryParams);
+    const queryParams = {
+        lat: policy.latitude / 10 ** 6,
+        lon: policy.longitude / 10 ** 6,
+        units: units,
+        appid: apiId,
+    };
+    return JSON.stringify(queryParams);
 }
 
 async function prepareAttestationRequest(
-  apiUrl: string,
-  httpMethod: string,
-  headers: string,
-  queryParams: string,
-  body: string,
-  postProcessJq: string,
-  abiSignature: string
+    apiUrl: string,
+    httpMethod: string,
+    headers: string,
+    queryParams: string,
+    body: string,
+    postProcessJq: string,
+    abiSignature: string
 ) {
-  const requestBody = {
-    url: apiUrl,
-    httpMethod: httpMethod,
-    headers: headers,
-    queryParams: queryParams,
-    body: body,
-    postProcessJq: postProcessJq,
-    abiSignature: abiSignature,
-  };
+    const requestBody = {
+        url: apiUrl,
+        httpMethod: httpMethod,
+        headers: headers,
+        queryParams: queryParams,
+        body: body,
+        postProcessJq: postProcessJq,
+        abiSignature: abiSignature,
+    };
 
-  console.log(
-    `Query string: ${apiUrl}?${queryParams.replaceAll(":", "=").replaceAll(",", "&").replaceAll("{", "").replaceAll("}", "").replaceAll('"', "")}\n`
-  );
+    console.log(
+        `Query string: ${apiUrl}?${queryParams.replaceAll(":", "=").replaceAll(",", "&").replaceAll("{", "").replaceAll("}", "").replaceAll('"', "")}\n`
+    );
 
-  const url = `${verifierUrlBase}Web2Json/prepareRequest`;
-  const apiKey = VERIFIER_API_KEY_TESTNET;
+    const url = `${verifierUrlBase}Web2Json/prepareRequest`;
+    const apiKey = VERIFIER_API_KEY_TESTNET;
 
     return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, sourceIdBase, requestBody);
 }
@@ -150,9 +150,9 @@ async function retrieveDataAndProof(abiEncodedRequest: string, roundId: number) 
 }
 
 async function resolvePolicy(agency: WeatherIdAgencyInstance, id: number, proof: any) {
-  // A piece of black magic that allows us to read the response type from an artifact
-  const IWeb2JsonVerification = await artifacts.require("IWeb2JsonVerification");
-  const responseType = IWeb2JsonVerification._json.abi[0].inputs[0].components[1];
+    // A piece of black magic that allows us to read the response type from an artifact
+    const IWeb2JsonVerification = await artifacts.require("IWeb2JsonVerification");
+    const responseType = IWeb2JsonVerification._json.abi[0].inputs[0].components[1];
 
     const decodedResponse = web3.eth.abi.decodeParameter(responseType, proof.response_hex);
 
@@ -177,19 +177,19 @@ async function main() {
 
     const policy = await getPolicy(agency, policyId);
 
-  const queryParams = prepareQueryParams(policy);
+    const queryParams = prepareQueryParams(policy);
 
-  const data = await prepareAttestationRequest(
-    apiUrl,
-    httpMethod,
-    headers,
-    queryParams,
-    body,
-    postProcessJq,
-    abiSignature
-  );
-  console.log("Data:", data, "\n");
-  const abiEncodedRequest = data.abiEncodedRequest;
+    const data = await prepareAttestationRequest(
+        apiUrl,
+        httpMethod,
+        headers,
+        queryParams,
+        body,
+        postProcessJq,
+        abiSignature
+    );
+    console.log("Data:", data, "\n");
+    const abiEncodedRequest = data.abiEncodedRequest;
 
     const roundId = await submitAttestationRequest(abiEncodedRequest);
 
