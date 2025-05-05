@@ -11,6 +11,7 @@ scripts
 ├── proofOfReserves: an example dApp that demonstrates how the EVMTransaction and JsonApi attestation types can be used
 ├── GuessingGame.ts: deploys and verifies the GuessingGame contract
 ├── HelloWorld.ts: deploys and verifies the HelloWorld contract
+├── PriceVerification.ts: demonstrates using FDC (JsonApi) with a custom feed contract for price verification
 ├── README.md
 └── tryDeployment.ts
 ```
