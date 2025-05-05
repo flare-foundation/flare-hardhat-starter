@@ -59,7 +59,7 @@
     "typescript-eslint": "^8.19.1"
   },
   "dependencies": {
-    "@flarenetwork/flare-periphery-contract-artifacts": "^0.1.23",
+    "@flarenetwork/flare-periphery-contract-artifacts": "0.1.24",
     "@flarenetwork/flare-periphery-contracts": "^0.1.23",
     "@openzeppelin/contracts": "^5.2.0",
     "@typescript-eslint/eslint-plugin": "^7.3.1",
@@ -76,7 +76,9 @@
     "trailingComma": "es5",
     "tabWidth": 4,
     "arrowParens": "avoid",
-    "plugins": [ "prettier-plugin-solidity" ],
+    "plugins": [
+      "prettier-plugin-solidity"
+    ],
     "overrides": [
       {
         "files": "*.sol",
