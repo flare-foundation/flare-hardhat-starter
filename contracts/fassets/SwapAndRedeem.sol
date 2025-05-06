@@ -32,12 +32,6 @@ contract SwapAndRedeem {
   // Path to swap WCFLR for FXRP
   address[] public swapPath;
 
-  event RedemptionNeeded(uint256 amountIn, uint256 amountOut);
-  event SwapStarted(uint256 amount, address[] path, uint256 deadline);
-  event SwapCompleted(uint256[] amountsSent, uint256[] amountsRecv);
-  event RedeemStarted(uint256 lots, string redeemerUnderlyingAddressString);
-  event Redeemed(uint256 lots, uint256 redeemedAmountUBA);
-
   constructor(address _router, address _assetManager, address[] memory _swapPath) {
     router = ISwapRouter(_router);
     assetManager = IAssetManager(_assetManager);
@@ -82,25 +76,15 @@ contract SwapAndRedeem {
     // Approve Uniswap router to spend the tokens
     require(token.approve(address(router), _amountIn), "Router approval failed");
 
-    emit RedemptionNeeded(_amountIn, _amountOut);
-
     // Set the deadline for the swap (10 minutes)
     uint256 _deadline = block.timestamp + 10 minutes;
     address[] memory path = swapPath;
 
-    emit SwapStarted(msg.value, swapPath, _deadline);
-
     // Swap tokens to FXRP using BlazeSwap (Uniswap V2 router interface)
     (uint256[] memory _amountsSent, uint256[] memory _amountsRecv) = _swap(_amountIn, _amountOut, path, _deadline);
 
-    emit SwapCompleted(_amountsSent, _amountsRecv);
-
-    emit RedeemStarted(_lots, _redeemerUnderlyingAddressString);
-
     // Redeem FAssets from FXRP to the redeemer's underlying XRPL address
     _redeemedAmountUBA = _redeem(_lots, _redeemerUnderlyingAddressString);
-
-    emit Redeemed(_lots, _redeemedAmountUBA);
 
     return (_amountOut, _deadline, _amountsSent, _amountsRecv, _redeemedAmountUBA);
   }
@@ -124,7 +108,12 @@ contract SwapAndRedeem {
   // @param _redeemerUnderlyingAddressString: redeemer underlying address string (XRP address)
   // @return amountRedeemed: amount of FAssets redeemed
   function _redeem(uint256 _lots, string memory _redeemerUnderlyingAddressString) internal returns (uint256) {
-    return assetManager.redeem(_lots, _redeemerUnderlyingAddressString, payable(address(0)));
+    return assetManager.redeem(
+      _lots,
+      _redeemerUnderlyingAddressString,
+      // The account that is allowed to execute redemption default (besides redeemer and agent).
+      // In this case it is not used
+      payable(address(0)));
   }
 
   // Swap tokens to FXRP using BlazeSwap (Uniswap V2 router interface)
