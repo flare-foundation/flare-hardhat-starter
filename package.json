@@ -1,7 +1,7 @@
 {
   "name": "flare-hardhat-starter",
   "main": "index.js",
-  "repository": "https://github.com/nikerzetic-aflabs/flare-hardhat-starter",
+  "repository": "https://github.com/flare-foundation/flare-hardhat-starter",
   "license": "MIT",
   "scripts": {
     "build": "nest build",
