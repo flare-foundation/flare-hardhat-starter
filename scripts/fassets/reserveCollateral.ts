@@ -1,4 +1,4 @@
-import { ethers, run } from "hardhat";
+import { ethers } from "hardhat";
 
 import { IAssetManagerInstance, IAssetManagerContract } from "../../typechain-types";
 
@@ -117,9 +117,9 @@ async function parseCollateralReservedEvent(transactionReceipt: any) {
             console.log("executorFeeNatWei:", collateralReservedEvent.executorFeeNatWei.toString());
         }
     }
-    }  catch (e) {
+    } catch (e) {
       console.log("Error parsing event:", e);
-  }
+    }
   }
 }
 
