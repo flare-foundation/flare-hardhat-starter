@@ -83,7 +83,7 @@ type CollateralReservedEvent = {
   executorFeeNatWei: bigint;
 };
 
-async function parseCollateralReservedEvent(transactionReceipt: any) {
+async function parseCollateralReservedEvent(transactionReceipt: any, decimals: number) {
   console.log("\nParsing events...", transactionReceipt.rawLogs);
 
   const assetManager = (await ethers.getContractAt("IAssetManager", ASSET_MANAGER_ADDRESS)) as IAssetManagerContract;
@@ -115,6 +115,10 @@ async function parseCollateralReservedEvent(transactionReceipt: any) {
             console.log("paymentReference:", collateralReservedEvent.paymentReference);
             console.log("executor:", collateralReservedEvent.executor);
             console.log("executorFeeNatWei:", collateralReservedEvent.executorFeeNatWei.toString());
+            
+            const totalUBA = collateralReservedEvent.valueUBA + collateralReservedEvent.feeUBA;
+            const totalXRP = (Number(totalUBA) / 10 ** decimals);
+            console.log(`💰 You need to pay ${totalXRP} XRP`);
         }
     }
     } catch (e) {
@@ -163,8 +167,10 @@ async function main() {
 
   console.log("Collateral reservation successful:", tx);
 
+  const decimals = await assetManager.assetMintingDecimals();
+
   // Parse the CollateralReserved event
-  await parseCollateralReservedEvent(tx.receipt);
+  await parseCollateralReservedEvent(tx.receipt, decimals);
 }
 
 // 1. Reserve collateral
