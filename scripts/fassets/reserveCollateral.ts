@@ -119,6 +119,8 @@ async function parseCollateralReservedEvent(transactionReceipt: any, decimals: n
             const totalUBA = collateralReservedEvent.valueUBA + collateralReservedEvent.feeUBA;
             const totalXRP = (Number(totalUBA) / 10 ** decimals);
             console.log(`💰 You need to pay ${totalXRP} XRP`);
+
+            return collateralReservedEvent;
         }
     }
     } catch (e) {
@@ -170,7 +172,16 @@ async function main() {
   const decimals = await assetManager.assetMintingDecimals();
 
   // Parse the CollateralReserved event
-  await parseCollateralReservedEvent(tx.receipt, decimals);
+  const collateralReservedEvent = await parseCollateralReservedEvent(tx.receipt, decimals);
+
+  const collateralReservationInfo = await assetManager.collateralReservationInfo(collateralReservedEvent.collateralReservationId);
+  console.log("Collateral reservation info:", collateralReservationInfo);
+
+  // Send payment on XRP Ledger
+  // Details from CollateralReserved event
+  // * recipient address - paymentAddress
+  // * reference paymentReference
+  
 }
 
 // 1. Reserve collateral
