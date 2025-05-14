@@ -13,7 +13,7 @@ const UNDERLYING_ADDRESS = "rSHYuiEvsYsKR8uUHhBTuGP5zjRcGt4nm";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 // Function from FAssets Bot repository
-// https://github.com/flare-labs-ltd/fasset-bots/blob/main/packages/fasset-bots-core/src/commands/InfoBotCommands.ts#L83
+// https://github.com/flare-foundation/fasset-bots/blob/main/packages/fasset-bots-core/src/commands/InfoBotCommands.ts#L83
 async function findBestAgent(assetManager: IAssetManagerInstance, minAvailableLots = 1) {
     // get max 100 agents
     const agents = (await assetManager.getAvailableAgentsDetailedList(0, 100))._agents;
@@ -134,26 +134,8 @@ async function main() {
     const totalUBA = collateralReservedEvent.valueUBA + collateralReservedEvent.feeUBA;
     const totalXRP = Number(totalUBA) / 10 ** decimals;
     console.log(`You need to pay ${totalXRP} XRP`);
-
-    // Send payment on XRP Ledger
-    // Details from CollateralReserved event
-    // * recipient address - paymentAddress
-    // * reference paymentReference
 }
 
-// 1. Reserve collateral
-// Collateral reservation ID is collateralReservationId from CollateralReserved event
-
-// 2. Send payment on XRP Ledger
-// Details from CollateralReserved event
-// * recipient address - paymentAddress
-// * reference paymentReference
-
-// 3. Get payment proof
-// https://dev.flare.network/fdc/guides/hardhat/payment#retrieve-data-and-proof
-// https://github.com/flare-foundation/flare-hardhat-starter/blob/master/scripts/fdcExample/Payment.ts
-
-// 4. Execute minting
 
 main().catch(error => {
     console.error(error);
