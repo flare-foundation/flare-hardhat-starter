@@ -1,11 +1,68 @@
 import { ethers } from "hardhat";
 
+import { prepareAttestationRequestBase } from "../fdcExample/Base";
 import { IAssetManagerInstance, IAssetManagerContract } from "../../typechain-types";
+
+// Environment variables
+const { COSTON_DA_LAYER_URL, VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET } = process.env;
 
 // AssetManager address on Songbird Testnet Coston network
 const ASSET_MANAGER_ADDRESS = "0x56728e46908fB6FcC5BCD2cc0c0F9BB91C3e4D34";
 
-async function parseExecutemintingEvents(receipt: any) {
+// Collateral reservation ID
+const COLLATERAL_RESERVATION_ID = 18615047;
+
+// FDC round id to get the proof for
+const TARGET_ROUND_ID = 987510;
+
+// FDC request data
+const attestationTypeBase = "Payment";
+const sourceIdBase = "testXRP";
+const verifierUrlBase = VERIFIER_URL_TESTNET;
+const urlTypeBase = "xrp";
+
+const transactionId = "65520665BB83D582E01D6813DA8B5ECB041F613F9891F9BE90EE2668AAC30543";
+const inUtxo = "0";
+const utxo = "0";
+
+// Prepare FDC request
+async function prepareFdcRequest(transactionId: string, inUtxo: string, utxo: string) {
+    const requestBody = {
+        transactionId: transactionId,
+        inUtxo: inUtxo,
+        utxo: utxo,
+    };
+
+    const url = `${verifierUrlBase}verifier/${urlTypeBase}/Payment/prepareRequest`;
+
+    return await prepareAttestationRequestBase(
+        url,
+        VERIFIER_API_KEY_TESTNET,
+        attestationTypeBase,
+        sourceIdBase,
+        requestBody
+    );
+}
+
+// Get proof from FDC
+async function getProof(roundId: number) {
+    const request = await prepareFdcRequest(transactionId, inUtxo, utxo);
+    const proofAndData = await fetch(`${COSTON_DA_LAYER_URL}api/v0/fdc/get-proof-round-id-bytes`, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "X-API-KEY": VERIFIER_API_KEY_TESTNET,
+        },
+        body: JSON.stringify({
+            votingRoundId: roundId,
+            requestBytes: request.abiEncodedRequest,
+        }),
+    });
+
+    return await proofAndData.json();
+}
+
+async function parseEvents(receipt: any) {
     console.log("\nParsing events...", receipt.rawLogs);
 
     const assetManager = (await ethers.getContractAt("IAssetManager", ASSET_MANAGER_ADDRESS)) as IAssetManagerContract;
@@ -17,14 +74,13 @@ async function parseExecutemintingEvents(receipt: any) {
                 data: log.data,
             });
 
-            if (parsedLog) {
-                const collateralReservedEvents = ["RedemptionTicketCreated", "MintingExecuted"];
+            if (!parsedLog) continue;
 
-                if (collateralReservedEvents.includes(parsedLog.name)) {
-                    console.log(`\nEvent: ${parsedLog.name}`);
-                    console.log("Arguments:", parsedLog.args);
-                }
-            }
+            const collateralReservedEvents = ["RedemptionTicketCreated", "MintingExecuted"];
+            if (!collateralReservedEvents.includes(parsedLog.name)) continue;
+
+            console.log(`\nEvent: ${parsedLog.name}`);
+            console.log("Arguments:", parsedLog.args);
         } catch (e) {
             console.log("Error parsing event:", e);
         }
@@ -32,64 +88,24 @@ async function parseExecutemintingEvents(receipt: any) {
 }
 
 async function main() {
-    // Collateral reservation ID
-    const collateralReservationId = 11025320;
-
-    // Data from FDC Payment example scripts/fdcExample/Payment.ts
-
-    // Merkle proof
-    const merkleProof = [
-        "0x992077253840bf8d4df7937f475f5d90b70ab3c3d95043155a6f44c7392ecf24",
-        "0x203d6451187233ebde0af574b1ed42af96927b64d528deb41e3483d8c0d7b181",
-        "0x06167bf952797ebc7b526178edfde3ccf846fe36542b9262a550f23af5d63acd",
-        "0x73f922d76253697fcd71c6649fd29daac678c67e4a06039cfd425bb2288e1ea0",
-    ];
-
-    const response = {
-        attestationType: "0x5061796d656e7400000000000000000000000000000000000000000000000000",
-        sourceId: "0x7465737458525000000000000000000000000000000000000000000000000000",
-        votingRound: 980098,
-        lowestUsedTimestamp: 2693323601,
-        requestBody: {
-            transactionId: "0xa51db0a7856a8c74a14739fe5ec1507e81b151fd26e677d6e9ca076c09b2365c",
-            inUtxo: "0",
-            utxo: "0",
-        },
-        responseBody: {
-            blockNumber: "7121783",
-            blockTimestamp: "1746638801",
-            sourceAddressHash: "0x0f2dac8dcd85fba13e76bb89eeb2e1099184c2f1e2582a12e3ed5beca1993df4",
-            sourceAddressesRoot: "0x66e27dc2250e5f3d0a64af0d6657e3d971c5300c1b4b7ae410b9c4fe09007be0",
-            receivingAddressHash: "0x3ed5711322ac905de71f00c4b3759dc03fdcee936ff711f463075fe27da87af1",
-            intendedReceivingAddressHash: "0x3ed5711322ac905de71f00c4b3759dc03fdcee936ff711f463075fe27da87af1",
-            spentAmount: "22000012",
-            intendedSpentAmount: "22000012",
-            receivedAmount: "22000000",
-            intendedReceivedAmount: "22000000",
-            standardPaymentReference: "0x4642505266410001000000000000000000000000000000000000000000a83ba8",
-            oneToOne: true,
-            status: "0",
-        },
-    };
-
-    const proof = {
-        merkleProof,
-        data: response,
-    };
-
-    console.log("Executing minting with proof:", JSON.stringify(proof, null, 2));
-    console.log("Collateral reservation ID:", collateralReservationId);
+    const proof = await getProof(TARGET_ROUND_ID);
 
     // FAssets FXRP asset manager on Songbird Testnet Coston network
     const AssetManager = artifacts.require("IAssetManager");
     const assetManager: IAssetManagerInstance = await AssetManager.at(ASSET_MANAGER_ADDRESS);
 
     // Execute minting
-    const tx = await assetManager.executeMinting(proof, collateralReservationId);
+    const tx = await assetManager.executeMinting(
+        {
+            merkleProof: proof.proof,
+            data: proof.response,
+        },
+        COLLATERAL_RESERVATION_ID
+    );
     console.log("Transaction successful:", tx);
 
     // Parse execute minting log events
-    await parseExecutemintingEvents(tx.receipt);
+    await parseEvents(tx.receipt);
 }
 
 main().catch(error => {

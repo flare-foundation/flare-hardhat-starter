@@ -7,7 +7,7 @@ async function send20XrpWithReference() {
     await client.connect();
 
     // XRP Ledger Testnet seed
-    const wallet: Wallet = Wallet.fromSeed("s000000000000000000000000000000"); // Sender wallet
+    const wallet: Wallet = Wallet.fromSeed("s000000000000000000000000000000"); // Sender wallet seed
 
     const paymentTx: Payment = {
         TransactionType: "Payment",
