@@ -65,17 +65,16 @@ async function parseCollateralReservedEvent(transactionReceipt: any, decimals: n
                 data: log.data,
             });
 
-            if (parsedLog) {
-                const collateralReservedEvents = ["CollateralReserved"];
+            if (!parsedLog) continue;
 
-                if (collateralReservedEvents.includes(parsedLog.name)) {
-                    console.log(`\nEvent: ${parsedLog.name}`);
-                    console.log("Arguments:", parsedLog.args);
-                    const collateralReservedEvent = parsedLog.args;
+            const collateralReservedEvents = ["CollateralReserved"];
+            if (!collateralReservedEvents.includes(parsedLog.name)) continue;
 
-                    return collateralReservedEvent;
-                }
-            }
+            console.log(`\nEvent: ${parsedLog.name}`);
+            console.log("Arguments:", parsedLog.args);
+            const collateralReservedEvent = parsedLog.args;
+
+            return collateralReservedEvent;
         } catch (e) {
             console.log("Error parsing event:", e);
         }
@@ -135,7 +134,6 @@ async function main() {
     const totalXRP = Number(totalUBA) / 10 ** decimals;
     console.log(`You need to pay ${totalXRP} XRP`);
 }
-
 
 main().catch(error => {
     console.error(error);
