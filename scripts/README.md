@@ -14,6 +14,8 @@ scripts
 ├── proofOfReserves: an example dApp that demonstrates how the EVMTransaction and JsonApi attestation types can be used
 ├── GuessingGame.ts: deploys and verifies the GuessingGame contract
 ├── HelloWorld.ts: deploys and verifies the HelloWorld contract
+├── MetalPriceVerification.ts: deploys and demonstrates usage of the MetalPriceVerifierCustomFeed contract
+├── PriceVerification.ts: deploys and demonstrates usage of the PriceVerifierCustomFeed contract
 ├── README.md
 └── tryDeployment.ts
 ```
