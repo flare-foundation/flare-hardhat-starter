@@ -126,11 +126,11 @@ async function submitProofToCustomFeed(customFeed: PriceVerifierCustomFeedInstan
     console.log("Submitting proof to PriceVerifierCustomFeed contract...");
     console.log("Raw Proof Data Hex (IJsonApi.Proof.data):", proof.response_hex, "\n");
 
-  const iJsonApiAbi = coston.interfaceAbis.IJsonApiVerification;
+    const iJsonApiAbi = coston.interfaceAbis.IJsonApiVerification;
 
-  const proofDataAbiDefinition = (iJsonApiAbi as any[]).find(
-    (item: any) => item.name === "Data" && item.type === "tuple"
-  );
+    const proofDataAbiDefinition = (iJsonApiAbi as any[]).find(
+        (item: any) => item.name === "Data" && item.type === "tuple"
+    );
 
     if (!proofDataAbiDefinition) {
         throw new Error(
@@ -144,23 +144,20 @@ async function submitProofToCustomFeed(customFeed: PriceVerifierCustomFeedInstan
         "\n"
     );
 
-  const decodedProofData = ethers.utils.defaultAbiCoder.decode(
-    [proofDataAbiDefinition],
-    proof.response_hex
-  );
+    const decodedProofData = ethers.utils.defaultAbiCoder.decode([proofDataAbiDefinition], proof.response_hex);
 
     console.log("Decoded Proof Data Struct (IJsonApi.Data):", decodedProofData, "\n");
 
-  const contractProofArgument = {
-    merkleProof: proof.proof,
-    data: decodedProofData,
-  };
+    const contractProofArgument = {
+        merkleProof: proof.proof,
+        data: decodedProofData,
+    };
 
-  console.log(
-    "Calling verifyPrice function on CustomFeed with structured proof argument:",
-    JSON.stringify(contractProofArgument, null, 2),
-    "\n"
-  );
+    console.log(
+        "Calling verifyPrice function on CustomFeed with structured proof argument:",
+        JSON.stringify(contractProofArgument, null, 2),
+        "\n"
+    );
 
     // Call verifyPrice on the customFeed contract instance
     const transaction = await customFeed.verifyPrice(contractProofArgument);
