@@ -3,11 +3,9 @@ import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
 import * as tenderly from "@tenderly/hardhat-tenderly";
 require("@nomiclabs/hardhat-truffle5");
-
 // import { vars } from "hardhat/config";
 const { vars } = require("hardhat/config");
 require("dotenv").config();
-
 
 // Load environment variables
 const PRIVATE_KEY = process.env.PRIVATE_KEY ?? "";
