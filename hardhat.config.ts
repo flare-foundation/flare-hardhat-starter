@@ -1,11 +1,13 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomiclabs/hardhat-web3";
+import * as tenderly from "@tenderly/hardhat-tenderly";
 require("@nomiclabs/hardhat-truffle5");
 
 // import { vars } from "hardhat/config";
 const { vars } = require("hardhat/config");
 require("dotenv").config();
+
 
 // Load environment variables
 const PRIVATE_KEY = process.env.PRIVATE_KEY ?? "";
@@ -25,6 +27,9 @@ const USE_FLARESCAN = process.env.USE_FLARESCAN ?? false;
 
 const GOERLI_API_URL = process.env.GOERLI_API_URL ?? "";
 const SEPOLIA_API_KEY = process.env.SEPOLIA_API_KEY ?? "";
+
+const TENDERLY_USERNAME = process.env.TENDERLY_USERNAME ?? "";
+const TENDERLY_PROJECT_SLUG = process.env.TENDERLY_PROJECT_SLUG ?? "";
 
 const config: HardhatUserConfig = {
   solidity: {
@@ -76,6 +81,10 @@ const config: HardhatUserConfig = {
         ? `https://flare-api-tracer.flare.network/ext/C/rpc?x-apikey=${FLARE_RPC_API_KEY}`
         : "https://flare-api.flare.network/ext/C/rpc",
       accounts: [`${PRIVATE_KEY}`],
+      chainId: 14,
+    },
+    tenderly: {
+      url: "https://flare.gateway.tenderly.co/pdYQcL54puW9QXPURLblM",
       chainId: 14,
     },
   },
@@ -138,7 +147,7 @@ const config: HardhatUserConfig = {
               : ""), // Must not have / endpoint
           browserURL: "https://flare-explorer.flare.network/",
         },
-      },
+      },      
     ],
   },
   paths: {
@@ -149,6 +158,10 @@ const config: HardhatUserConfig = {
   },
   typechain: {
     target: "truffle-v5",
+  },
+  tenderly: {
+    username: TENDERLY_USERNAME,
+    project: TENDERLY_PROJECT_SLUG,
   },
 };
 
