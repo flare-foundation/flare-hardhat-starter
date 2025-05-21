@@ -10,7 +10,7 @@ import { coston } from "@flarenetwork/flare-periphery-contract-artifacts";
 
 const PriceVerifierCustomFeed = artifacts.require("PriceVerifierCustomFeed");
 
-const { JQ_VERIFIER_URL_TESTNET, JQ_VERIFIER_API_KEY, COSTON2_DA_LAYER_URL } = process.env;
+const { JQ_VERIFIER_URL_TESTNET, JQ_VERIFIER_API_KEY, COSTON_DA_LAYER_URL } = process.env;
 
 // --- Request Configuration ---
 
@@ -75,9 +75,9 @@ async function prepareAttestationRequest(apiUrl: string, postprocessJq: string, 
 
 async function retrieveDataAndProof(abiEncodedRequest: string, roundId: number) {
     console.log(`Retrieving Proof for round ${roundId}...`);
-    const url = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
-    if (!COSTON2_DA_LAYER_URL) {
-        throw new Error("COSTON2_DA_LAYER_URL environment variable not set!");
+    const url = `${COSTON_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
+    if (!COSTON_DA_LAYER_URL) {
+        throw new Error("COSTON_DA_LAYER_URL environment variable not set!");
     }
     console.log("DA Layer URL:", url, "\n");
     return await retrieveDataAndProofBase(url, abiEncodedRequest, roundId);

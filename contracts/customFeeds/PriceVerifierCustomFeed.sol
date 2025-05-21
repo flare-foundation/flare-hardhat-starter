@@ -23,27 +23,76 @@ contract PriceVerifierCustomFeed is IICustomFeed {
     int8 public constant DECIMALS = 2;
     uint256 public latestVerifiedPrice;
 
+    address public owner;
+    mapping(bytes32 => string) public symbolToCoinGeckoId;
+
     // --- Events ---
     event PriceVerified(string indexed symbol, uint256 price, string apiUrl);
     event UrlParsingCheck(string apiUrl, string coinGeckoId, string dateString);
+    event CoinGeckoIdMappingSet(bytes32 indexed symbolHash, string coinGeckoId);
 
     // --- Errors ---
     error InvalidFeedId();
     error InvalidSymbol();
     error UrlCoinGeckoIdMismatchExpected();
     error CoinGeckoIdParsingFailed();
-    error UnknownSymbolForCoinGeckoId();
+    error UnknownSymbolForCoinGeckoId(); // Kept for direct call if needed, but mapping is primary
+    error CoinGeckoIdNotMapped(string symbol);
     error DateStringParsingFailed();
+    error NotOwner();
+
+    // --- Modifiers ---
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert NotOwner();
+        _;
+    }
 
     // --- Constructor ---
     constructor(bytes21 _feedId, string memory _expectedSymbol) {
         if (_feedId == bytes21(0)) revert InvalidFeedId();
         if (bytes(_expectedSymbol).length == 0) revert InvalidSymbol();
 
+        owner = msg.sender;
         feedIdentifier = _feedId;
         expectedSymbol = _expectedSymbol;
 
-        _getExpectedCoinGeckoId(_expectedSymbol);
+        // Initialize default CoinGecko IDs
+        _setCoinGeckoIdInternal("BTC", "bitcoin");
+        _setCoinGeckoIdInternal("ETH", "ethereum");
+
+        // Ensure the expected symbol has a mapping at deployment time
+        require(
+            bytes(
+                symbolToCoinGeckoId[
+                    keccak256(abi.encodePacked(_expectedSymbol))
+                ]
+            ).length > 0,
+            "Initial symbol not mapped"
+        );
+    }
+
+    // --- Owner Functions ---
+    /**
+     * @notice Allows the owner to add or update a CoinGecko ID mapping for a symbol.
+     * @param _symbol The trading symbol (e.g., "LTC").
+     * @param _coinGeckoId The corresponding CoinGecko ID (e.g., "litecoin").
+     */
+    function setCoinGeckoIdMapping(
+        string calldata _symbol,
+        string calldata _coinGeckoId
+    ) external onlyOwner {
+        _setCoinGeckoIdInternal(_symbol, _coinGeckoId);
+    }
+
+    function _setCoinGeckoIdInternal(
+        string memory _symbol,
+        string memory _coinGeckoId
+    ) internal {
+        require(bytes(_symbol).length > 0, "Symbol cannot be empty");
+        require(bytes(_coinGeckoId).length > 0, "CoinGecko ID cannot be empty");
+        bytes32 symbolHash = keccak256(abi.encodePacked(_symbol));
+        symbolToCoinGeckoId[symbolHash] = _coinGeckoId;
+        emit CoinGeckoIdMappingSet(symbolHash, _coinGeckoId);
     }
 
     // --- FDC Verification Logic ---
@@ -246,16 +295,18 @@ contract PriceVerifierCustomFeed is IICustomFeed {
 
     /**
      * @notice Maps a trading symbol (e.g., "BTC") to its corresponding CoinGecko ID (e.g., "bitcoin").
-     * @dev Add more symbols as needed. Reverts if symbol is unknown.
+     * @dev Uses the symbolToCoinGeckoId mapping.
      * @param _symbol The trading symbol (e.g., "BTC", "ETH").
      * @return The CoinGecko ID string (e.g., "bitcoin", "ethereum").
      */
     function _getExpectedCoinGeckoId(
         string memory _symbol
-    ) internal pure returns (string memory) {
+    ) internal view returns (string memory) {
         bytes32 symbolHash = keccak256(abi.encodePacked(_symbol));
-        if (symbolHash == keccak256(abi.encodePacked("BTC"))) return "bitcoin";
-        if (symbolHash == keccak256(abi.encodePacked("ETH"))) return "ethereum";
-        revert UnknownSymbolForCoinGeckoId();
+        string memory coinGeckoId = symbolToCoinGeckoId[symbolHash];
+        if (bytes(coinGeckoId).length == 0) {
+            revert CoinGeckoIdNotMapped(_symbol);
+        }
+        return coinGeckoId;
     }
 }
