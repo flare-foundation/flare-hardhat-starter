@@ -2,8 +2,7 @@
 pragma solidity ^0.8.25;
 
 import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
-import {IFdcVerification} from "@flarenetwork/flare-periphery-contracts/coston/IFdcVerification.sol";
-import {IJsonApi} from "@flarenetwork/flare-periphery-contracts/coston/IJsonApi.sol";
+import {IWeb2Json} from "@flarenetwork/flare-periphery-contracts/coston/IWeb2Json.sol";
 import {IICustomFeed} from "@flarenetwork/flare-periphery-contracts/coston/customFeeds/interface/IICustomFeed.sol";
 
 struct MetalPriceData {
@@ -12,15 +11,15 @@ struct MetalPriceData {
 
 /**
  * @title MetalPriceVerifierCustomFeed
- * @notice An FTSO Custom Feed contract that sources its value from FDC-verified data using Swissquote Forex feed.
- * @dev Implements the IICustomFeed interface and includes verification logic specific to the Swissquote API structure.
+ * @notice An FTSO Custom Feed contract that sources its value from FDC-verified data using Web2Json.
+ * @dev Implements the IICustomFeed interface and includes verification logic specific to the Web2Json API structure.
  */
 contract MetalPriceVerifierCustomFeed is IICustomFeed {
     // --- State Variables ---
 
     bytes21 public immutable feedIdentifier;
     string public expectedSymbol;
-    int8 public constant DECIMALS = 4;
+    int8 public decimals_ = 4;
     uint256 public latestVerifiedPrice;
     uint64 public latestVerifiedTimestamp;
 
@@ -31,8 +30,8 @@ contract MetalPriceVerifierCustomFeed is IICustomFeed {
     // --- Errors ---
     error InvalidFeedId();
     error InvalidSymbol();
-    error UrlMetalSymbolMismatchExpected();
-    error MetalSymbolParsingFailed();
+    error InvalidSymbolInUrl(string url, string symbol);
+    error InvalidProof();
 
     // --- Constructor ---
     constructor(bytes21 _feedId, string memory _expectedSymbol) {
@@ -41,65 +40,50 @@ contract MetalPriceVerifierCustomFeed is IICustomFeed {
 
         feedIdentifier = _feedId;
         expectedSymbol = _expectedSymbol;
-
-        // Check if symbol is supported during construction
-        _validateSymbol(_expectedSymbol);
     }
 
-    // --- FDC Verification Logic ---
+    // --- FDC Verification & Price Logic ---
     /**
-     * @notice Verifies a Swissquote metal price proof obtained via FDC JSON API attestation and stores the price.
-     * @dev Ensures the proof is valid AND the metal symbol (XAU/XAG/XPT) in the API URL path within the proof
-     *      corresponds to the expected asset symbol for this feed. Uses timestamp from proof data.
-     * @param _proof The proof data structure containing the attestation and response.
+     * @notice Verifies the metal price data proof and stores the price.
+     * @dev Uses Web2Json FDC verification. Checks if the symbol in the URL matches expectedSymbol.
+     * @param _proof The IWeb2Json.Proof data structure.
      */
-    function verifyPrice(IJsonApi.Proof calldata _proof) external {
-        // 1. FDC Verification
+    function verifyPrice(IWeb2Json.Proof calldata _proof) external {
+        // 1. Symbol Verification (from URL)
+        string memory metalSymbolFromUrl = _extractSymbolFromUrl(
+            _proof.data.requestBody.url
+        );
+        emit UrlParsingCheck(_proof.data.requestBody.url, metalSymbolFromUrl); // For debugging URL parsing
+        if (
+            keccak256(abi.encodePacked(metalSymbolFromUrl)) !=
+            keccak256(abi.encodePacked(expectedSymbol))
+        ) {
+            revert InvalidSymbolInUrl(
+                _proof.data.requestBody.url,
+                metalSymbolFromUrl
+            );
+        }
+
+        // 2. FDC Verification (Web2Json)
         require(
-            ContractRegistry.auxiliaryGetIJsonApiVerification().verifyJsonApi(
-                _proof
-            ),
-            "Invalid JSON API proof"
+            ContractRegistry.getFdcVerification().verifyJsonApi(_proof),
+            "FDC: Invalid Web2Json proof"
         );
 
-        // 2. Extract API URL and Parse Metal Symbol
-        string memory apiUrl = _proof.data.requestBody.url;
-        bytes memory apiUrlBytes = bytes(apiUrl);
-        string memory metalSymbolFromUrl = _parseUrlForMetalSymbol(apiUrlBytes);
-
-        // Check if parsing succeeded
-        require(
-            bytes(metalSymbolFromUrl).length > 0,
-            "MetalSymbolParsingFailed()"
-        );
-
-        // Emit parsing check event
-        emit UrlParsingCheck(apiUrl, metalSymbolFromUrl);
-
-        // 3. CRUCIAL CHECK: Verify Metal Symbol matches expected
-        require(
-            keccak256(abi.encodePacked(metalSymbolFromUrl)) ==
-                keccak256(abi.encodePacked(expectedSymbol)),
-            "UrlMetalSymbolMismatchExpected()"
-        );
-
-        // 4. Decode Price Data (relies on correct JQ filter in the *script*)
-        MetalPriceData memory priceData = abi.decode(
-            _proof.data.responseBody.abi_encoded_data,
+        // 3. Decode Price Data
+        MetalPriceData memory newPriceData = abi.decode(
+            _proof.data.responseBody.abiEncodedData,
             (MetalPriceData)
         );
 
-        // 5. Store verified price and timestamp
-        latestVerifiedPrice = priceData.price;
-        // latestVerifiedTimestamp = uint64(_proof.data.timestamp);
+        // 4. Store verified data
+        latestVerifiedPrice = newPriceData.price;
 
-        // 6. Emit main event
-        // TODO: Add timestamp back in
+        // 5. Emit main event
         emit PriceVerified(
             expectedSymbol,
-            latestVerifiedPrice,
-            // latestVerifiedTimestamp,
-            apiUrl
+            newPriceData.price,
+            _proof.data.requestBody.url // URL from the Web2Json proof
         );
     }
 
@@ -122,7 +106,7 @@ contract MetalPriceVerifierCustomFeed is IICustomFeed {
         returns (uint256 _value, int8 _decimals)
     {
         _value = latestVerifiedPrice;
-        _decimals = DECIMALS;
+        _decimals = decimals_;
     }
 
     function getCurrentFeed()
@@ -132,12 +116,12 @@ contract MetalPriceVerifierCustomFeed is IICustomFeed {
         returns (uint256 _value, int8 _decimals, uint64 _timestamp)
     {
         _value = latestVerifiedPrice;
-        _decimals = DECIMALS;
+        _decimals = decimals_;
         _timestamp = latestVerifiedTimestamp;
     }
 
-    function decimals() external pure returns (int8) {
-        return DECIMALS;
+    function decimals() external view returns (int8) {
+        return decimals_;
     }
 
     // --- Internal Helper Functions ---
@@ -197,55 +181,21 @@ contract MetalPriceVerifierCustomFeed is IICustomFeed {
     }
 
     /**
-     * @notice Parses the Metal Symbol (XAU, XAG, XPT) from the Swissquote API URL.
-     * Assumes URL format like: https://.../instrument/{METAL}/USD
-     * @param apiUrlBytes The API URL as bytes.
-     * @return metalSymbol The parsed metal symbol (e.g., "XAU").
+     * @notice Extracts the symbol from the URL.
+     * @param url The URL to extract the symbol from.
+     * @return The extracted symbol.
      */
-    function _parseUrlForMetalSymbol(
-        bytes memory apiUrlBytes
-    ) internal pure returns (string memory metalSymbol) {
-        // Define markers
-        bytes memory instrumentMarker = bytes("/instrument/");
-        bytes memory usdMarker = bytes("/USD");
+    function _extractSymbolFromUrl(
+        string memory url
+    ) internal pure returns (string memory) {
+        // Implement symbol extraction logic here
+        // For demonstration purposes, assume the symbol is the last part of the URL path
+        bytes memory urlBytes = bytes(url);
+        uint256 lastSlashIndex = _findMarker(urlBytes, bytes("/"), 0);
+        if (lastSlashIndex == type(uint256).max) return "";
 
-        uint256 symbolStartIndex = _findMarker(
-            apiUrlBytes,
-            instrumentMarker,
-            0
-        );
-        if (symbolStartIndex == type(uint256).max) return "";
-
-        uint256 symbolStart = symbolStartIndex + instrumentMarker.length;
-        uint256 symbolEndIndex = _findMarker(
-            apiUrlBytes,
-            usdMarker,
-            symbolStart
-        );
-        if (symbolEndIndex == type(uint256).max) return "";
-
-        // Basic sanity check for symbol length (expecting 3 characters)
-        if (symbolEndIndex - symbolStart != 3) {
-            return "";
-        }
-
-        metalSymbol = string(slice(apiUrlBytes, symbolStart, symbolEndIndex));
-    }
-
-    /**
-     * @notice Validates if the symbol is one of the supported metals. Reverts otherwise.
-     * @param _symbol The symbol to check (e.g., "XAU").
-     */
-    function _validateSymbol(string memory _symbol) internal pure {
-        bytes32 symbolHash = keccak256(abi.encodePacked(_symbol));
-        if (
-            symbolHash == keccak256(abi.encodePacked("XAU")) ||
-            symbolHash == keccak256(abi.encodePacked("XAG")) ||
-            symbolHash == keccak256(abi.encodePacked("XPT"))
-        ) {
-            // Symbol is valid
-            return;
-        }
-        revert InvalidSymbol();
+        uint256 symbolStart = lastSlashIndex + 1;
+        uint256 symbolEnd = urlBytes.length;
+        return string(slice(urlBytes, symbolStart, symbolEnd));
     }
 }

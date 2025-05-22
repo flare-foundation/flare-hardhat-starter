@@ -2,25 +2,24 @@
 pragma solidity ^0.8.25;
 
 import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
-import {IFdcVerification} from "@flarenetwork/flare-periphery-contracts/coston/IFdcVerification.sol";
-import {IJsonApi} from "@flarenetwork/flare-periphery-contracts/coston/IJsonApi.sol";
+import {IWeb2Json} from "@flarenetwork/flare-periphery-contracts/coston/IWeb2Json.sol";
 import {IICustomFeed} from "@flarenetwork/flare-periphery-contracts/coston/customFeeds/interface/IICustomFeed.sol";
 
-struct PriceOnlyData {
+struct PriceData {
     uint256 price;
 }
 
 /**
  * @title PriceVerifierCustomFeed
- * @notice An FTSO Custom Feed contract that sources its value from FDC-verified data using CoinGecko.
- * @dev Implements the IICustomFeed interface and includes verification logic specific to CoinGecko API structure.
+ * @notice An FTSO Custom Feed contract that sources its value from FDC-verified data using Web2Json.
+ * @dev Implements the IICustomFeed interface and includes verification logic specific to Web2Json API structure.
  */
 contract PriceVerifierCustomFeed is IICustomFeed {
     // --- State Variables ---
 
     bytes21 public immutable feedIdentifier;
     string public expectedSymbol;
-    int8 public constant DECIMALS = 2;
+    int8 public decimals_;
     uint256 public latestVerifiedPrice;
 
     address public owner;
@@ -39,22 +38,23 @@ contract PriceVerifierCustomFeed is IICustomFeed {
     error UnknownSymbolForCoinGeckoId(); // Kept for direct call if needed, but mapping is primary
     error CoinGeckoIdNotMapped(string symbol);
     error DateStringParsingFailed();
-    error NotOwner();
-
-    // --- Modifiers ---
-    modifier onlyOwner() {
-        if (msg.sender != owner) revert NotOwner();
-        _;
-    }
+    error InvalidSymbolInUrl(string url, string symbol);
+    error InvalidProof();
 
     // --- Constructor ---
-    constructor(bytes21 _feedId, string memory _expectedSymbol) {
+    constructor(
+        bytes21 _feedId,
+        string memory _expectedSymbol,
+        int8 _decimals
+    ) {
         if (_feedId == bytes21(0)) revert InvalidFeedId();
         if (bytes(_expectedSymbol).length == 0) revert InvalidSymbol();
+        if (_decimals < 0) revert InvalidSymbol();
 
         owner = msg.sender;
         feedIdentifier = _feedId;
         expectedSymbol = _expectedSymbol;
+        decimals_ = _decimals;
 
         // Initialize default CoinGecko IDs
         _setCoinGeckoIdInternal("BTC", "bitcoin");
@@ -80,7 +80,7 @@ contract PriceVerifierCustomFeed is IICustomFeed {
     function setCoinGeckoIdMapping(
         string calldata _symbol,
         string calldata _coinGeckoId
-    ) external onlyOwner {
+    ) external {
         _setCoinGeckoIdInternal(_symbol, _coinGeckoId);
     }
 
@@ -95,64 +95,50 @@ contract PriceVerifierCustomFeed is IICustomFeed {
         emit CoinGeckoIdMappingSet(symbolHash, _coinGeckoId);
     }
 
-    // --- FDC Verification Logic ---
+    // --- FDC Verification & Price Logic ---
     /**
-     * @notice Verifies a CoinGecko price proof obtained via FDC JSON API attestation and stores the price.
-     * @dev Ensures the proof is valid AND the CoinGecko ID in the API URL path within the proof
-     *      corresponds to the expected asset symbol for this feed. Uses timestamp from proof data.
-     * @param _proof The proof data structure containing the attestation and response.
+     * @notice Verifies the price data proof and stores the price.
+     * @dev Uses Web2Json FDC verification. Checks if the symbol in the URL matches expectedSymbol.
+     * @param _proof The IWeb2Json.Proof data structure.
      */
-    function verifyPrice(IJsonApi.Proof calldata _proof) external {
-        // 1. FDC Verification
+    function verifyPrice(IWeb2Json.Proof calldata _proof) external {
+        // 1. Symbol Verification (from URL)
+        string memory symbolFromUrl = _extractSymbolFromUrl(
+            _proof.data.requestBody.url
+        );
+        if (
+            keccak256(abi.encodePacked(symbolFromUrl)) !=
+            keccak256(abi.encodePacked(expectedSymbol))
+        ) {
+            revert InvalidSymbolInUrl(
+                _proof.data.requestBody.url,
+                symbolFromUrl
+            );
+        }
+
+        // 2. FDC Verification (Web2Json)
+        // Aligned with the Web2Json.sol example's pattern
         require(
-            ContractRegistry.auxiliaryGetIJsonApiVerification().verifyJsonApi(
-                _proof
-            ),
-            "Invalid JSON API proof"
+            ContractRegistry.getFdcVerification().verifyJsonApi(_proof),
+            "FDC: Invalid Web2Json proof"
         );
 
-        // 2. Extract API URL and Parse CoinGecko ID and Date String
-        string memory apiUrl = _proof.data.requestBody.url;
-        bytes memory apiUrlBytes = bytes(apiUrl);
-        (
-            string memory coinGeckoIdFromUrl,
-            string memory dateStringFromUrl
-        ) = _parseUrlData(apiUrlBytes);
-
-        // Check if parsing succeeded
-        require(
-            bytes(coinGeckoIdFromUrl).length > 0,
-            "CoinGeckoIdParsingFailed()"
-        );
-        require(
-            bytes(dateStringFromUrl).length > 0,
-            "DateStringParsingFailed()"
+        // 3. Decode Price Data
+        // Path changed to _proof.data.responseBody.abiEncodedData
+        PriceData memory newPriceData = abi.decode(
+            _proof.data.responseBody.abiEncodedData,
+            (PriceData)
         );
 
-        // 3. Decode Price Data (relies on correct JQ filter in the *script*)
-        PriceOnlyData memory priceData = abi.decode(
-            _proof.data.responseBody.abi_encoded_data,
-            (PriceOnlyData)
+        // 4. Store verified data
+        latestVerifiedPrice = newPriceData.price;
+
+        // 5. Emit main event
+        emit PriceVerified(
+            expectedSymbol,
+            newPriceData.price,
+            _proof.data.requestBody.url // URL from the Web2Json proof
         );
-
-        // Emit parsing check event using parsed date string
-        emit UrlParsingCheck(apiUrl, coinGeckoIdFromUrl, dateStringFromUrl);
-
-        // 4. CRUCIAL CHECK: Verify CoinGecko ID matches expected
-        string memory expectedCoinGeckoId = _getExpectedCoinGeckoId(
-            expectedSymbol
-        );
-        require(
-            keccak256(abi.encodePacked(coinGeckoIdFromUrl)) ==
-                keccak256(abi.encodePacked(expectedCoinGeckoId)),
-            "UrlCoinGeckoIdMismatchExpected()"
-        );
-
-        // 5. Store verified price
-        latestVerifiedPrice = priceData.price;
-
-        // 6. Emit main event
-        emit PriceVerified(expectedSymbol, latestVerifiedPrice, apiUrl);
     }
 
     // --- Custom Feed Logic ---
@@ -174,7 +160,7 @@ contract PriceVerifierCustomFeed is IICustomFeed {
         returns (uint256 _value, int8 _decimals)
     {
         _value = latestVerifiedPrice;
-        _decimals = DECIMALS;
+        _decimals = decimals_;
     }
 
     function getCurrentFeed()
@@ -184,12 +170,12 @@ contract PriceVerifierCustomFeed is IICustomFeed {
         returns (uint256 _value, int8 _decimals, uint64 _timestamp)
     {
         _value = latestVerifiedPrice;
-        _decimals = DECIMALS;
+        _decimals = decimals_;
         _timestamp = 0;
     }
 
-    function decimals() external pure returns (int8) {
-        return DECIMALS;
+    function decimals() external view returns (int8) {
+        return decimals_;
     }
 
     // --- Internal Helper Functions To Parse URL---
@@ -249,48 +235,29 @@ contract PriceVerifierCustomFeed is IICustomFeed {
     }
 
     /**
-     * @notice Parses the CoinGecko ID and date string from the API URL.
-     * Assumes URL format like: https://api.coingecko.com/api/v3/coins/{ID}/history?date={DATE}&localization=false
+     * @notice Extracts the symbol from the API URL.
      * @param apiUrlBytes The API URL as bytes.
-     * @return coinGeckoId The parsed CoinGecko ID (e.g., "bitcoin").
-     * @return dateString The parsed date string (e.g., "30-12-2022").
+     * @return symbol The extracted symbol.
      */
-    function _parseUrlData(
-        bytes memory apiUrlBytes
-    )
-        internal
-        pure
-        returns (string memory coinGeckoId, string memory dateString)
-    {
+    function _extractSymbolFromUrl(
+        string memory apiUrlBytes
+    ) internal pure returns (string memory symbol) {
         // Define markers
         bytes memory coinsMarker = bytes("/coins/");
         bytes memory historyMarker = bytes("/history");
-        bytes memory dateMarker = bytes("?date=");
-        bytes memory endMarker = bytes("&");
 
-        uint256 idStartIndex = _findMarker(apiUrlBytes, coinsMarker, 0);
-        if (idStartIndex == type(uint256).max) return ("", "");
+        uint256 idStartIndex = _findMarker(bytes(apiUrlBytes), coinsMarker, 0);
+        if (idStartIndex == type(uint256).max) return "";
 
         uint256 idStart = idStartIndex + coinsMarker.length;
-        uint256 idEndIndex = _findMarker(apiUrlBytes, historyMarker, idStart);
-        if (idEndIndex == type(uint256).max) return ("", "");
-
-        uint256 dateStartIndex = _findMarker(
-            apiUrlBytes,
-            dateMarker,
-            idEndIndex
+        uint256 idEndIndex = _findMarker(
+            bytes(apiUrlBytes),
+            historyMarker,
+            idStart
         );
-        if (dateStartIndex == type(uint256).max) return ("", "");
+        if (idEndIndex == type(uint256).max) return "";
 
-        uint256 dateStart = dateStartIndex + dateMarker.length;
-        uint256 dateEndIndex = _findMarker(apiUrlBytes, endMarker, dateStart);
-
-        if (dateEndIndex == type(uint256).max) {
-            dateEndIndex = apiUrlBytes.length;
-        }
-
-        coinGeckoId = string(slice(apiUrlBytes, idStart, idEndIndex));
-        dateString = string(slice(apiUrlBytes, dateStart, dateEndIndex));
+        symbol = string(slice(bytes(apiUrlBytes), idStart, idEndIndex));
     }
 
     /**
