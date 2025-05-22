@@ -83,6 +83,7 @@ const config: HardhatUserConfig = {
     },
     tenderly: {
       url: "https://flare.gateway.tenderly.co/pdYQcL54puW9QXPURLblM",
+      accounts: [`${PRIVATE_KEY}`],
       chainId: 14,
     },
   },
