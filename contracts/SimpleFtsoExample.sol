@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.6;
 
-import {TestFtsoV2Interface} from "@flarenetwork/flare-periphery-contracts/coston/TestFtsoV2Interface.sol";
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
-import {IFtsoFeedIdConverter} from "@flarenetwork/flare-periphery-contracts/coston/IFtsoFeedIdConverter.sol";
+import {TestFtsoV2Interface} from "@flarenetwork/flare-periphery-contracts/coston2/TestFtsoV2Interface.sol";
+import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import {IFtsoFeedIdConverter} from "@flarenetwork/flare-periphery-contracts/coston2/IFtsoFeedIdConverter.sol";
 
 contract SimpleFtsoExample {
     /**

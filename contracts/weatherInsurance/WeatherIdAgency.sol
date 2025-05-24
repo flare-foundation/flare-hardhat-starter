@@ -2,8 +2,8 @@
 pragma solidity ^0.8.25;
 
 import {Strings} from "@openzeppelin/contracts/utils/Strings.sol";
-import {IWeb2Json} from "@flarenetwork/flare-periphery-contracts/coston/IWeb2Json.sol";
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
+import {IWeb2Json} from "@flarenetwork/flare-periphery-contracts/coston2/IWeb2Json.sol";
+import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
 
 // All floats come multiplied by 10^6
 struct DataTransportObject {

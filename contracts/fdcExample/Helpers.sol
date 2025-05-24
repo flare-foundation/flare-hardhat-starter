@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
-import {IFdcHub} from "@flarenetwork/flare-periphery-contracts/coston/IFdcHub.sol";
-import {IFdcRequestFeeConfigurations} from "@flarenetwork/flare-periphery-contracts/coston/IFdcRequestFeeConfigurations.sol";
-import {IFlareSystemsManager} from "@flarenetwork/flare-periphery-contracts/coston/IFlareSystemsManager.sol";
-import {IRelay} from "@flarenetwork/flare-periphery-contracts/coston/IRelay.sol";
+import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import {IFdcHub} from "@flarenetwork/flare-periphery-contracts/coston2/IFdcHub.sol";
+import {IFdcRequestFeeConfigurations} from "@flarenetwork/flare-periphery-contracts/coston2/IFdcRequestFeeConfigurations.sol";
+import {IFlareSystemsManager} from "@flarenetwork/flare-periphery-contracts/coston2/IFlareSystemsManager.sol";
+import {IRelay} from "@flarenetwork/flare-periphery-contracts/coston2/IRelay.sol";
 
 contract Helpers {
     function getFdcHub() public view returns (IFdcHub) {
