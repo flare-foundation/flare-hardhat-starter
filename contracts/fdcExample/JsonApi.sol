@@ -9,8 +9,8 @@ pragma solidity ^0.8.25;
 //
 // ====================================================================================================================
 
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
-import {IJsonApi} from "@flarenetwork/flare-periphery-contracts/coston/IJsonApi.sol";
+import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import {IJsonApi} from "@flarenetwork/flare-periphery-contracts/coston2/IJsonApi.sol";
 
 struct StarWarsCharacter {
     string name;
