@@ -1,20 +1,25 @@
 import hre, { ethers } from "hardhat";
 import {
-    HelpersInstance,
     IFlareSystemsManagerInstance,
     IFdcRequestFeeConfigurationsInstance,
     IRelayInstance,
 } from "../../typechain-types";
 
-const Helpers = artifacts.require("Helpers");
 const FdcHub = artifacts.require("IFdcHub");
 const FdcRequestFeeConfigurations = artifacts.require("IFdcRequestFeeConfigurations");
 const FlareSystemsManager = artifacts.require("IFlareSystemsManager");
 const IRelay = artifacts.require("IRelay");
+const IFlareContractRegistryArtifact = artifacts.require("IFlareContractRegistry");
 
-async function getHelpers() {
-    const helpers: HelpersInstance = await Helpers.new();
-    return helpers;
+const FLARE_CONTRACT_REGISTRY_ADDRESS = "0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019";
+
+async function getFlareContractRegistry() {
+    return await IFlareContractRegistryArtifact.at(FLARE_CONTRACT_REGISTRY_ADDRESS);
+}
+
+async function getContractAddressByName(name: string) {
+    const flareContractRegistry = await getFlareContractRegistry();
+    return await flareContractRegistry.getContractAddressByName(name);
 }
 
 function toHex(data: string) {
@@ -34,20 +39,17 @@ function sleep(ms: number) {
 }
 
 async function getFdcHub() {
-    const helpers: HelpersInstance = await getHelpers();
-    const fdcHubAddress: string = await helpers.getFdcHub();
+    const fdcHubAddress: string = await getContractAddressByName("FdcHub");
     return await FdcHub.at(fdcHubAddress);
 }
 
 async function getFlareSystemsManager() {
-    const helpers: HelpersInstance = await getHelpers();
-    const flareSystemsManagerAddress: string = await helpers.getFlareSystemsManager();
+    const flareSystemsManagerAddress: string = await getContractAddressByName("FlareSystemsManager");
     return await FlareSystemsManager.at(flareSystemsManagerAddress);
 }
 
 async function getFdcRequestFee(abiEncodedRequest: string) {
-    const helpers: HelpersInstance = await getHelpers();
-    const fdcRequestFeeConfigurationsAddress: string = await helpers.getFdcRequestFeeConfigurations();
+    const fdcRequestFeeConfigurationsAddress: string = await getContractAddressByName("FdcRequestFeeConfigurations");
     const fdcRequestFeeConfigurations: IFdcRequestFeeConfigurationsInstance = await FdcRequestFeeConfigurations.at(
         fdcRequestFeeConfigurationsAddress
     );
@@ -55,8 +57,7 @@ async function getFdcRequestFee(abiEncodedRequest: string) {
 }
 
 async function getRelay() {
-    const helpers: HelpersInstance = await getHelpers();
-    const relayAddress: string = await helpers.getRelay();
+    const relayAddress: string = await getContractAddressByName("Relay");
     return await IRelay.at(relayAddress);
 }
 
@@ -175,12 +176,26 @@ async function retrieveDataAndProofBase(url: string, abiEncodedRequest: string, 
     return proof;
 }
 
+async function retrieveDataAndProofBaseWithRetry(url: string, abiEncodedRequest: string, roundId: number, attempts: number = 10) {
+    for (let i = 0; i < attempts; i++) {
+        try {
+            return await retrieveDataAndProofBase(url, abiEncodedRequest, roundId);
+        } catch (e: any) {
+            console.log(e, "\n", "Remaining attempts:", attempts - i, "\n");
+            await sleep(20000);
+        }
+    }
+    throw new Error(`Failed to retrieve data and proofs after ${attempts} attempts`);
+}
+
+
 export {
     toUtf8HexString,
     sleep,
     prepareAttestationRequestBase,
     submitAttestationRequest,
     retrieveDataAndProofBase,
+    retrieveDataAndProofBaseWithRetry,
     getFdcHub,
     getFdcRequestFee,
     getRelay,

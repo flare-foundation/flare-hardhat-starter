@@ -1,6 +1,6 @@
 import { run, web3 } from "hardhat";
 import { AddressRegistryInstance } from "../../typechain-types";
-import { prepareAttestationRequestBase, submitAttestationRequest, retrieveDataAndProofBase } from "./Base";
+import { prepareAttestationRequestBase, submitAttestationRequest, retrieveDataAndProofBaseWithRetry } from "./Base";
 
 const AddressRegistry = artifacts.require("AddressRegistry");
 
@@ -31,7 +31,7 @@ async function prepareAttestationRequest(addressStr: string) {
 async function retrieveDataAndProof(abiEncodedRequest: string, roundId: number) {
     const url = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
     console.log("Url:", url, "\n");
-    return await retrieveDataAndProofBase(url, abiEncodedRequest, roundId);
+    return await retrieveDataAndProofBaseWithRetry(url, abiEncodedRequest, roundId);
 }
 
 async function deployAndVerifyContract() {
