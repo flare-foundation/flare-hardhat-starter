@@ -43,7 +43,7 @@ async function prepareAttestationRequest(apiUrl: string, postprocessJq: string, 
     };
 
     const url = `${verifierUrlBase}Web2Json/prepareRequest`;
-    const apiKey = VERIFIER_API_KEY_TESTNET!;
+    const apiKey = VERIFIER_API_KEY_TESTNET;
 
     if (!apiKey) {
         throw new Error("VERIFIER_API_KEY_TESTNET environment variable not set!");
@@ -126,7 +126,7 @@ async function submitProofToCustomFeed(customFeed: MetalPriceVerifierCustomFeedI
         );
     }
 
-    const decodedWeb2JsonData = web3.eth.abi.decodeParameter(web2JsonDataAbiDefinition as any, proof.data);
+    const decodedWeb2JsonData = web3.eth.abi.decodeParameter(web2JsonDataAbiDefinition, proof.data);
     console.log("Decoded IWeb2JsonVerification.Data:", JSON.stringify(decodedWeb2JsonData, null, 2), "\n");
 
     const contractProofArgument = {

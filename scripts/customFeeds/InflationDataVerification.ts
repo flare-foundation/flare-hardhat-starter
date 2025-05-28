@@ -5,7 +5,7 @@ import {
     submitAttestationRequest,
     retrieveDataAndProofBase,
     toUtf8HexString,
-} from "../fdcExample/Base"
+} from "../fdcExample/Base";
 
 const { WEB2JSON_VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON_DA_LAYER_URL } = process.env;
 
@@ -48,7 +48,7 @@ async function prepareAttestationRequest(apiUrl: string, postprocessJqString: st
     };
 
     const verifierPrepareUrl = `${verifierUrlBase}/Web2Json/prepareRequest`;
-    const apiKey = VERIFIER_API_KEY_TESTNET!;
+    const apiKey = VERIFIER_API_KEY_TESTNET;
 
     return await prepareAttestationRequestBase(
         verifierPrepareUrl,
@@ -165,10 +165,7 @@ async function submitProofToCustomFeed(customFeed: InflationCustomFeedInstance, 
         );
     }
 
-    const decodedWeb2JsonData = web3.eth.abi.decodeParameter(
-        web2JsonDataAbiDefinition,
-        proofFromDALayer.response_hex
-    );
+    const decodedWeb2JsonData = web3.eth.abi.decodeParameter(web2JsonDataAbiDefinition, proofFromDALayer.response_hex);
     console.log(
         "Decoded IWeb2JsonVerification.Data:",
         JSON.stringify(decodedWeb2JsonData, (k, v) => (typeof v === "bigint" ? v.toString() : v), 2)
@@ -183,10 +180,7 @@ async function submitProofToCustomFeed(customFeed: InflationCustomFeedInstance, 
 
     const inflationDataAbiType = JSON.parse(abiSignature);
     try {
-        const decodedDataForCheck = web3.eth.abi.decodeParameter(
-            inflationDataAbiType,
-            actualAbiEncodedDataPayload
-        );
+        const decodedDataForCheck = web3.eth.abi.decodeParameter(inflationDataAbiType, actualAbiEncodedDataPayload);
 
         if (decodedDataForCheck.inflationRate === undefined || decodedDataForCheck.observationYear === undefined) {
             console.warn(
