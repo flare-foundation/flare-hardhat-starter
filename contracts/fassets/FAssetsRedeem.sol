@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IAssetManager} from "@flarenetwork/flare-periphery-contracts/coston/IAssetManager.sol";
-import {AssetManagerSettings} from "@flarenetwork/flare-periphery-contracts/coston/userInterfaces/data/AssetManagerSettings.sol";
+import {IAssetManager} from "@flarenetwork/flare-periphery-contracts/coston2/IAssetManager.sol";
+import {AssetManagerSettings} from "@flarenetwork/flare-periphery-contracts/coston2/userInterfaces/data/AssetManagerSettings.sol";
 
 contract FAssetsRedeem {
     IAssetManager public immutable assetManager;
