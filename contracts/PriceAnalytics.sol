@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.6;
 
-import {FtsoV2Interface} from "@flarenetwork/flare-periphery-contracts/coston/FtsoV2Interface.sol";
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston/ContractRegistry.sol";
+import {FtsoV2Interface} from "@flarenetwork/flare-periphery-contracts/coston2/FtsoV2Interface.sol";
+import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
 
 contract PriceAnalytics {
     function convertToWei(
