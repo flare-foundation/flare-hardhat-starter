@@ -1,8 +1,8 @@
 import { ethers } from "hardhat";
 import { web3 } from "hardhat";
 
-import { IWNatInstance } from "typechain-types/@flarenetwork/flare-periphery-contracts/coston/IWNat";
-import { IFlareContractRegistryInstance } from "typechain-types/@flarenetwork/flare-periphery-contracts/coston/IFlareContractRegistry";
+import { IWNatInstance } from "typechain-types/@flarenetwork/flare-periphery-contracts/coston2/IWNat";
+import { IFlareContractRegistryInstance } from "typechain-types/@flarenetwork/flare-periphery-contracts/coston2/IFlareContractRegistry";
 
 const FLARE_CONTRACTS_REGISTRY_ADDRESS = "0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019";
 
@@ -10,7 +10,7 @@ const iWNatArtifact = artifacts.require("IWNat");
 const iFlareContractRegistryArtifact = artifacts.require("IFlareContractRegistry");
 
 // Run with command
-// npx hardhat run scripts/wnat/deposit.ts --network coston
+// npx hardhat run scripts/wnat/deposit.ts --network coston2
 async function main() {
   const contractRegistry: IFlareContractRegistryInstance = await iFlareContractRegistryArtifact.at(FLARE_CONTRACTS_REGISTRY_ADDRESS);
   const wnatAddress = await contractRegistry.getContractAddressByName("WNat");
