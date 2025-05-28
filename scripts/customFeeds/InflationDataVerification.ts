@@ -47,7 +47,7 @@ async function prepareAttestationRequest(apiUrl: string, postprocessJqString: st
         abiSignature: abiSignatureString,
     };
 
-    const verifierPrepareUrl = `${verifierUrlBase.replace(/\/$/, "")}/Web2Json/prepareRequest`;
+    const verifierPrepareUrl = `${verifierUrlBase}/Web2Json/prepareRequest`;
     const apiKey = VERIFIER_API_KEY_TESTNET!;
 
     return await prepareAttestationRequestBase(
@@ -65,7 +65,7 @@ async function retrieveDataAndProof(abiEncodedRequest: string, roundId: number) 
     if (!COSTON_DA_LAYER_URL) {
         throw new Error("COSTON_DA_LAYER_URL environment variable not set!");
     }
-    const daLayerUrl = `${COSTON_DA_LAYER_URL.replace(/\/$/, "")}/api/v1/fdc/proof-by-request-round-raw`;
+    const daLayerUrl = `${COSTON_DA_LAYER_URL}/api/v1/fdc/proof-by-request-round-raw`;
     console.log("DA Layer URL:", daLayerUrl);
 
     return await retrieveDataAndProofBase(daLayerUrl, abiEncodedRequest, roundId);
@@ -254,7 +254,21 @@ async function interactWithCustomFeedContract(customFeed: InflationCustomFeedIns
     console.log("");
 }
 
-// --- Main Execution ---
+function validateProofFromDALayer(proofFromDALayer: any) {
+    if (
+        !proofFromDALayer ||
+        typeof proofFromDALayer.response_hex !== "string" ||
+        !proofFromDALayer.response_hex.startsWith("0x") ||
+        !Array.isArray(proofFromDALayer.proof)
+    ) {
+        console.error(
+            "Retrieved proof structure is invalid ('response_hex' missing/invalid or 'proof' missing/not an array). Proof:",
+            JSON.stringify(proofFromDALayer, null, 2)
+        );
+        throw new Error("Failed to retrieve a valid proof structure from DA Layer.");
+    }
+}
+
 async function main() {
     console.log(
         `--- Starting Inflation Data Verification Script for ${inflationDatasetIdentifier} (using Web2Json) ---`
@@ -275,18 +289,7 @@ async function main() {
     const proofFromDALayer = await retrieveDataAndProof(abiEncodedRequest, roundId);
     console.log("Proof Retrieved Successfully from DA Layer.\n");
 
-    if (
-        !proofFromDALayer ||
-        typeof proofFromDALayer.response_hex !== "string" ||
-        !proofFromDALayer.response_hex.startsWith("0x") ||
-        !Array.isArray(proofFromDALayer.proof)
-    ) {
-        console.error(
-            "Retrieved proof structure is invalid ('response_hex' missing/invalid or 'proof' missing/not an array). Proof:",
-            JSON.stringify(proofFromDALayer, null, 2)
-        );
-        throw new Error("Failed to retrieve a valid proof structure from DA Layer.");
-    }
+    validateProofFromDALayer(proofFromDALayer);
 
     const { customFeed } = await deployAndVerifyContract(inflationDatasetIdentifier);
 

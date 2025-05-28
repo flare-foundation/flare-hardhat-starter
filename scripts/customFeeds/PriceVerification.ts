@@ -179,6 +179,21 @@ async function submitProofToCustomFeed(customFeed: PriceVerifierCustomFeedInstan
     console.log("\n");
 }
 
+function validateAttestationSubmission(roundId: number) {
+    if (roundId === -1) {
+        console.error("Failed to submit attestation request or retrieve round ID.");
+        throw new Error("Attestation submission failed or invalid round ID received.");
+    }
+}
+
+function validateRetrievedPriceProof(proof: any) {
+    if (!proof || !proof.data || !proof.merkleProof) {
+        console.error("Failed to retrieve valid proof from DA layer.");
+        console.log("Retrieved proof object:", JSON.stringify(proof, null, 2));
+        throw new Error("Invalid proof structure retrieved from DA layer.");
+    }
+}
+
 async function main() {
     const { customFeed } = await deployAndVerifyContract();
 
@@ -189,10 +204,7 @@ async function main() {
 
     console.log("--- Step 2: Submit Attestation Request ---");
     const roundId = await submitAttestationRequest(abiEncodedRequest);
-    if (roundId === -1) {
-        console.error("Failed to submit attestation request or retrieve round ID.");
-        return;
-    }
+    validateAttestationSubmission(roundId);
     console.log(`Attestation request submitted. Round ID: ${roundId}\n`);
 
     console.log("Waiting for 20 seconds for proof generation...");
@@ -200,11 +212,7 @@ async function main() {
 
     console.log("--- Step 3: Retrieve Data and Proof ---");
     const proof = await retrieveDataAndProof(abiEncodedRequest, roundId);
-    if (!proof || !proof.data || !proof.merkleProof) {
-        console.error("Failed to retrieve valid proof from DA layer.");
-        console.log("Retrieved proof object:", JSON.stringify(proof, null, 2));
-        return;
-    }
+    validateRetrievedPriceProof(proof);
     console.log("Proof retrieved successfully from DA layer.\n");
 
     console.log("--- Step 4: Submit Proof to Custom Feed Contract ---");
