@@ -1,6 +1,6 @@
 import { web3 } from "hardhat";
 import { NFTMinterInstance } from "../../typechain-types";
-import { prepareAttestationRequestBase, retrieveDataAndProofBase, submitAttestationRequest } from "../fdcExample/Base";
+import { prepareAttestationRequestBase, retrieveDataAndProofBaseWithRetry, submitAttestationRequest } from "../fdcExample/Base";
 import { minterAddress } from "./config";
 
 const NFTMinter = artifacts.require("NFTMinter");
@@ -41,7 +41,7 @@ async function prepareAttestationRequest(transactionHash: string) {
 async function retrieveDataAndProof(abiEncodedRequest: string, roundId: number) {
     const url = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
     console.log("Url:", url, "\n");
-    return await retrieveDataAndProofBase(url, abiEncodedRequest, roundId);
+    return await retrieveDataAndProofBaseWithRetry(url, abiEncodedRequest, roundId);
 }
 
 async function interactWithContract(nftMinter: NFTMinterInstance, proof: any) {

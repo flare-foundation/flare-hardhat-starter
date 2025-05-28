@@ -1,6 +1,5 @@
 import hre, { ethers } from "hardhat";
 import {
-    HelpersInstance,
     IFlareSystemsManagerInstance,
     IFdcRequestFeeConfigurationsInstance,
     IRelayInstance,
@@ -175,12 +174,26 @@ async function retrieveDataAndProofBase(url: string, abiEncodedRequest: string, 
     return proof;
 }
 
+async function retrieveDataAndProofBaseWithRetry(url: string, abiEncodedRequest: string, roundId: number, attempts: number = 10) {
+    for (let i = 0; i < attempts; i++) {
+        try {
+            return await retrieveDataAndProofBase(url, abiEncodedRequest, roundId);
+        } catch (e: any) {
+            console.log(e, "\n", "Remaining attempts:", attempts - i, "\n");
+            await sleep(20000);
+        }
+    }
+    throw new Error(`Failed to retrieve data and proofs after ${attempts} attempts`);
+}
+
+
 export {
     toUtf8HexString,
     sleep,
     prepareAttestationRequestBase,
     submitAttestationRequest,
     retrieveDataAndProofBase,
+    retrieveDataAndProofBaseWithRetry,
     getFdcHub,
     getFdcRequestFee,
     getRelay,
