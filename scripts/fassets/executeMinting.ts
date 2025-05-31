@@ -6,8 +6,8 @@ import { IAssetManagerInstance, IAssetManagerContract } from "../../typechain-ty
 // Environment variables
 const { COSTON_DA_LAYER_URL, VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET } = process.env;
 
-// AssetManager address on Songbird Testnet Coston network
-const ASSET_MANAGER_ADDRESS = "0x56728e46908fB6FcC5BCD2cc0c0F9BB91C3e4D34";
+// AssetManager address on Flare Testnet Coston2 network
+const ASSET_MANAGER_ADDRESS = "0xDeD50DA9C3492Bee44560a4B35cFe0e778F41eC5";
 
 // Collateral reservation ID
 const COLLATERAL_RESERVATION_ID = 18615047;
