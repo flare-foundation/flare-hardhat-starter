@@ -191,7 +191,11 @@ async function retrieveDataAndProofs(data: Map<string, string>, roundIds: Map<st
     return proofs;
 }
 
-async function retrieveDataAndProofsWithRetry(data: Map<string, string>, roundIds: Map<string, number>, attempts: number = 10) {
+async function retrieveDataAndProofsWithRetry(
+    data: Map<string, string>,
+    roundIds: Map<string, number>,
+    attempts: number = 10
+) {
     for (let i = 0; i < attempts; i++) {
         try {
             return await retrieveDataAndProofs(data, roundIds);
@@ -202,7 +206,6 @@ async function retrieveDataAndProofsWithRetry(data: Map<string, string>, roundId
     }
     throw new Error(`Failed to retrieve data and proofs after ${attempts} attempts`);
 }
-
 
 async function prepareDataAndProofs(data: Map<string, any>) {
     const IWeb2JsonVerification = await artifacts.require("IWeb2JsonVerification");

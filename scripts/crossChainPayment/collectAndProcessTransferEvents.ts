@@ -1,6 +1,10 @@
 import { web3 } from "hardhat";
 import { NFTMinterInstance } from "../../typechain-types";
-import { prepareAttestationRequestBase, retrieveDataAndProofBaseWithRetry, submitAttestationRequest } from "../fdcExample/Base";
+import {
+    prepareAttestationRequestBase,
+    retrieveDataAndProofBaseWithRetry,
+    submitAttestationRequest,
+} from "../fdcExample/Base";
 import { minterAddress } from "./config";
 
 const NFTMinter = artifacts.require("NFTMinter");
