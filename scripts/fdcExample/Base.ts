@@ -176,7 +176,12 @@ async function retrieveDataAndProofBase(url: string, abiEncodedRequest: string, 
     return proof;
 }
 
-async function retrieveDataAndProofBaseWithRetry(url: string, abiEncodedRequest: string, roundId: number, attempts: number = 10) {
+async function retrieveDataAndProofBaseWithRetry(
+    url: string,
+    abiEncodedRequest: string,
+    roundId: number,
+    attempts: number = 10
+) {
     for (let i = 0; i < attempts; i++) {
         try {
             return await retrieveDataAndProofBase(url, abiEncodedRequest, roundId);
@@ -187,7 +192,6 @@ async function retrieveDataAndProofBaseWithRetry(url: string, abiEncodedRequest:
     }
     throw new Error(`Failed to retrieve data and proofs after ${attempts} attempts`);
 }
-
 
 export {
     toUtf8HexString,
