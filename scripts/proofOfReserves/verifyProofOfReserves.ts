@@ -191,6 +191,22 @@ async function retrieveDataAndProofs(data: Map<string, string>, roundIds: Map<st
     return proofs;
 }
 
+async function retrieveDataAndProofsWithRetry(
+    data: Map<string, string>,
+    roundIds: Map<string, number>,
+    attempts: number = 10
+) {
+    for (let i = 0; i < attempts; i++) {
+        try {
+            return await retrieveDataAndProofs(data, roundIds);
+        } catch (error) {
+            console.log("Error:", error, "\n", "Remaining attempts:", attempts - i, "\n");
+            await sleep(20000);
+        }
+    }
+    throw new Error(`Failed to retrieve data and proofs after ${attempts} attempts`);
+}
+
 async function prepareDataAndProofs(data: Map<string, any>) {
     const IWeb2JsonVerification = await artifacts.require("IWeb2JsonVerification");
     const IEVMTransactionVerification = await artifacts.require("IEVMTransactionVerification");
@@ -236,7 +252,7 @@ async function submitDataAndProofsToProofOfReserves(data: Map<string, any>) {
 async function main() {
     const data = await prepareAttestationRequests(requests);
     const roundIds = await submitAttestationRequests(data);
-    const proofs = await retrieveDataAndProofs(data, roundIds);
+    const proofs = await retrieveDataAndProofsWithRetry(data, roundIds);
     const sufficientReserves = await submitDataAndProofsToProofOfReserves(proofs);
     console.log("Sufficient reserves:", sufficientReserves);
 }
