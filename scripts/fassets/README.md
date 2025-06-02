@@ -9,6 +9,7 @@ Read more about FAssets https://dev.flare.network/fassets/overview
 
 ### `executeMinting.ts`
 Executes FAssets minting using FDC merkle proofs. Handles proof retrieval and contract interaction.
+Run after `reserveCollateral.ts`
 
 ### `reserveCollateral.ts`
 Manages collateral reservation by finding available agents and reserving collateral lots.
