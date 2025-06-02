@@ -3,17 +3,19 @@ import { ethers } from "hardhat";
 import { prepareAttestationRequestBase } from "../fdcExample/Base";
 import { IAssetManagerInstance, IAssetManagerContract } from "../../typechain-types";
 
+// yarn hardhat run scripts/fassets/executeMinting.ts --network coston2
+
 // Environment variables
-const { COSTON_DA_LAYER_URL, VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET } = process.env;
+const { COSTON2_DA_LAYER_URL, VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET } = process.env;
 
 // AssetManager address on Flare Testnet Coston2 network
 const ASSET_MANAGER_ADDRESS = "0xDeD50DA9C3492Bee44560a4B35cFe0e778F41eC5";
 
 // Collateral reservation ID
-const COLLATERAL_RESERVATION_ID = 18615047;
+const COLLATERAL_RESERVATION_ID = 2680499;
 
 // FDC round id to get the proof for
-const TARGET_ROUND_ID = 987510;
+const TARGET_ROUND_ID = 1004741;
 
 // FDC request data
 const attestationTypeBase = "Payment";
@@ -21,7 +23,7 @@ const sourceIdBase = "testXRP";
 const verifierUrlBase = VERIFIER_URL_TESTNET;
 const urlTypeBase = "xrp";
 
-const transactionId = "65520665BB83D582E01D6813DA8B5ECB041F613F9891F9BE90EE2668AAC30543";
+const transactionId = "8643579D712C2596A5ACCDB0F450C85C86DE413D0BD040A7809C37B0E82A1D95";
 const inUtxo = "0";
 const utxo = "0";
 
@@ -47,7 +49,7 @@ async function prepareFdcRequest(transactionId: string, inUtxo: string, utxo: st
 // Get proof from FDC
 async function getProof(roundId: number) {
     const request = await prepareFdcRequest(transactionId, inUtxo, utxo);
-    const proofAndData = await fetch(`${COSTON_DA_LAYER_URL}api/v0/fdc/get-proof-round-id-bytes`, {
+    const proofAndData = await fetch(`${COSTON2_DA_LAYER_URL}api/v0/fdc/get-proof-round-id-bytes`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
