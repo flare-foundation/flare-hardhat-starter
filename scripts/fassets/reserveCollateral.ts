@@ -2,6 +2,8 @@ import { ethers } from "hardhat";
 
 import { IAssetManagerInstance, IAssetManagerContract } from "../../typechain-types";
 
+// yarn hardhat run scripts/fassets/reserveCollateral.ts --network coston2
+
 // AssetManager address on Flare Testnet Coston2 network
 const ASSET_MANAGER_ADDRESS = "0xDeD50DA9C3492Bee44560a4B35cFe0e778F41eC5";
 // Number of lots to reserve
