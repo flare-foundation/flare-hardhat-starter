@@ -9,7 +9,6 @@ import { FAssetsRedeemInstance, IAssetManagerContract, ERC20Instance } from "../
 const ASSET_MANAGER_ADDRESS = "0xDeD50DA9C3492Bee44560a4B35cFe0e778F41eC5";
 const LOTS_TO_REDEEM = 1;
 const UNDERLYING_ADDRESS = "rSHYuiEvsYsKR8uUHhBTuGP5zjRcGt4nm";
-const FXRP_TOKEN_ADDRESS = "0x8b4abA9C4BD7DD961659b02129beE20c6286e17F";
 
 async function deployAndVerifyContract() {
     const FAssetsRedeem = artifacts.require("FAssetsRedeem");
@@ -32,9 +31,16 @@ async function deployAndVerifyContract() {
     return fAssetsRedeem;
 }
 
+async function getFXRPAddress() {
+    const assetManager = await IAssetManager.at(ASSET_MANAGER_ADDRESS);
+    const fasset = await assetManager.fAsset();
+    return fasset;
+}
+
 async function transferFXRP(fAssetsRedeemAddress: string, amountToRedeem: number) {
+    const fxrpAddress = await getFXRPAddress();
     // Get FXRP token contract
-    const fxrp = (await ethers.getContractAt("IERC20", FXRP_TOKEN_ADDRESS)) as ERC20Instance;
+    const fxrp = (await ethers.getContractAt("IERC20", fxrpAddress)) as ERC20Instance;
 
     // Transfer FXRP to the deployed contract
     console.log("Transferring FXRP to contract...");
