@@ -3,11 +3,12 @@ import { formatUnits } from "ethers";
 
 import { FAssetsRedeemInstance, IAssetManagerContract, ERC20Instance } from "../../typechain-types";
 
-// AssetManager address on Songbird Testnet Coston network
-const ASSET_MANAGER_ADDRESS = "0x56728e46908fB6FcC5BCD2cc0c0F9BB91C3e4D34";
+// yarn hardhat run scripts/fassets/redeem.ts --network coston2
+
+// AssetManager address on Flare Testnet Coston2 network
+const ASSET_MANAGER_ADDRESS = "0xDeD50DA9C3492Bee44560a4B35cFe0e778F41eC5";
 const LOTS_TO_REDEEM = 1;
 const UNDERLYING_ADDRESS = "rSHYuiEvsYsKR8uUHhBTuGP5zjRcGt4nm";
-const FXRP_TOKEN_ADDRESS = "0x36be8f2e1CC3339Cf6702CEfA69626271C36E2fd";
 
 async function deployAndVerifyContract() {
     const FAssetsRedeem = artifacts.require("FAssetsRedeem");
@@ -30,9 +31,16 @@ async function deployAndVerifyContract() {
     return fAssetsRedeem;
 }
 
+async function getFXRPAddress() {
+    const assetManager = await IAssetManager.at(ASSET_MANAGER_ADDRESS);
+    const fasset = await assetManager.fAsset();
+    return fasset;
+}
+
 async function transferFXRP(fAssetsRedeemAddress: string, amountToRedeem: number) {
+    const fxrpAddress = await getFXRPAddress();
     // Get FXRP token contract
-    const fxrp = (await ethers.getContractAt("IERC20", FXRP_TOKEN_ADDRESS)) as ERC20Instance;
+    const fxrp = (await ethers.getContractAt("IERC20", fxrpAddress)) as ERC20Instance;
 
     // Transfer FXRP to the deployed contract
     console.log("Transferring FXRP to contract...");
