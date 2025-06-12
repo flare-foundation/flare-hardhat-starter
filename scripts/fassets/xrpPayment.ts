@@ -5,7 +5,7 @@ import { Client, Wallet, xrpToDrops, TxResponse, Payment } from "xrpl";
 // yarn hardhat run scripts/fassets/xrpPayment.ts
 
 const AGENT_ADDRESS = "r4KgCNzn9ZuNjpf17DEHZnyyiqpuj599Wm"; // Agent underlying chain address
-const AMOUNT_XRP = "20.05"; // XRP amount to send
+const AMOUNT_XRP = "10.025"; // XRP amount to send
 const PAYMENT_REFERENCE =
   "4642505266410001000000000000000000000000000000000000000000f655fb";
 
