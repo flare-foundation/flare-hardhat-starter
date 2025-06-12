@@ -4,6 +4,11 @@ import { Client, Wallet, xrpToDrops, TxResponse, Payment } from "xrpl";
 
 // yarn hardhat run scripts/fassets/xrpPayment.ts
 
+const AGENT_ADDRESS = "r4KgCNzn9ZuNjpf17DEHZnyyiqpuj599Wm"; // Agent underlying chain address
+const AMOUNT_XRP = "20.05"; // XRP amount to send
+const PAYMENT_REFERENCE =
+  "4642505266410001000000000000000000000000000000000000000000f655fb";
+
 async function send20XrpWithReference() {
     const client = new Client("wss://s.altnet.rippletest.net:51233"); // Testnet
     await client.connect();
@@ -14,13 +19,13 @@ async function send20XrpWithReference() {
     const payment: Payment = {
         TransactionType: "Payment",
         Account: wallet.address,
-        Destination: "r47WNtv2zvezDhy3qqxpPt8QFxfDVDbYch",
-        Amount: xrpToDrops("10.025"),
+        Destination: AGENT_ADDRESS,
+        Amount: xrpToDrops(AMOUNT_XRP),
         // Payment reference
         Memos: [
             {
                 Memo: {
-                    MemoData: "46425052664100010000000000000000000000000000000000000000005d154f"
+                    MemoData: PAYMENT_REFERENCE
                 }
             }
         ]
