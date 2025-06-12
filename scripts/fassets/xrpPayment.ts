@@ -1,6 +1,8 @@
 // install xrpl package:
 // npm install xrpl
-import { Client, Wallet, xrpToDrops, Payment, TxResponse } from "xrpl";
+import { Client, Wallet, xrpToDrops, TxResponse, Payment } from "xrpl";
+
+// yarn hardhat run scripts/fassets/xrpPayment.ts
 
 async function send20XrpWithReference() {
     const client = new Client("wss://s.altnet.rippletest.net:51233"); // Testnet
@@ -9,20 +11,24 @@ async function send20XrpWithReference() {
     // XRP Ledger Testnet seed
     const wallet: Wallet = Wallet.fromSeed("s000000000000000000000000000000"); // Sender wallet seed
 
-    const paymentTx: Payment = {
+    const payment: Payment = {
         TransactionType: "Payment",
-        Account: wallet.classicAddress,
-        // Agent underlying chain address
-        Destination: "r4KgCNzn9ZuNjpf17DEHZnyyiqpuj599Wm",
-        // XRP amount to send
-        Amount: xrpToDrops("20.05"),
+        Account: wallet.address,
+        Destination: "r47WNtv2zvezDhy3qqxpPt8QFxfDVDbYch",
+        Amount: xrpToDrops("10.025"),
         // Payment reference
-        InvoiceID: "4642505266410001000000000000000000000000000000000000000000f655fb", // Reference
+        Memos: [
+            {
+                Memo: {
+                    MemoData: "46425052664100010000000000000000000000000000000000000000005d154f"
+                }
+            }
+        ]
     };
 
-    console.log(paymentTx);
+    console.log(payment);
 
-    const prepared = await client.autofill(paymentTx);
+    const prepared = await client.autofill(payment);
     const signed = wallet.sign(prepared);
     const result: TxResponse = await client.submitAndWait(signed.tx_blob);
 
