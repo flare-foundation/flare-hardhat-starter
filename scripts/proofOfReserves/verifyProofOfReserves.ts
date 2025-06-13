@@ -223,16 +223,17 @@ async function prepareDataAndProofs(data: Map<string, any>) {
     };
     const transactionProofs: any[] = [];
     for (const [source, proof] of data.entries()) {
-        if (source !== "web2json") {
-            const decodedProof = web3.eth.abi.decodeParameter(
-                IEVMTransactionVerification._json.abi[0].inputs[0].components[1],
-                proof.response_hex
-            );
-            transactionProofs.push({
-                merkleProof: proof.proof,
-                data: decodedProof,
-            });
+        if (source == "web2json") {
+            continue;
         }
+        const decodedProof = web3.eth.abi.decodeParameter(
+            IEVMTransactionVerification._json.abi[0].inputs[0].components[1],
+            proof.response_hex
+        );
+        transactionProofs.push({
+            merkleProof: proof.proof,
+            data: decodedProof,
+        });
     }
 
     return [jsonProof, transactionProofs];
