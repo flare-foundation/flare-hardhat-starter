@@ -3,6 +3,7 @@ import {
     IFlareSystemsManagerInstance,
     IFdcRequestFeeConfigurationsInstance,
     IRelayInstance,
+    IFdcVerificationInstance,
 } from "../../typechain-types";
 
 const FdcHub = artifacts.require("IFdcHub");
@@ -10,6 +11,7 @@ const FdcRequestFeeConfigurations = artifacts.require("IFdcRequestFeeConfigurati
 const FlareSystemsManager = artifacts.require("IFlareSystemsManager");
 const IRelay = artifacts.require("IRelay");
 const IFlareContractRegistryArtifact = artifacts.require("IFlareContractRegistry");
+const IFdcVerification = artifacts.require("IFdcVerification");
 
 const FLARE_CONTRACT_REGISTRY_ADDRESS = "0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019";
 
@@ -54,6 +56,11 @@ async function getFdcRequestFee(abiEncodedRequest: string) {
         fdcRequestFeeConfigurationsAddress
     );
     return await fdcRequestFeeConfigurations.getRequestFee(abiEncodedRequest);
+}
+
+async function getFdcVerification() {
+    const fdcVerificationAddress: string = await getContractAddressByName("FdcVerification");
+    return await IFdcVerification.at(fdcVerificationAddress);
 }
 
 async function getRelay() {
@@ -152,7 +159,9 @@ async function retrieveDataAndProofBase(url: string, abiEncodedRequest: string, 
     console.log("Waiting for the round to finalize...");
     // We check every 10 seconds if the round is finalized
     const relay: IRelayInstance = await getRelay();
-    while (!(await relay.isFinalized(200, roundId))) {
+    const fdcVerification: IFdcVerificationInstance = await getFdcVerification();
+    const protocolId = await fdcVerification.fdcProtocolId();
+    while (!(await relay.isFinalized(protocolId, roundId))) {
         await sleep(30000);
     }
     console.log("Round finalized!\n");
@@ -203,6 +212,7 @@ export {
     getFdcHub,
     getFdcRequestFee,
     getRelay,
+    getFdcVerification,
     calculateRoundId,
     postRequestToDALayer,
 };
