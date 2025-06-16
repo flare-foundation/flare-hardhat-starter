@@ -1,5 +1,5 @@
 import hre from "hardhat";
-import { ProofOfReservesInstance, IRelayInstance } from "../../typechain-types";
+import { ProofOfReservesInstance, IRelayInstance, IFdcVerificationInstance } from "../../typechain-types";
 import {
     prepareAttestationRequestBase,
     getFdcHub,
@@ -8,6 +8,7 @@ import {
     calculateRoundId,
     postRequestToDALayer,
     sleep,
+    getFdcVerification,
 } from "../fdcExample/Base";
 import { tokenAddresses, readerAddresses, proofOfReservesAddress, transactionHashes } from "./config";
 
@@ -166,7 +167,9 @@ async function retrieveDataAndProofs(data: Map<string, string>, roundIds: Map<st
         console.log("Waiting for the round to finalize...");
         // We check every 10 seconds if the round is finalized
         const relay: IRelayInstance = await getRelay();
-        while (!(await relay.isFinalized(200, roundId))) {
+        const fdcVerification: IFdcVerificationInstance = await getFdcVerification();
+        const protocolId = await fdcVerification.fdcProtocolId();
+        while (!(await relay.isFinalized(protocolId, roundId))) {
             await sleep(10000);
         }
         console.log("Round finalized!\n");
@@ -220,16 +223,17 @@ async function prepareDataAndProofs(data: Map<string, any>) {
     };
     const transactionProofs: any[] = [];
     for (const [source, proof] of data.entries()) {
-        if (source !== "web2json") {
-            const decodedProof = web3.eth.abi.decodeParameter(
-                IEVMTransactionVerification._json.abi[0].inputs[0].components[1],
-                proof.response_hex
-            );
-            transactionProofs.push({
-                merkleProof: proof.proof,
-                data: decodedProof,
-            });
+        if (source == "web2json") {
+            continue;
         }
+        const decodedProof = web3.eth.abi.decodeParameter(
+            IEVMTransactionVerification._json.abi[0].inputs[0].components[1],
+            proof.response_hex
+        );
+        transactionProofs.push({
+            merkleProof: proof.proof,
+            data: decodedProof,
+        });
     }
 
     return [jsonProof, transactionProofs];
