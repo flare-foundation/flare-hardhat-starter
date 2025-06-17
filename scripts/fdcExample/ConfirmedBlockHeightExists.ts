@@ -1,6 +1,10 @@
 import { run, web3 } from "hardhat";
 // import { AddressRegistryInstance } from "../../typechain-types";
-import { prepareAttestationRequestBase, submitAttestationRequest, retrieveDataAndProofBaseWithRetry } from "./Base";
+import {
+    prepareAttestationRequestBase,
+    submitAttestationRequest,
+    retrieveDataAndProofBaseWithRetry,
+} from "../utils/fdc";
 
 const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } = process.env;
 

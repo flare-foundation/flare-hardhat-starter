@@ -1,6 +1,10 @@
 import { run, web3 } from "hardhat";
 import { PaymentRegistryInstance } from "../../typechain-types";
-import { prepareAttestationRequestBase, submitAttestationRequest, retrieveDataAndProofBaseWithRetry } from "./Base";
+import {
+    prepareAttestationRequestBase,
+    submitAttestationRequest,
+    retrieveDataAndProofBaseWithRetry,
+} from "../utils/fdc";
 
 const Payment = artifacts.require("PaymentRegistry");
 

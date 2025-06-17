@@ -1,4 +1,6 @@
 import hre, { ethers } from "hardhat";
+import { toUtf8HexString, sleep } from "./core";
+import { getContractAddressByName, getFlareSystemsManager, getFdcHub, getRelay, getFdcVerification } from "./getters";
 import {
     IFlareSystemsManagerInstance,
     IFdcRequestFeeConfigurationsInstance,
@@ -6,51 +8,9 @@ import {
     IFdcVerificationInstance,
 } from "../../typechain-types";
 
-const FdcHub = artifacts.require("IFdcHub");
 const FdcRequestFeeConfigurations = artifacts.require("IFdcRequestFeeConfigurations");
-const FlareSystemsManager = artifacts.require("IFlareSystemsManager");
-const IRelay = artifacts.require("IRelay");
-const IFlareContractRegistryArtifact = artifacts.require("IFlareContractRegistry");
-const IFdcVerification = artifacts.require("IFdcVerification");
 
-const FLARE_CONTRACT_REGISTRY_ADDRESS = "0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019";
-
-async function getFlareContractRegistry() {
-    return await IFlareContractRegistryArtifact.at(FLARE_CONTRACT_REGISTRY_ADDRESS);
-}
-
-async function getContractAddressByName(name: string) {
-    const flareContractRegistry = await getFlareContractRegistry();
-    return await flareContractRegistry.getContractAddressByName(name);
-}
-
-function toHex(data: string) {
-    let result = "";
-    for (let i = 0; i < data.length; i++) {
-        result += data.charCodeAt(i).toString(16);
-    }
-    return result.padEnd(64, "0");
-}
-
-function toUtf8HexString(data: string) {
-    return "0x" + toHex(data);
-}
-
-function sleep(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-async function getFdcHub() {
-    const fdcHubAddress: string = await getContractAddressByName("FdcHub");
-    return await FdcHub.at(fdcHubAddress);
-}
-
-async function getFlareSystemsManager() {
-    const flareSystemsManagerAddress: string = await getContractAddressByName("FlareSystemsManager");
-    return await FlareSystemsManager.at(flareSystemsManagerAddress);
-}
-
-async function getFdcRequestFee(abiEncodedRequest: string) {
+export async function getFdcRequestFee(abiEncodedRequest: string) {
     const fdcRequestFeeConfigurationsAddress: string = await getContractAddressByName("FdcRequestFeeConfigurations");
     const fdcRequestFeeConfigurations: IFdcRequestFeeConfigurationsInstance = await FdcRequestFeeConfigurations.at(
         fdcRequestFeeConfigurationsAddress
@@ -58,17 +18,7 @@ async function getFdcRequestFee(abiEncodedRequest: string) {
     return await fdcRequestFeeConfigurations.getRequestFee(abiEncodedRequest);
 }
 
-async function getFdcVerification() {
-    const fdcVerificationAddress: string = await getContractAddressByName("FdcVerification");
-    return await IFdcVerification.at(fdcVerificationAddress);
-}
-
-async function getRelay() {
-    const relayAddress: string = await getContractAddressByName("Relay");
-    return await IRelay.at(relayAddress);
-}
-
-async function prepareAttestationRequestBase(
+export async function prepareAttestationRequestBase(
     url: string,
     apiKey: string,
     attestationTypeBase: string,
@@ -102,7 +52,7 @@ async function prepareAttestationRequestBase(
     return await response.json();
 }
 
-async function calculateRoundId(transaction: any) {
+export async function calculateRoundId(transaction: any) {
     const blockNumber = transaction.receipt.blockNumber;
     const block = await ethers.provider.getBlock(blockNumber);
     const blockTimestamp = BigInt(block.timestamp);
@@ -121,7 +71,7 @@ async function calculateRoundId(transaction: any) {
     return roundId;
 }
 
-async function submitAttestationRequest(abiEncodedRequest: string) {
+export async function submitAttestationRequest(abiEncodedRequest: string) {
     const fdcHub = await getFdcHub();
 
     const requestFee = await getFdcRequestFee(abiEncodedRequest);
@@ -138,7 +88,7 @@ async function submitAttestationRequest(abiEncodedRequest: string) {
     return roundId;
 }
 
-async function postRequestToDALayer(url: string, request: any, watchStatus: boolean = false) {
+export async function postRequestToDALayer(url: string, request: any, watchStatus: boolean = false) {
     const response = await fetch(url, {
         method: "POST",
         headers: {
@@ -155,7 +105,7 @@ async function postRequestToDALayer(url: string, request: any, watchStatus: bool
     return await response.json();
 }
 
-async function retrieveDataAndProofBase(url: string, abiEncodedRequest: string, roundId: number) {
+export async function retrieveDataAndProofBase(url: string, abiEncodedRequest: string, roundId: number) {
     console.log("Waiting for the round to finalize...");
     // We check every 10 seconds if the round is finalized
     const relay: IRelayInstance = await getRelay();
@@ -185,7 +135,7 @@ async function retrieveDataAndProofBase(url: string, abiEncodedRequest: string, 
     return proof;
 }
 
-async function retrieveDataAndProofBaseWithRetry(
+export async function retrieveDataAndProofBaseWithRetry(
     url: string,
     abiEncodedRequest: string,
     roundId: number,
@@ -201,18 +151,3 @@ async function retrieveDataAndProofBaseWithRetry(
     }
     throw new Error(`Failed to retrieve data and proofs after ${attempts} attempts`);
 }
-
-export {
-    toUtf8HexString,
-    sleep,
-    prepareAttestationRequestBase,
-    submitAttestationRequest,
-    retrieveDataAndProofBase,
-    retrieveDataAndProofBaseWithRetry,
-    getFdcHub,
-    getFdcRequestFee,
-    getRelay,
-    getFdcVerification,
-    calculateRoundId,
-    postRequestToDALayer,
-};
