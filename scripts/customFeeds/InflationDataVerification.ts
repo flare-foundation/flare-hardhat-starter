@@ -7,7 +7,17 @@ import {
     toUtf8HexString,
 } from "../fdcExample/Base";
 
-const { WEB2JSON_VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON_DA_LAYER_URL } = process.env;
+const { WEB2JSON_VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } = process.env;
+
+// Use the exact AttestationRequest type from verifyProofOfReserves.ts
+interface AttestationRequest {
+    source: string;
+    sourceIdBase: string;
+    verifierUrlBase: string;
+    verifierApiKey: string;
+    urlTypeBase: string;
+    data: any; 
+}
 
 const inflationDatasetIdentifier = "US_INFLATION_CPI_ANNUAL";
 
@@ -20,41 +30,50 @@ const apiUrl = `https://api.worldbank.org/v2/country/US/indicator/${INDICATOR_CO
 const postprocessJq = `{inflationRate: (.[1][0].value | tonumber * 1000000 | floor), observationYear: (.[1][0].date | tonumber)}`;
 const abiSignature = `{"components": [{"internalType": "uint256","name": "inflationRate","type": "uint256"}, {"internalType": "uint256","name": "observationYear","type": "uint256"}],"internalType": "struct InflationData","name": "inflationData","type": "tuple"}`;
 
-const attestationTypeBase = "Web2Json";
-const sourceIdBase = "PublicWeb2";
-const verifierUrlBase = WEB2JSON_VERIFIER_URL_TESTNET;
+const globalSourceIdBase = "PublicWeb2"; 
 const CustomFeedContract = artifacts.require("InflationCustomFeed");
+
 /**
  * Prepares the attestation request for the Web2Json FDC Verifier.
  */
-async function prepareAttestationRequest(apiUrl: string, postprocessJqString: string, abiSignatureString: string) {
+async function prepareAttestationRequest(config: AttestationRequest) {
     console.log("Preparing Web2Json Attestation Request for Inflation data...");
 
-    if (!verifierUrlBase) {
-        throw new Error("WEB2JSON_VERIFIER_URL_TESTNET environment variable not set!");
+    if (!config.verifierUrlBase) {
+        throw new Error("Verifier URL (verifierUrlBase) not set in config!");
     }
-    if (!VERIFIER_API_KEY_TESTNET) {
-        throw new Error("VERIFIER_API_KEY_TESTNET environment variable not set!");
+    if (!config.verifierApiKey) {
+        throw new Error("Verifier API Key (verifierApiKey) not set in config!");
     }
-
-    const requestBody = {
-        url: apiUrl,
-        httpMethod: "GET",
-        headers: "{}",
-        queryParams: "{}",
-        body: "{}",
-        postprocessJq: postprocessJqString,
-        abiSignature: abiSignatureString,
+    // Assuming config.data has the Web2Json structure for this specific function
+    const web2JsonData = config.data as {
+        apiUrl: string;
+        httpMethod: string;
+        headers: string;
+        queryParams: string;
+        body: string;
+        postProcessJq: string;
+        abiSignature: string;
     };
 
-    const verifierPrepareUrl = `${verifierUrlBase}/Web2Json/prepareRequest`;
-    const apiKey = VERIFIER_API_KEY_TESTNET;
+    const requestBody = {
+        url: web2JsonData.apiUrl,
+        httpMethod: web2JsonData.httpMethod,
+        headers: web2JsonData.headers,
+        queryParams: web2JsonData.queryParams,
+        body: web2JsonData.body,
+        postProcessJq: web2JsonData.postProcessJq,
+        abiSignature: web2JsonData.abiSignature,
+    };
 
+    const attestationTypeBase = "Web2Json"; 
+    const verifierPrepareUrl = `${config.verifierUrlBase}Web2Json/prepareRequest`;
+    
     return await prepareAttestationRequestBase(
         verifierPrepareUrl,
-        apiKey,
-        attestationTypeBase,
-        sourceIdBase,
+        config.verifierApiKey,
+        attestationTypeBase, 
+        config.sourceIdBase,
         requestBody
     );
 }
@@ -62,10 +81,10 @@ async function prepareAttestationRequest(apiUrl: string, postprocessJqString: st
 async function retrieveDataAndProof(abiEncodedRequest: string, roundId: number) {
     console.log(`Retrieving Proof for round ${roundId}...`);
 
-    if (!COSTON_DA_LAYER_URL) {
-        throw new Error("COSTON_DA_LAYER_URL environment variable not set!");
+    if (!COSTON2_DA_LAYER_URL) {
+        throw new Error("COSTON2_DA_LAYER_URL environment variable not set!");
     }
-    const daLayerUrl = `${COSTON_DA_LAYER_URL}/api/v1/fdc/proof-by-request-round-raw`;
+    const daLayerUrl = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
     console.log("DA Layer URL:", daLayerUrl);
 
     return await retrieveDataAndProofBase(daLayerUrl, abiEncodedRequest, roundId);
@@ -115,6 +134,7 @@ async function deployAndVerifyContract(name: string): Promise<{
     console.log("");
     return { customFeed };
 }
+
 async function submitProofToCustomFeed(customFeed: InflationCustomFeedInstance, proofFromDALayer: any) {
     console.log("Submitting proof to CustomFeed contract for inflation data (expecting Web2Json proof structure)...");
 
@@ -273,7 +293,24 @@ async function main() {
     console.log(`JQ Filter to be sent: ${postprocessJq}`);
     console.log(`ABI Signature for data payload: ${abiSignature}\n`);
 
-    const preparedData = await prepareAttestationRequest(apiUrl, postprocessJq, abiSignature);
+    const inflationRequestConfig: AttestationRequest = {
+        source: "web2json", // Lowercase as in verifyProofOfReserves.ts example
+        sourceIdBase: globalSourceIdBase,
+        verifierUrlBase: WEB2JSON_VERIFIER_URL_TESTNET!,
+        verifierApiKey: VERIFIER_API_KEY_TESTNET!,
+        urlTypeBase: "", // Empty string for Web2Json as in verifyProofOfReserves.ts
+        data: {
+            apiUrl: apiUrl,
+            httpMethod: "GET", 
+            headers: "{}", 
+            queryParams: "{}",
+            body: "{}", 
+            postProcessJq: postprocessJq,
+            abiSignature: abiSignature,
+        },
+    };
+
+    const preparedData = await prepareAttestationRequest(inflationRequestConfig);
     console.log("Attestation Request Prepared. ABI Encoded Request:", preparedData.abiEncodedRequest, "\n");
 
     const abiEncodedRequest = preparedData.abiEncodedRequest;

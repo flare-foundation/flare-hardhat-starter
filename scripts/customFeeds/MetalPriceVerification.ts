@@ -6,11 +6,20 @@ import {
     retrieveDataAndProofBase,
     toUtf8HexString,
 } from "../fdcExample/Base";
-import { coston } from "@flarenetwork/flare-periphery-contract-artifacts";
+import { coston2 } from "@flarenetwork/flare-periphery-contract-artifacts";
 
 const MetalPriceVerifierCustomFeed = artifacts.require("MetalPriceVerifierCustomFeed");
 
-const { WEB2JSON_VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON_DA_LAYER_URL, METAL_SYMBOL } = process.env;
+const { WEB2JSON_VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL, METAL_SYMBOL } = process.env;
+
+interface AttestationRequest {
+    source: string;
+    sourceIdBase: string;
+    verifierUrlBase: string;
+    verifierApiKey: string;
+    urlTypeBase: string;
+    data: any;
+}
 
 const metalSymbol = METAL_SYMBOL || "XAU";
 const supportedMetals = ["XAU", "XAG", "XPT"];
@@ -28,38 +37,54 @@ console.log(`JQ Filter: ${postprocessJq}`);
 const abiSignature = `{"components": [{"internalType": "uint256","name": "price","type": "uint256"}],"internalType": "struct MetalPriceData","name": "priceData","type": "tuple"}`;
 console.log(`ABI Signature: ${abiSignature}\n`);
 
-const attestationTypeBase = "Web2Json";
-const sourceIdBase = "PublicWeb2";
-const verifierUrlBase = WEB2JSON_VERIFIER_URL_TESTNET;
+const globalSourceIdBase = "PublicWeb2";
 
-async function prepareAttestationRequest(apiUrl: string, postprocessJq: string, abiSignature: string) {
+async function prepareAttestationRequest(config: AttestationRequest) {
     console.log("Preparing Web2Json Attestation Request...");
-    const requestBody = {
-        url: apiUrl,
-        abiEncodeArgs: {
-            postprocessJq: postprocessJq,
-            abi_signature: abiSignature,
-        },
+
+    if (!config.verifierApiKey) {
+        throw new Error("Verifier API Key (verifierApiKey) not set in config!");
+    }
+    if (!config.verifierUrlBase) {
+        throw new Error("Verifier URL (verifierUrlBase) not set in config!");
+    }
+    const web2JsonData = config.data as {
+        apiUrl: string;
+        httpMethod: string;
+        headers: string;
+        queryParams: string;
+        body: string;
+        postProcessJq: string;
+        abiSignature: string;
     };
 
-    const url = `${verifierUrlBase}Web2Json/prepareRequest`;
-    const apiKey = VERIFIER_API_KEY_TESTNET;
+    const requestBody = {
+        url: web2JsonData.apiUrl,
+        httpMethod: web2JsonData.httpMethod,
+        headers: web2JsonData.headers,
+        queryParams: web2JsonData.queryParams,
+        body: web2JsonData.body,
+        postProcessJq: web2JsonData.postProcessJq,
+        abiSignature: web2JsonData.abiSignature,
+    };
 
-    if (!apiKey) {
-        throw new Error("VERIFIER_API_KEY_TESTNET environment variable not set!");
-    }
-    if (!verifierUrlBase) {
-        throw new Error("WEB2JSON_VERIFIER_URL_TESTNET environment variable not set!");
-    }
-
-    return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, sourceIdBase, requestBody);
+    const attestationTypeBase = "Web2Json";
+    const verifierPrepareUrl = `${config.verifierUrlBase}Web2Json/prepareRequest`;
+    
+    return await prepareAttestationRequestBase(
+        verifierPrepareUrl,
+        config.verifierApiKey,
+        attestationTypeBase,
+        config.sourceIdBase,
+        requestBody
+    );
 }
 
 async function retrieveDataAndProof(abiEncodedRequest: string, roundId: number) {
     console.log(`Retrieving Proof for round ${roundId}...`);
-    const url = `${COSTON_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
-    if (!COSTON_DA_LAYER_URL) {
-        throw new Error("COSTON_DA_LAYER_URL environment variable not set!");
+    const url = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
+    if (!COSTON2_DA_LAYER_URL) {
+        throw new Error("COSTON2_DA_LAYER_URL environment variable not set!");
     }
     console.log("DA Layer URL:", url, "\n");
     return await retrieveDataAndProofBase(url, abiEncodedRequest, roundId);
@@ -116,7 +141,7 @@ async function submitProofToCustomFeed(customFeed: MetalPriceVerifierCustomFeedI
         "\n"
     );
 
-    const iWeb2JsonVerificationAbi = coston.interfaceAbis.IWeb2JsonVerification;
+    const iWeb2JsonVerificationAbi = coston2.interfaceAbis.IWeb2JsonVerification;
     const web2JsonDataAbiDefinition = (iWeb2JsonVerificationAbi as any[]).find(
         (item: any) => item.name === "Data" && item.type === "tuple"
     );
@@ -178,7 +203,24 @@ async function main() {
     const { customFeed } = await deployAndVerifyContract(metalSymbol);
 
     console.log("--- Step 1: Prepare Attestation Request ---");
-    const preparedRequest = await prepareAttestationRequest(apiUrl, postprocessJq, abiSignature);
+    const metalPriceRequestConfig: AttestationRequest = {
+        source: "web2json",
+        sourceIdBase: globalSourceIdBase,
+        verifierUrlBase: WEB2JSON_VERIFIER_URL_TESTNET!,
+        verifierApiKey: VERIFIER_API_KEY_TESTNET!,
+        urlTypeBase: "",
+        data: {
+            apiUrl: apiUrl,
+            httpMethod: "GET",
+            headers: "{}",
+            queryParams: "{}",
+            body: "{}",
+            postProcessJq: postprocessJq,
+            abiSignature: abiSignature,
+        },
+    };
+
+    const preparedRequest = await prepareAttestationRequest(metalPriceRequestConfig);
     const abiEncodedRequest = preparedRequest.abiEncodedRequest;
     console.log("ABI Encoded Request:", abiEncodedRequest, "\n");
 
