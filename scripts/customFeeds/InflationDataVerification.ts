@@ -1,339 +1,270 @@
-import { run, web3, artifacts } from "hardhat";
-import { InflationCustomFeedInstance } from "../../typechain-types";
+import hre from "hardhat";
+import { web3, artifacts, run } from "hardhat";
+import { InflationCustomFeedInstance, IRelayInstance, IFdcVerificationInstance } from "../../typechain-types";
 import {
     prepareAttestationRequestBase,
-    submitAttestationRequest,
-    retrieveDataAndProofBase,
+    getFdcHub,
+    getFdcRequestFee,
+    calculateRoundId,
     toUtf8HexString,
+    getRelay,
+    getFdcVerification,
+    postRequestToDALayer,
+    sleep,
 } from "../fdcExample/Base";
+import { IWeb2JsonVerifiction } from "../../typechain-types";
+
+const InflationCustomFeed = artifacts.require("InflationCustomFeed");
+const IWeb2JsonVerificationArtifact = artifacts.require("IWeb2JsonVerification");
+
 
 const { WEB2JSON_VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } = process.env;
 
-// Use the exact AttestationRequest type from verifyProofOfReserves.ts
-interface AttestationRequest {
+type AttestationRequest = {
     source: string;
     sourceIdBase: string;
     verifierUrlBase: string;
     verifierApiKey: string;
     urlTypeBase: string;
-    data: any; 
-}
+    data: any;
+};
 
+// --- World Bank US Inflation CPI Request Data ---
 const inflationDatasetIdentifier = "US_INFLATION_CPI_ANNUAL";
+const targetYear = (new Date().getFullYear() - 2).toString();
+const INDICATOR_CODE = "FP.CPI.TOTL.ZG"; // World Bank Indicator for Consumer Price Index, annual % change
+const apiUrl = `https://api.worldbank.org/v2/country/US/indicator/${INDICATOR_CODE}`;
+const stringifiedQueryParams = JSON.stringify({
+    format: "json",
+    date: targetYear,
+});
+const postprocessJq = `{inflationRate: (.[1][0].value | tonumber * 100 | floor), observationYear: (.[1][0].date | tonumber)}`;
+const abiSig = `{"components": [{"internalType": "uint256","name": "inflationRate","type": "uint256"}, {"internalType": "uint256","name": "observationYear","type": "uint256"}],"internalType": "struct InflationData","name": "inflationData","type": "tuple"}`;
 
-const currentYear = new Date().getFullYear();
-const targetYear = (currentYear - 2).toString();
+const requests: AttestationRequest[] = [
+    {
+        source: "web2json",
+        sourceIdBase: "PublicWeb2",
+        verifierUrlBase: WEB2JSON_VERIFIER_URL_TESTNET!,
+        verifierApiKey: VERIFIER_API_KEY_TESTNET!,
+        urlTypeBase: "",
+        data: {
+            apiUrl: apiUrl,
+            httpMethod: "GET",
+            headers: "{}",
+            queryParams: stringifiedQueryParams,
+            body: "{}",
+            postProcessJq: postprocessJq,
+            abiSignature: abiSig,
+            logDisplayUrl: `${apiUrl}?format=json&date=${targetYear}`,
+        },
+    },
+];
 
-const INDICATOR_CODE = "FP.CPI.TOTL.ZG"; // Consumer Price Index, annual % change
-const apiUrl = `https://api.worldbank.org/v2/country/US/indicator/${INDICATOR_CODE}?format=json&date=${targetYear}`;
-
-const postprocessJq = `{inflationRate: (.[1][0].value | tonumber * 1000000 | floor), observationYear: (.[1][0].date | tonumber)}`;
-const abiSignature = `{"components": [{"internalType": "uint256","name": "inflationRate","type": "uint256"}, {"internalType": "uint256","name": "observationYear","type": "uint256"}],"internalType": "struct InflationData","name": "inflationData","type": "tuple"}`;
-
-const globalSourceIdBase = "PublicWeb2"; 
-const CustomFeedContract = artifacts.require("InflationCustomFeed");
+async function prepareWeb2JsonAttestationRequest(transaction: AttestationRequest) {
+    const attestationTypeBase = "Web2Json";
+    const requestBody = {
+        url: transaction.data.apiUrl,
+        httpMethod: transaction.data.httpMethod,
+        headers: transaction.data.headers,
+        queryParams: transaction.data.queryParams,
+        body: transaction.data.body,
+        postProcessJq: transaction.data.postProcessJq,
+        abiSignature: transaction.data.abiSignature,
+    };
+    const url = `${transaction.verifierUrlBase}Web2Json/prepareRequest`;
+    const apiKey = transaction.verifierApiKey;
+    return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, transaction.sourceIdBase, requestBody);
+}
 
 /**
- * Prepares the attestation request for the Web2Json FDC Verifier.
+ * Prepares all attestation requests defined in the `requests` array.
+ * @param transactions An array of attestation requests.
+ * @returns A Map of source names to their ABI-encoded request strings.
  */
-async function prepareAttestationRequest(config: AttestationRequest) {
-    console.log("Preparing Web2Json Attestation Request for Inflation data...");
-
-    if (!config.verifierUrlBase) {
-        throw new Error("Verifier URL (verifierUrlBase) not set in config!");
+async function prepareAttestationRequests(transactions: AttestationRequest[]): Promise<Map<string, string>> {
+    console.log("\nPreparing attestation requests for FDC...\n");
+    const data: Map<string, string> = new Map();
+    for (const transaction of transactions) {
+        console.log(`Preparing request for source: '${transaction.source}'\n`);
+        const responseData = await prepareWeb2JsonAttestationRequest(transaction);
+        console.log("Prepared Request Data:", responseData, "\n");
+        data.set(transaction.source, responseData.abiEncodedRequest);
     }
-    if (!config.verifierApiKey) {
-        throw new Error("Verifier API Key (verifierApiKey) not set in config!");
+    return data;
+}
+
+/**
+ * Submits the prepared attestation requests to the FDC Hub.
+ * @param data A Map of source names to their ABI-encoded requests.
+ * @returns A Map of source names to their corresponding voting round IDs.
+ */
+async function submitAttestationRequests(data: Map<string, string>): Promise<Map<string, number>> {
+    console.log("\nSubmitting attestation requests to FDC Hub...\n");
+    const fdcHub = await getFdcHub();
+    const roundIds: Map<string, number> = new Map();
+    for (const [source, abiEncodedRequest] of data.entries()) {
+        console.log(`Submitting request for source: '${source}'\n`);
+        const requestFee = await getFdcRequestFee(abiEncodedRequest);
+        const transaction = await fdcHub.requestAttestation(abiEncodedRequest, { value: requestFee });
+        console.log("Submitted request transaction:", transaction.tx, "\n");
+        const roundId = await calculateRoundId(transaction);
+        console.log(`Attestation requested in round ${roundId}.`);
+        console.log(`Check round progress at: https://${hre.network.name}-systems-explorer.flare.rocks/voting-round/${roundId}?tab=fdc\n`);
+        roundIds.set(source, roundId);
     }
-    // Assuming config.data has the Web2Json structure for this specific function
-    const web2JsonData = config.data as {
-        apiUrl: string;
-        httpMethod: string;
-        headers: string;
-        queryParams: string;
-        body: string;
-        postProcessJq: string;
-        abiSignature: string;
-    };
+    return roundIds;
+}
 
-    const requestBody = {
-        url: web2JsonData.apiUrl,
-        httpMethod: web2JsonData.httpMethod,
-        headers: web2JsonData.headers,
-        queryParams: web2JsonData.queryParams,
-        body: web2JsonData.body,
-        postProcessJq: web2JsonData.postProcessJq,
-        abiSignature: web2JsonData.abiSignature,
-    };
+async function retrieveDataAndProofs(data: Map<string, string>, roundIds: Map<string, number>): Promise<Map<string, any>> {
+    console.log("\nRetrieving data and proofs from DA Layer...\n");
+    const proofs: Map<string, any> = new Map();
+    const url = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
+    console.log("Using DA Layer URL:", url, "\n");
 
-    const attestationTypeBase = "Web2Json"; 
-    const verifierPrepareUrl = `${config.verifierUrlBase}Web2Json/prepareRequest`;
+    for (const [source, roundId] of roundIds.entries()) {
+        console.log(`Processing proof for source: '${source}' (Round ${roundId})\n`);
+        console.log("Waiting for the round to finalize...");
+        const relay: IRelayInstance = await getRelay();
+        const protocolId = 200; // Protocol ID for FDC
+
+        while (!(await relay.isFinalized(protocolId, roundId))) {
+            await sleep(10000); // Wait 10 seconds before checking again
+        }
+        console.log(`Round ${roundId} finalized!\n`);
+
+        const request = { votingRoundId: roundId, requestBytes: data.get(source) };
+        console.log("Prepared DA Layer request:\n", request, "\n");
+
+        let proof = await postRequestToDALayer(url, request, true);
+        console.log("Waiting for the DA Layer to generate the proof...");
+        while (proof.response_hex == undefined) {
+            await sleep(10000);
+            proof = await postRequestToDALayer(url, request, false);
+        }
+        console.log("Proof generated!\n");
+        console.log("Retrieved Proof:", proof, "\n");
+        proofs.set(source, proof);
+    }
+    return proofs;
+}
+
+async function retrieveDataAndProofsWithRetry(data: Map<string, string>, roundIds: Map<string, number>, attempts: number = 10): Promise<Map<string, any>> {
+    for (let i = 0; i < attempts; i++) {
+        try {
+            return await retrieveDataAndProofs(data, roundIds);
+        } catch (error) {
+            console.error(`Error retrieving proof (Attempt ${i + 1}/${attempts}):`, error, "\nRetrying in 20 seconds...\n");
+            await sleep(20000);
+        }
+    }
+    throw new Error(`Failed to retrieve data and proofs after ${attempts} attempts.`);
+}
+
+async function deployAndVerifyContract(): Promise<InflationCustomFeedInstance> {
+    const feedIdString = `INFLATION/${inflationDatasetIdentifier}`;
+    const feedIdHex = toUtf8HexString(feedIdString).substring(2);
+    const truncatedFeedIdHex = feedIdHex.substring(0, 40);
+    const finalFeedIdHex = `0x21${truncatedFeedIdHex}`;
+
+    if (finalFeedIdHex.length !== 44) {
+        throw new Error(`Generated feed ID has incorrect length: ${finalFeedIdHex.length}. Expected 44 characters.`);
+    }
+
+    console.log(`\nDeploying InflationCustomFeed for '${inflationDatasetIdentifier}' with Feed ID: ${finalFeedIdHex}...\n`);
+
+    const customFeedArgs: any[] = [finalFeedIdHex, inflationDatasetIdentifier];
+    const customFeed: InflationCustomFeedInstance = await InflationCustomFeed.new(...customFeedArgs);
+    console.log(`InflationCustomFeed deployed to: ${customFeed.address}\n`);
     
-    return await prepareAttestationRequestBase(
-        verifierPrepareUrl,
-        config.verifierApiKey,
-        attestationTypeBase, 
-        config.sourceIdBase,
-        requestBody
-    );
-}
-
-async function retrieveDataAndProof(abiEncodedRequest: string, roundId: number) {
-    console.log(`Retrieving Proof for round ${roundId}...`);
-
-    if (!COSTON2_DA_LAYER_URL) {
-        throw new Error("COSTON2_DA_LAYER_URL environment variable not set!");
-    }
-    const daLayerUrl = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
-    console.log("DA Layer URL:", daLayerUrl);
-
-    return await retrieveDataAndProofBase(daLayerUrl, abiEncodedRequest, roundId);
-}
-
-async function deployAndVerifyContract(name: string): Promise<{
-    customFeed: InflationCustomFeedInstance;
-}> {
-    console.log(`Deploying CustomFeed contract for ${name}...`);
-
-    const feedIdStringComposite = `INFLATION/${name}`;
-    const feedIdHexRaw = toUtf8HexString(feedIdStringComposite).substring(2);
-    const truncatedFeedIdHexContent = feedIdHexRaw.substring(0, 40);
-    const finalFeedIdBytes21 = `0x21${truncatedFeedIdHexContent}`;
-
-    if (finalFeedIdBytes21.length !== 44) {
-        throw new Error(
-            `Generated feed ID has incorrect length: ${finalFeedIdBytes21.length}. Expected 44. Input string for hashing: ${feedIdStringComposite}`
-        );
-    }
-    console.log("Feed ID String (used for internal hashing in contract):", feedIdStringComposite);
-    console.log("Final Feed ID (bytes21) for constructor:", finalFeedIdBytes21);
-
-    const customFeedArgs: any[] = [finalFeedIdBytes21, name];
-
-    const customFeed: InflationCustomFeedInstance = await CustomFeedContract.new(...customFeedArgs);
-    console.log(`CustomFeed (${name}) deployed to:`, customFeed.address);
-
-    console.log("Waiting 20 seconds before attempting verification...");
-    await new Promise(resolve => setTimeout(resolve, 20000));
+    console.log("Waiting 20 seconds before attempting verification on explorer...");
+    await sleep(20000);
 
     try {
-        console.log("Attempting verification on block explorer...");
         await run("verify:verify", {
             address: customFeed.address,
             constructorArguments: customFeedArgs,
             contract: "contracts/customFeeds/InflationCustomFeed.sol:InflationCustomFeed",
         });
-        console.log("CustomFeed verified successfully.");
+        console.log("Contract verification successful.\n");
     } catch (e: any) {
         if (e.message.toLowerCase().includes("already verified")) {
-            console.log("CustomFeed already verified.");
+            console.log("Contract is already verified.\n");
         } else {
-            console.error("CustomFeed verification failed:", e.message);
+            console.error("Contract verification failed:", e.message, "\n");
         }
     }
-    console.log("");
-    return { customFeed };
+    return customFeed;
 }
 
-async function submitProofToCustomFeed(customFeed: InflationCustomFeedInstance, proofFromDALayer: any) {
-    console.log("Submitting proof to CustomFeed contract for inflation data (expecting Web2Json proof structure)...");
-
-    if (!proofFromDALayer || !proofFromDALayer.response_hex || !proofFromDALayer.proof) {
-        if (proofFromDALayer && proofFromDALayer.status) {
-            // Check if DA Layer returned an error status
-            console.error(
-                "DA Layer returned an error status in proof object:",
-                proofFromDALayer.status,
-                proofFromDALayer.message || ""
-            );
-        }
-        throw new Error(
-            "Invalid proof structure from DA Layer (missing response_hex or proof). Full proof object: " +
-                JSON.stringify(proofFromDALayer)
-        );
-    }
-
-    let web2JsonDataAbiDefinition: any;
-    try {
-        const IWeb2JsonVerification = await artifacts.require("IWeb2JsonVerification");
-        const verifyProofFunctionAbi = IWeb2JsonVerification.abi.find(
-            (item: any) => item.name === "verifyProof" && item.type === "function"
-        );
-
-        if (
-            verifyProofFunctionAbi &&
-            verifyProofFunctionAbi.inputs &&
-            verifyProofFunctionAbi.inputs.length > 0 &&
-            verifyProofFunctionAbi.inputs[0].type === "tuple" && // _proof is a tuple (ProofStruct)
-            verifyProofFunctionAbi.inputs[0].components
-        ) {
-            // Find the 'data' component within ProofStruct
-            web2JsonDataAbiDefinition = verifyProofFunctionAbi.inputs[0].components.find(
-                (comp: any) => comp.name === "data" && comp.type === "tuple" // data is also a tuple (Data struct)
-            );
-        }
-        if (!web2JsonDataAbiDefinition) {
-            console.error("Detailed IWeb2JsonVerification ABI:", JSON.stringify(IWeb2JsonVerification.abi, null, 2));
-            throw new Error(
-                "Could not find IWeb2JsonVerification.Data ABI definition within verifyProof function parameters."
-            );
-        }
-    } catch (e) {
-        console.error("Error loading IWeb2JsonVerification artifact or finding Data ABI:", e);
-        throw new Error(
-            "Failed to load IWeb2JsonVerification artifact or derive Data ABI. Ensure '@flarenetwork/flare-periphery-contract-artifacts' is correctly installed and contract is compiled."
-        );
-    }
-
-    const decodedWeb2JsonData = web3.eth.abi.decodeParameter(web2JsonDataAbiDefinition, proofFromDALayer.response_hex);
-    console.log(
-        "Decoded IWeb2JsonVerification.Data:",
-        JSON.stringify(decodedWeb2JsonData, (k, v) => (typeof v === "bigint" ? v.toString() : v), 2)
-    );
-
-    const actualAbiEncodedDataPayload = decodedWeb2JsonData.response_body_abi_encoded;
-    if (!actualAbiEncodedDataPayload || !actualAbiEncodedDataPayload.startsWith("0x")) {
-        throw new Error(
-            `'response_body_abi_encoded' is missing or invalid in decoded Web2Json Data. Value: ${actualAbiEncodedDataPayload}`
-        );
-    }
-
-    const inflationDataAbiType = JSON.parse(abiSignature);
-    try {
-        const decodedDataForCheck = web3.eth.abi.decodeParameter(inflationDataAbiType, actualAbiEncodedDataPayload);
-
-        if (decodedDataForCheck.inflationRate === undefined || decodedDataForCheck.observationYear === undefined) {
-            console.warn(
-                `No valid inflation data found in Web2Json proof's payload for ${targetYear}. Decoded:`,
-                JSON.stringify(decodedDataForCheck, null, 2)
-            );
-            throw new Error(`No valid inflation data for ${targetYear} in payload. Cannot submit proof.`);
-        }
-        console.log(
-            "Decoded data for pre-submission check (actual payload from Web2Json proof):",
-            JSON.stringify(decodedDataForCheck, (k, v) => (typeof v === "bigint" ? v.toString() : v), 2)
-        );
-    } catch (decodeError) {
-        console.error("Error decoding actual data payload (inflation data) from Web2Json proof:", decodeError);
-        console.error("Problematic actualAbiEncodedDataPayload:", actualAbiEncodedDataPayload);
-        console.error("ABI Signature used for this specific payload:", abiSignature);
-        throw new Error("Failed to decode actual data payload (inflation data) from Web2Json proof.");
-    }
-    const contractProofArgument = {
-        merkleProof: proofFromDALayer.proof,
-        data: decodedWeb2JsonData,
+async function prepareDataAndProofs(data: Map<string, any>) {
+    const IWeb2JsonVerification = await artifacts.require("IWeb2JsonVerification");
+    const proof = data.get("web2json");
+    console.log(IWeb2JsonVerification._json.abi[0].inputs[0].components)
+    return {
+        merkleProof: proof.merkleProof,
+        data: web3.eth.abi.decodeParameter(
+            IWeb2JsonVerification._json.abi[0].inputs[0].components[1],
+            proof.data || proof.response_hex
+        ),
     };
-
-    console.log("Calling verifyInflationData function on CustomFeed (expecting IWeb2JsonVerification.ProofStruct)...");
-    const transaction = await customFeed.verifyInflationData(contractProofArgument);
-    console.log("Transaction successful! TX Hash:", transaction.tx);
-    console.log("Gas used:", transaction.receipt.gasUsed);
-
-    const latestInflationDataResult = await customFeed.latestInflationData();
-    const latestVerificationTs = await customFeed.latestVerifiedTimestamp();
-
-    console.log(
-        `\nLatest verified Inflation Rate stored in CustomFeed (${inflationDatasetIdentifier}): ${latestInflationDataResult.inflationRate.toString()}`
-    );
-    console.log(
-        `  (Interpretation: Scaled by 1,000,000. Contract decimals() is ${await customFeed.decimals()}, so this is the raw value from contract)`
-    );
-    console.log(`  Observation Year associated with the data: ${latestInflationDataResult.observationYear.toString()}`);
-    console.log(
-        `  Data verified on-chain at (timestamp from contract): ${latestVerificationTs.toString()} (${Number(latestVerificationTs) > 0 ? new Date(Number(latestVerificationTs) * 1000).toUTCString() : "Timestamp not set or 0"})`
-    );
-    console.log("");
 }
 
-async function interactWithCustomFeedContract(customFeed: InflationCustomFeedInstance, datasetId: string) {
-    console.log(`Interacting with CustomFeed contract (${datasetId})...`);
-
-    const feedIdResult = await customFeed.feedId();
-    console.log(`  Feed ID from contract (Hex): ${feedIdResult}`);
-
-    const decimalsResult = await customFeed.decimals();
-    console.log(`  Decimals from contract: ${decimalsResult.toString()}`);
-
-    console.log("\nCalling getCurrentFeed() for off-chain reading (example):");
-    const currentFeedResult = await customFeed.getCurrentFeed();
-    const currentInflation = currentFeedResult[0];
-    const currentDecimals = currentFeedResult[1];
-    const currentTimestampOrYear = currentFeedResult[2];
-
-    console.log(`  Current Inflation Rate (from getCurrentFeed): ${currentInflation.toString()}`);
-    console.log(`  Decimals (from getCurrentFeed): ${currentDecimals.toString()}`);
-    console.log(
-        `  Timestamp/Year (from getCurrentFeed, i.e., latestVerifiedTimestamp): ${currentTimestampOrYear.toString()}`
-    );
-    console.log("");
+async function submitDataToCustomFeed(customFeed: InflationCustomFeedInstance, proof: any) {
+    console.log('\nSubmitting proof to InflationCustomFeed contract...\n');
+    console.log('Proof argument being sent to contract:', JSON.stringify(proof, (k,v) => typeof v === 'bigint' ? v.toString() : v, 2));
+    const tx = await customFeed.verifyInflationData(proof);
+    console.log(`Proof for ${inflationDatasetIdentifier} submitted successfully. Transaction hash:`, tx.tx);
 }
 
-function validateProofFromDALayer(proofFromDALayer: any) {
-    if (
-        !proofFromDALayer ||
-        typeof proofFromDALayer.response_hex !== "string" ||
-        !proofFromDALayer.response_hex.startsWith("0x") ||
-        !Array.isArray(proofFromDALayer.proof)
-    ) {
-        console.error(
-            "Retrieved proof structure is invalid ('response_hex' missing/invalid or 'proof' missing/not an array). Proof:",
-            JSON.stringify(proofFromDALayer, null, 2)
-        );
-        throw new Error("Failed to retrieve a valid proof structure from DA Layer.");
-    }
+async function getLatestInflationData(customFeed: InflationCustomFeedInstance) {
+    console.log("\nRetrieving latest verified inflation data from the contract...\n");
+    const { _value, _decimals, _observationYear, _verifiedTimestamp } = await customFeed.getFeedDataView();
+    
+    const formattedInflation = (Number(_value) / (10 ** Number(_decimals))) * 100;
+
+    console.log(`Latest verified data for ${inflationDatasetIdentifier}:`);
+    console.log(`  - Inflation Rate: ${formattedInflation.toFixed(2)}%`);
+    console.log(`  - (Raw contract value: ${_value.toString()}, Decimals: ${_decimals.toString()})`);
+    console.log(`  - Observation Year: ${_observationYear.toString()}`);
+    console.log(`  - Verified On-Chain (Timestamp): ${_verifiedTimestamp.toString()} (${new Date(Number(_verifiedTimestamp) * 1000).toUTCString()})`);
 }
 
 async function main() {
-    console.log(
-        `--- Starting Inflation Data Verification Script for ${inflationDatasetIdentifier} (using Web2Json) ---`
-    );
-    console.log(`Fetching data for: ${inflationDatasetIdentifier}`);
-    console.log(`Targeting inflation data for year: ${targetYear}`);
-    console.log(`API URL: ${apiUrl}`);
-    console.log(`JQ Filter to be sent: ${postprocessJq}`);
-    console.log(`ABI Signature for data payload: ${abiSignature}\n`);
+    if (!WEB2JSON_VERIFIER_URL_TESTNET || !VERIFIER_API_KEY_TESTNET || !COSTON2_DA_LAYER_URL) {
+        throw new Error(
+            "Missing required environment variables: WEB2JSON_VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, or COSTON2_DA_LAYER_URL"
+        );
+    }
+    console.log(`--- Starting Inflation Data Verification Script for ${inflationDatasetIdentifier} ---`);
+    console.log(`Fetching data for year: ${targetYear} from API: ${apiUrl}?format=json&date=${targetYear}\n`);
+    
+    // 1. Deploy the contract that will receive the proof
+    const customFeed = await deployAndVerifyContract();
+    
+    // 2. Prepare and submit attestation requests
+    const data = await prepareAttestationRequests(requests);
+    const roundIds = await submitAttestationRequests(data);
 
-    const inflationRequestConfig: AttestationRequest = {
-        source: "web2json", // Lowercase as in verifyProofOfReserves.ts example
-        sourceIdBase: globalSourceIdBase,
-        verifierUrlBase: WEB2JSON_VERIFIER_URL_TESTNET!,
-        verifierApiKey: VERIFIER_API_KEY_TESTNET!,
-        urlTypeBase: "", // Empty string for Web2Json as in verifyProofOfReserves.ts
-        data: {
-            apiUrl: apiUrl,
-            httpMethod: "GET", 
-            headers: "{}", 
-            queryParams: "{}",
-            body: "{}", 
-            postProcessJq: postprocessJq,
-            abiSignature: abiSignature,
-        },
+    // 3. Retrieve proofs from the DA Layer
+    const retrievedProofs = await retrieveDataAndProofsWithRetry(data, roundIds);
+
+    // 4. Decode proof data and prepare for submission
+    const decodedProof = await prepareDataAndProofs(retrievedProofs);
+    const proof = {
+        merkleProof: retrievedProofs.get("web2json").proof,
+        data: decodedProof.data,
     };
 
-    const preparedData = await prepareAttestationRequest(inflationRequestConfig);
-    console.log("Attestation Request Prepared. ABI Encoded Request:", preparedData.abiEncodedRequest, "\n");
+    // 5. Submit the proof to the custom feed contract
+    await submitDataToCustomFeed(customFeed, proof);
 
-    const abiEncodedRequest = preparedData.abiEncodedRequest;
-    const roundId = await submitAttestationRequest(abiEncodedRequest);
-    console.log(`Attestation Request Submitted. Waiting for round ${roundId} to finalize... Allow ~2-3 minutes.\n`);
+    // 6. Read the final, verified data from the contract
+    await getLatestInflationData(customFeed);
 
-    const proofFromDALayer = await retrieveDataAndProof(abiEncodedRequest, roundId);
-    console.log("Proof Retrieved Successfully from DA Layer.\n");
-
-    validateProofFromDALayer(proofFromDALayer);
-
-    const { customFeed } = await deployAndVerifyContract(inflationDatasetIdentifier);
-
-    await submitProofToCustomFeed(customFeed, proofFromDALayer);
-    await interactWithCustomFeedContract(customFeed, inflationDatasetIdentifier);
-
-    console.log(`--- Inflation Data Verification Script (${inflationDatasetIdentifier}) Finished Successfully ---`);
+    console.log("\n--- Inflation Data Verification Script Completed Successfully ---");
 }
 
-main()
-    .then(() => process.exit(0))
-    .catch(error => {
-        console.error("\n--- SCRIPT FAILED ---");
-        console.error(error);
-        process.exit(1);
-    });
+void main().then(() => {
+    process.exit(0);
+});

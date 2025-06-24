@@ -8,7 +8,6 @@ import {IICustomFeed} from "@flarenetwork/flare-periphery-contracts/coston2/cust
 /**
  * @title InflationCustomFeed
  * @notice Custom feed for inflation data (e.g., US CPI Annual), with on-chain FDC verification using Web2Json.
- * Stores the latest inflation rate (scaled by 10^6) and observation year.
  * @dev Implements the IICustomFeed interface. This version does not have ownership functionality.
  */
 contract InflationCustomFeed is IICustomFeed {
@@ -16,20 +15,15 @@ contract InflationCustomFeed is IICustomFeed {
 
     bytes21 public feedIdentifier;
     string public name; // e.g., "US_INFLATION_CPI_ANNUAL"
-
-    // The inflationRate is stored as an integer scaled by 10^6.
-    // For example, an inflation rate of 2.5% (0.025) would be stored as 25000.
-    // An inflation rate of 7.865432% would be stored as 7865432.
-    // The JQ filter in the script is responsible for this scaling: `(.[1][0].value | tonumber * 1000000)`
-    int8 public constant DECIMALS = 6;
+    int8 public constant DECIMALS = 4;
 
     struct InflationData {
-        uint256 inflationRate; // Scaled by 10^DECIMALS
-        uint256 observationYear; // e.g., 2023
+        uint256 inflationRate;
+        uint256 observationYear;
     }
 
     InflationData public latestInflationData;
-    uint64 public latestVerifiedTimestamp; // Timestamp of on-chain verification (block.timestamp)
+    uint64 public latestVerifiedTimestamp;
 
     // --- Events ---
     event InflationDataVerified(
@@ -53,7 +47,7 @@ contract InflationCustomFeed is IICustomFeed {
         if (bytes(_name).length == 0) revert InvalidName();
 
         feedIdentifier = _feedId;
-        name = _name; // Store the dataset identifier as the feed name
+        name = _name;
     }
 
     // --- FDC Verification Logic ---
@@ -61,17 +55,13 @@ contract InflationCustomFeed is IICustomFeed {
     /**
      * @notice Verifies inflation data proof obtained via FDC Web2Json attestation and stores the data.
      * @dev This function is public. It performs on-chain FDC verification.
-     * The `_proof.data.responseBody.abiEncodedData` is expected to be ABI-encoded `InflationData` struct.
-     * The JQ filter in the off-chain script is responsible for formatting this payload.
      * @param _proof The IWeb2Json.Proof data structure containing the attestation and response.
      */
     function verifyInflationData(IWeb2Json.Proof calldata _proof) external {
         // 1. FDC Verification using the ContractRegistry for Web2Json
-        // Aligned with the Web2Json.sol example's pattern:
-        // ContractRegistry.getFdcVerification().verifyJsonApi(IWeb2Json.Proof calldata)
         require(
-            ContractRegistry.getFdcVerification().verifyJsonApi(_proof), // Changed to match example
-            "FDC: Invalid Web2Json proof" // Error message remains specific to Web2Json context
+            ContractRegistry.getFdcVerification().verifyJsonApi(_proof),
+            "FDC: Invalid Web2Json proof" 
         );
 
         // 2. Decode Inflation Data from the proof's response body
@@ -82,15 +72,15 @@ contract InflationCustomFeed is IICustomFeed {
 
         // 3. Store verified data and timestamp
         latestInflationData = newInflationData;
-        latestVerifiedTimestamp = uint64(block.timestamp); // Use current block timestamp for verification time
+        latestVerifiedTimestamp = uint64(block.timestamp);
 
         // 4. Emit event
         emit InflationDataVerified(
-            name, // Emit the feed's configured name
+            name,
             newInflationData.inflationRate,
             newInflationData.observationYear,
             latestVerifiedTimestamp,
-            _proof.data.requestBody.url // URL from which the data was fetched, assuming similar structure
+            _proof.data.requestBody.url
         );
     }
 
@@ -124,7 +114,7 @@ contract InflationCustomFeed is IICustomFeed {
      * @inheritdoc IICustomFeed
      */
     function calculateFee() external pure override returns (uint256 _fee) {
-        return 0; // No fee for this custom feed
+        return 0;
     }
 
     // --- Additional View Functions ---
