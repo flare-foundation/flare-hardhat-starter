@@ -1,4 +1,4 @@
-import hre from "hardhat";
+import { artifacts, web3, run } from "hardhat";
 import { PriceVerifierCustomFeedInstance, IRelayInstance, IFdcVerificationInstance } from "../../typechain-types";
 import {
     prepareAttestationRequestBase,
@@ -188,7 +188,20 @@ async function deployAndVerifyContract(): Promise<PriceVerifierCustomFeedInstanc
     }
     const customFeedArgs: any[] = [finalFeedIdHex, priceSymbol, priceDecimals];
     const customFeed: PriceVerifierCustomFeedInstance = await PriceVerifierCustomFeed.new(...customFeedArgs);
-    await new Promise(resolve => setTimeout(resolve, 15000));
+    console.log(`PriceVerifierCustomFeed deployed to: ${customFeed.address}\n`);
+    console.log("Waiting 10 seconds before attempting verification on explorer...");
+    await sleep(10000);
+
+    try {
+        await run("verify:verify", {
+            address: customFeed.address,
+            constructorArguments: customFeedArgs,
+            contract: "contracts/customFeeds/PriceVerifierCustomFeed.sol:PriceVerifierCustomFeed",
+        });
+        console.log("Contract verification successful.\n");
+    } catch (error) {
+        console.log("Contract verification failed:", error);
+    }
     return customFeed;
 }
 

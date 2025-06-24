@@ -176,9 +176,8 @@ async function deployAndVerifyContract(): Promise<InflationCustomFeedInstance> {
     const customFeedArgs: any[] = [finalFeedIdHex, inflationDatasetIdentifier];
     const customFeed: InflationCustomFeedInstance = await InflationCustomFeed.new(...customFeedArgs);
     console.log(`InflationCustomFeed deployed to: ${customFeed.address}\n`);
-    
-    console.log("Waiting 20 seconds before attempting verification on explorer...");
-    await sleep(20000);
+    console.log("Waiting 10 seconds before attempting verification on explorer...");
+    await sleep(10000);
 
     try {
         await run("verify:verify", {
@@ -239,27 +238,17 @@ async function main() {
     console.log(`--- Starting Inflation Data Verification Script for ${inflationDatasetIdentifier} ---`);
     console.log(`Fetching data for year: ${targetYear} from API: ${apiUrl}?format=json&date=${targetYear}\n`);
     
-    // 1. Deploy the contract that will receive the proof
     const customFeed = await deployAndVerifyContract();
-    
-    // 2. Prepare and submit attestation requests
     const data = await prepareAttestationRequests(requests);
     const roundIds = await submitAttestationRequests(data);
-
-    // 3. Retrieve proofs from the DA Layer
     const retrievedProofs = await retrieveDataAndProofsWithRetry(data, roundIds);
-
-    // 4. Decode proof data and prepare for submission
     const decodedProof = await prepareDataAndProofs(retrievedProofs);
     const proof = {
         merkleProof: retrievedProofs.get("web2json").proof,
         data: decodedProof.data,
     };
 
-    // 5. Submit the proof to the custom feed contract
     await submitDataToCustomFeed(customFeed, proof);
-
-    // 6. Read the final, verified data from the contract
     await getLatestInflationData(customFeed);
 
     console.log("\n--- Inflation Data Verification Script Completed Successfully ---");
