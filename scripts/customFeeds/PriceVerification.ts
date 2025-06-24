@@ -42,16 +42,13 @@ const day = String(dateToFetch.getDate()).padStart(2, "0");
 const month = String(dateToFetch.getMonth() + 1).padStart(2, "0");
 const year = dateToFetch.getFullYear();
 const dateString = `${day}-${month}-${year}`;
-const fullApiUrl = `https://api.coingecko.com/api/v3/coins/${coinGeckoId}/history?date=${dateString}&localization=false`;
+const fullApiUrl = `https://api.coingecko.com/api/v3/coins/${coinGeckoId}/history`;
 const postprocessJq = `{price: (.market_data.current_price.usd * ${10 ** decimalsForRequest} | floor)}`;
 const abiSig = `{"components": [{"internalType": "uint256","name": "price","type": "uint256"}],"internalType": "struct PriceData","name": "priceData","type": "tuple"}`;
-const urlParts = fullApiUrl.split('?');
-const baseUrl = urlParts[0];
-const queryParamsString = urlParts.length > 1 ? urlParts[1] : "";
-const params = new URLSearchParams(queryParamsString);
-const queryParamsObject: { [key: string]: string } = {};
-params.forEach((value, key) => { queryParamsObject[key] = value; });
-const stringifiedQueryParams = JSON.stringify(queryParamsObject);
+const stringifiedQueryParams = JSON.stringify({
+    date: dateString,
+    localization: "false",
+});
 
 const requests: AttestationRequest[] = [
     {
@@ -61,7 +58,7 @@ const requests: AttestationRequest[] = [
         verifierApiKey: VERIFIER_API_KEY_TESTNET!,
         urlTypeBase: "",
         data: {
-            apiUrl: baseUrl,
+            apiUrl: fullApiUrl,
             httpMethod: "GET",
             headers: "{}",
             queryParams: stringifiedQueryParams,
@@ -112,7 +109,7 @@ async function submitAttestationRequests(data: Map<string, string>) {
         console.log("Submitted request:", transaction.tx, "\n");
         const roundId = await calculateRoundId(transaction);
         console.log(
-            `Check round progress at: https://${hre.network.name}-systems-explorer.flare.rocks/voting-epoch/${roundId}?tab=fdc\n`
+            `Check round progress at: https://${hre.network.name}-systems-explorer.flare.rocks/voting-round/${roundId}?tab=fdc\n`
         );
         roundIds.set(source, roundId);
     }
@@ -129,7 +126,7 @@ async function retrieveDataAndProofs(data: Map<string, string>, roundIds: Map<st
         console.log("Waiting for the round to finalize...");
         const relay: IRelayInstance = await getRelay();
         const fdcVerification: IFdcVerificationInstance = await getFdcVerification();
-        const protocolId = await fdcVerification.fdcProtocolId();
+        const protocolId = 200;
         console.log("Protocol ID:", protocolId);
         while (!(await relay.isFinalized(protocolId, roundId))) {
             await sleep(10000);
@@ -169,10 +166,11 @@ async function retrieveDataAndProofsWithRetry(
 async function prepareDataAndProofs(data: Map<string, any>) {
     const IWeb2JsonVerification = await artifacts.require("IWeb2JsonVerification");
     const proof = data.get("web2json");
+    console.log(IWeb2JsonVerification._json.abi[0].inputs[0].components)
     return {
         merkleProof: proof.merkleProof,
         data: web3.eth.abi.decodeParameter(
-            IWeb2JsonVerification._json.abi[0].inputs[1].components[1],
+            IWeb2JsonVerification._json.abi[0].inputs[0].components[1],
             proof.data || proof.response_hex
         ),
     };
@@ -195,26 +193,19 @@ async function deployAndVerifyContract(): Promise<PriceVerifierCustomFeedInstanc
 }
 
 async function submitDataAndProofsToCustomFeed(customFeed: PriceVerifierCustomFeedInstance, proof: any) {
+    console.log('Proof from submitDataAndProofsToCustomFeed:', proof)
     const tx = await customFeed.verifyPrice(proof);
-    const receipt = await tx.wait();
-    console.log(`Proof for ${priceSymbol}Price submitted successfully. Transaction hash:`, receipt.transactionHash);
-    if (receipt.events) {
-        for (const event of receipt.events) {
-            if (event.event === "PriceVerified") {
-                const price = event.args?.price;
-                const symbol = event.args?.symbol;
-                const urlValue = event.args?.apiUrl;
-                console.log(
-                    `PriceVerified Event: Symbol: ${symbol}, Price: ${price ? price.toString() : "N/A"}, URL: ${urlValue || 'N/A'}`
-                );
-                const storedPrice = await customFeed.latestVerifiedPrice();
-                const storedDecimals = await customFeed.DECIMALS();
-                console.log(
-                    `Latest verified price from contract for ${symbol}: ${storedPrice.toString()} (Decimals: ${storedDecimals.toString()})`
-                );
-            }
-        }
-    }
+       console.log(`Proof for ${priceSymbol}Price submitted successfully. Transaction hash:`, tx.transactionHash);
+}
+
+async function getLatestVerifiedPrice(customFeed: PriceVerifierCustomFeedInstance) {
+    console.log("\nRetrieving latest verified price from the contract...");
+    const { _value, _decimals } = await customFeed.getFeedDataView();
+    const formattedPrice = Number(_value) / 10 ** Number(_decimals);
+    console.log(
+        `Latest verified price for ${priceSymbol}/USD: ${formattedPrice} (raw value: ${_value.toString()}, decimals: ${_decimals})`
+    );
+    return formattedPrice;
 }
 
 async function main() {
@@ -227,8 +218,13 @@ async function main() {
     const data = await prepareAttestationRequests(requests);
     const roundIds = await submitAttestationRequests(data);
     const proofs = await retrieveDataAndProofsWithRetry(data, roundIds);
-    const proof = await prepareDataAndProofs(proofs);
+    const decodedData = await prepareDataAndProofs(proofs);
+    const proof = {
+        merkleProof: proofs.get("web2json").proof,
+        data: decodedData.data,
+    }
     await submitDataAndProofsToCustomFeed(customFeed, proof);
+    await getLatestVerifiedPrice(customFeed);
     console.log("Price verification process completed successfully.");
 }
 

@@ -38,7 +38,11 @@ contract PriceVerifierCustomFeed is IICustomFeed {
     error UnknownSymbolForCoinGeckoId(); // Kept for direct call if needed, but mapping is primary
     error CoinGeckoIdNotMapped(string symbol);
     error DateStringParsingFailed();
-    error InvalidSymbolInUrl(string url, string symbol);
+    error InvalidCoinGeckoIdInUrl(
+        string url,
+        string extractedId,
+        string expectedId
+    );
     error InvalidProof();
 
     // --- Constructor ---
@@ -102,17 +106,28 @@ contract PriceVerifierCustomFeed is IICustomFeed {
      * @param _proof The IWeb2Json.Proof data structure.
      */
     function verifyPrice(IWeb2Json.Proof calldata _proof) external {
-        // 1. Symbol Verification (from URL)
-        string memory symbolFromUrl = _extractSymbolFromUrl(
+        // 1. CoinGecko ID Verification (from URL)
+        string memory extractedCoinGeckoId = _extractCoinGeckoIdFromUrl(
             _proof.data.requestBody.url
         );
+
+        string
+            memory expectedCoinGeckoId = symbolToCoinGeckoId[
+                keccak256(abi.encodePacked(expectedSymbol))
+            ];
+
+        if (bytes(expectedCoinGeckoId).length == 0) {
+            revert CoinGeckoIdNotMapped(expectedSymbol);
+        }
+
         if (
-            keccak256(abi.encodePacked(symbolFromUrl)) !=
-            keccak256(abi.encodePacked(expectedSymbol))
+            keccak256(abi.encodePacked(extractedCoinGeckoId)) !=
+            keccak256(abi.encodePacked(expectedCoinGeckoId))
         ) {
-            revert InvalidSymbolInUrl(
+            revert InvalidCoinGeckoIdInUrl(
                 _proof.data.requestBody.url,
-                symbolFromUrl
+                extractedCoinGeckoId,
+                expectedCoinGeckoId
             );
         }
 
@@ -202,78 +217,86 @@ contract PriceVerifierCustomFeed is IICustomFeed {
     }
 
     /**
-     * @notice Helper function to find the first occurrence of a marker in bytes data.
-     * @param data The bytes data to search within.
+     * @notice Extracts the CoinGecko ID from the API URL.
+     * @dev It assumes the URL format is like ".../coins/{id}/history..." or ".../coins/{id}"
+     * @param _url The full URL string from the proof.
+     * @return The extracted CoinGecko ID.
+     */
+    function _extractCoinGeckoIdFromUrl(
+        string memory _url
+    ) internal pure returns (string memory) {
+        bytes memory urlBytes = bytes(_url);
+        bytes memory prefix = bytes("/coins/");
+        bytes memory suffix = bytes("/history");
+
+        uint256 startIndex = _indexOf(urlBytes, prefix);
+        if (startIndex == type(uint256).max) {
+            return ""; // Prefix not found
+        }
+        startIndex += prefix.length;
+
+        uint256 endIndex = _indexOfFrom(urlBytes, suffix, startIndex);
+        if (endIndex == type(uint256).max) {
+            // Suffix not found, assume it's the end of the string
+            endIndex = urlBytes.length;
+        }
+
+        return string(slice(urlBytes, startIndex, endIndex));
+    }
+
+    /**
+     * @notice Helper to find the first occurrence of a marker in bytes.
+     * @param data The bytes data to search in.
      * @param marker The bytes marker to find.
-     * @param searchStart The index to start searching from.
      * @return The starting index of the marker, or type(uint256).max if not found.
      */
-    function _findMarker(
+    function _indexOf(
         bytes memory data,
-        bytes memory marker,
-        uint256 searchStart
+        bytes memory marker
     ) internal pure returns (uint256) {
         uint256 dataLen = data.length;
         uint256 markerLen = marker.length;
-        if (markerLen == 0 || dataLen < markerLen + searchStart) {
-            return type(uint256).max; // Marker is empty or data too short
-        }
+        if (markerLen == 0 || dataLen < markerLen) return type(uint256).max;
 
-        for (uint256 i = searchStart; i <= dataLen - markerLen; i++) {
-            bool foundMatch = true;
+        for (uint256 i = 0; i <= dataLen - markerLen; i++) {
+            bool found = true;
             for (uint256 j = 0; j < markerLen; j++) {
                 if (data[i + j] != marker[j]) {
-                    foundMatch = false;
+                    found = false;
                     break;
                 }
             }
-            if (foundMatch) {
-                return i; // Return the starting index of the marker
+            if (found) return i;
+        }
+        return type(uint256).max;
+    }
+
+    /**
+     * @notice Helper to find the first occurrence of a marker in bytes, starting from an index.
+     * @param data The bytes data to search in.
+     * @param marker The bytes marker to find.
+     * @param from The index to start searching from.
+     * @return The starting index of the marker, or type(uint256).max if not found.
+     */
+    function _indexOfFrom(
+        bytes memory data,
+        bytes memory marker,
+        uint256 from
+    ) internal pure returns (uint256) {
+        uint256 dataLen = data.length;
+        uint256 markerLen = marker.length;
+        if (markerLen == 0 || dataLen < markerLen) return type(uint256).max;
+
+        for (uint256 i = from; i <= dataLen - markerLen; i++) {
+            bool found = true;
+            for (uint256 j = 0; j < markerLen; j++) {
+                if (data[i + j] != marker[j]) {
+                    found = false;
+                    break;
+                }
             }
+            if (found) return i;
         }
-        return type(uint256).max; // Marker not found
-    }
-
-    /**
-     * @notice Extracts the symbol from the API URL.
-     * @param apiUrlBytes The API URL as bytes.
-     * @return symbol The extracted symbol.
-     */
-    function _extractSymbolFromUrl(
-        string memory apiUrlBytes
-    ) internal pure returns (string memory symbol) {
-        // Define markers
-        bytes memory coinsMarker = bytes("/coins/");
-        bytes memory historyMarker = bytes("/history");
-
-        uint256 idStartIndex = _findMarker(bytes(apiUrlBytes), coinsMarker, 0);
-        if (idStartIndex == type(uint256).max) return "";
-
-        uint256 idStart = idStartIndex + coinsMarker.length;
-        uint256 idEndIndex = _findMarker(
-            bytes(apiUrlBytes),
-            historyMarker,
-            idStart
-        );
-        if (idEndIndex == type(uint256).max) return "";
-
-        symbol = string(slice(bytes(apiUrlBytes), idStart, idEndIndex));
-    }
-
-    /**
-     * @notice Maps a trading symbol (e.g., "BTC") to its corresponding CoinGecko ID (e.g., "bitcoin").
-     * @dev Uses the symbolToCoinGeckoId mapping.
-     * @param _symbol The trading symbol (e.g., "BTC", "ETH").
-     * @return The CoinGecko ID string (e.g., "bitcoin", "ethereum").
-     */
-    function _getExpectedCoinGeckoId(
-        string memory _symbol
-    ) internal view returns (string memory) {
-        bytes32 symbolHash = keccak256(abi.encodePacked(_symbol));
-        string memory coinGeckoId = symbolToCoinGeckoId[symbolHash];
-        if (bytes(coinGeckoId).length == 0) {
-            revert CoinGeckoIdNotMapped(_symbol);
-        }
-        return coinGeckoId;
+        return type(uint256).max;
     }
 }
