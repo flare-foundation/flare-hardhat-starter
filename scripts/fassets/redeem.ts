@@ -1,4 +1,4 @@
-import { ethers, run } from "hardhat";
+import { ethers, web3, run } from "hardhat";
 import { formatUnits } from "ethers";
 
 import { FAssetsRedeemInstance, IAssetManagerContract, ERC20Instance } from "../../typechain-types";
@@ -10,16 +10,30 @@ const ASSET_MANAGER_ADDRESS = "0xDeD50DA9C3492Bee44560a4B35cFe0e778F41eC5";
 const LOTS_TO_REDEEM = 1;
 const UNDERLYING_ADDRESS = "rSHYuiEvsYsKR8uUHhBTuGP5zjRcGt4nm";
 
+const FAssetsRedeem = artifacts.require("FAssetsRedeem");
+
+const IAssetManager = artifacts.require("IAssetManager");
+const IERC20 = artifacts.require("IERC20");
+
+async function getFXRPAddress() {
+    const assetManager = await IAssetManager.at(ASSET_MANAGER_ADDRESS);
+    const fasset = await assetManager.fAsset();
+    return fasset;
+}
+
 async function deployAndVerifyContract() {
-    const FAssetsRedeem = artifacts.require("FAssetsRedeem");
-    const args = [ASSET_MANAGER_ADDRESS];
+    // Get FXRP address first
+    const fxrpAddress = await getFXRPAddress();
+    console.log("FXRP address:", fxrpAddress);
+
+    const args = [ASSET_MANAGER_ADDRESS, fxrpAddress];
     const fAssetsRedeem: FAssetsRedeemInstance = await FAssetsRedeem.new(...args);
 
     const fAssetsRedeemAddress = await fAssetsRedeem.address;
 
     try {
         await run("verify:verify", {
-            address: fAssetsRedeemAddress,
+            address: fAssetsRedeem.address,
             constructorArguments: args,
         });
     } catch (e: any) {
@@ -31,25 +45,27 @@ async function deployAndVerifyContract() {
     return fAssetsRedeem;
 }
 
-async function getFXRPAddress() {
-    const assetManager = await IAssetManager.at(ASSET_MANAGER_ADDRESS);
-    const fasset = await assetManager.fAsset();
-    return fasset;
-}
-
-async function transferFXRP(fAssetsRedeemAddress: string, amountToRedeem: number) {
+async function transferFXRP(fAssetsRedeemAddress: string, amountToRedeem: string) {
     const fxrpAddress = await getFXRPAddress();
     // Get FXRP token contract
-    const fxrp = (await ethers.getContractAt("IERC20", fxrpAddress)) as ERC20Instance;
+    const fxrp: ERC20Instance = await IERC20.at(fxrpAddress);
 
     // Transfer FXRP to the deployed contract
     console.log("Transferring FXRP to contract...");
     const transferTx = await fxrp.transfer(fAssetsRedeemAddress, amountToRedeem);
-    await transferTx.wait();
     console.log("FXRP transfer completed");
 }
 
-async function parseRedemptionEvents(transactionReceipt: any, fAssetsRedeem: FAssetsRedeemInstance) {
+async function approveFAssets(fAssetsRedeem: any, amountToRedeem: string) {
+    console.log("Approving FAssetsRedeem contract to spend FXRP...");
+    const fxrpAddress = await getFXRPAddress();
+    const fxrp: ERC20Instance = await IERC20.at(fxrpAddress);
+
+    const approveTx = await fxrp.approve(await fAssetsRedeem.address, amountToRedeem);
+    console.log("FXRP approval completed");
+}
+
+async function parseRedemptionEvents(transactionReceipt: any, fAssetsRedeem: any) {
     console.log("\nParsing events...", transactionReceipt.rawLogs);
 
     // Get AssetManager contract interface
@@ -78,7 +94,7 @@ async function parseRedemptionEvents(transactionReceipt: any, fAssetsRedeem: FAs
 
 async function main() {
     // Deploy and verify the contract
-    const fAssetsRedeem: FAssetsRedeemInstance = await deployAndVerifyContract();
+    const fAssetsRedeem = await deployAndVerifyContract();
 
     // Get the lot size and decimals to calculate the amount to redeem
     const settings = await fAssetsRedeem.getSettings();
@@ -88,19 +104,20 @@ async function main() {
     console.log("Asset decimals:", decimals.toString());
 
     // Calculate the amount to redeem according to the lot size and the number of lots to redeem
-    const amountToRedeem = Number(lotSize) * Number(LOTS_TO_REDEEM);
-    console.log(`Required FXRP amount ${formatUnits(amountToRedeem, Number(decimals))} FXRP`);
+    const amountToRedeem = web3.utils.toBN(lotSize).mul(web3.utils.toBN(LOTS_TO_REDEEM));
+    console.log(`Required FXRP amount ${formatUnits(amountToRedeem.toString(), Number(decimals))} FXRP`);
     console.log(`Required amount in base units: ${amountToRedeem.toString()}`);
 
-    // Transfer FXRP to the contract
-    await transferFXRP(fAssetsRedeem.address, amountToRedeem);
+    // Approve FXRP for redemption
+    await approveFAssets(fAssetsRedeem, amountToRedeem.toString());
 
     // Call redeem function and wait for transaction
-    const tx = await fAssetsRedeem.redeem(LOTS_TO_REDEEM, UNDERLYING_ADDRESS);
-    console.log("TX receipt", tx.receipt);
+    const redeemTx = await fAssetsRedeem.redeem(LOTS_TO_REDEEM, UNDERLYING_ADDRESS);
+    // const receipt = await tx.wait();
+    console.log("Redeem transaction receipt", redeemTx);
 
-    // Parse events from the transaction
-    await parseRedemptionEvents(tx.receipt, fAssetsRedeem);
+    // // Parse events from the transaction
+    await parseRedemptionEvents(redeemTx.receipt, fAssetsRedeem);
 }
 
 main().catch(error => {
