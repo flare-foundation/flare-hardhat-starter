@@ -45,17 +45,6 @@ async function deployAndVerifyContract() {
     return fAssetsRedeem;
 }
 
-async function transferFXRP(fAssetsRedeemAddress: string, amountToRedeem: string) {
-    const fxrpAddress = await getFXRPAddress();
-    // Get FXRP token contract
-    const fxrp: ERC20Instance = await IERC20.at(fxrpAddress);
-
-    // Transfer FXRP to the deployed contract
-    console.log("Transferring FXRP to contract...");
-    const transferTx = await fxrp.transfer(fAssetsRedeemAddress, amountToRedeem);
-    console.log("FXRP transfer completed");
-}
-
 async function approveFAssets(fAssetsRedeem: any, amountToRedeem: string) {
     console.log("Approving FAssetsRedeem contract to spend FXRP...");
     const fxrpAddress = await getFXRPAddress();
