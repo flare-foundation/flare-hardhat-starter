@@ -10,8 +10,6 @@ contract TokenFaucet is Ownable, ReentrancyGuard, Pausable {
     mapping(address => bool) public isAdmin;
     mapping(address => bool) public isFaucetUser;
 
-    uint256 public immutable lotSizeAMG;
-
     event AdminAdded(address indexed admin);
     event AdminRemoved(address indexed admin);
 
@@ -37,15 +35,8 @@ contract TokenFaucet is Ownable, ReentrancyGuard, Pausable {
         _;
     }
 
-    constructor(uint256 _lotSizeAMG) Ownable(msg.sender) {
-        require(_lotSizeAMG > 0, "Lot size must be greater than 0");
-        lotSizeAMG = _lotSizeAMG;
+    constructor() Ownable(msg.sender) {
         isAdmin[msg.sender] = true;
-    }
-
-    // Get the actual token amount for 1 lot
-    function getLotSizeInTokens() public view returns (uint256) {
-        return lotSizeAMG;
     }
 
     // Add faucet user
@@ -100,8 +91,8 @@ contract TokenFaucet is Ownable, ReentrancyGuard, Pausable {
         validAddress(tokenAddress)
     {
         require(numberOfLots > 0, "Number of lots must be greater than 0");
-
-        uint256 totalAmount = getLotSizeInTokens() * numberOfLots;
+        
+        uint256 totalAmount = numberOfLots;
 
         // Validate token contract
         IERC20 token = IERC20(tokenAddress);
