@@ -15,7 +15,7 @@ const addressStr = "mg9P9f4wr9w7c1sgFeiTC5oMLYXCc2c7hs";
 const attestationTypeBase = "AddressValidity";
 const sourceIdBase = "testBTC";
 const verifierUrlBase = VERIFIER_URL_TESTNET;
-const urlTypeBase = "btc";
+const urlTypeBase = "btc_testnet4";
 
 async function prepareAttestationRequest(addressStr: string) {
     const requestBody = {
