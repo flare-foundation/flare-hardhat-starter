@@ -8,6 +8,7 @@ In depth guides can be found on the [Flare Developer Hub](https://dev.flare.netw
 ```
 scripts
 ├── deployFTSOConsumer.ts: deploys and verifies the FtsoV2Consumer contract
+├── customFeeds: scripts used for examples of custom feed contracts
 ├── fastUpdates.ts: demonstrates usage of FTSO fast updates
 ├── fdcExample: basic examples for each of the supported FDC attestation types
 ├── getAnchorPrices.ts: fetches and verifies anchor prices from the DA Layer
