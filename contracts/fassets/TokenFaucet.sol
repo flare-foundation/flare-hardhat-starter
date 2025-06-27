@@ -10,6 +10,8 @@ contract TokenFaucet is Ownable, ReentrancyGuard, Pausable {
     mapping(address => bool) public isAdmin;
     mapping(address => bool) public isFaucetUser;
 
+    uint256 public immutable lotSizeAMG;
+
     event AdminAdded(address indexed admin);
     event AdminRemoved(address indexed admin);
 
@@ -35,8 +37,15 @@ contract TokenFaucet is Ownable, ReentrancyGuard, Pausable {
         _;
     }
 
-    constructor() Ownable(msg.sender) {
+    constructor(uint256 _lotSizeAMG) Ownable(msg.sender) {
+        require(_lotSizeAMG > 0, "Lot size must be greater than 0");
+        lotSizeAMG = _lotSizeAMG;
         isAdmin[msg.sender] = true;
+    }
+
+    // Get the actual token amount for 1 lot
+    function getLotSizeInTokens() public view returns (uint256) {
+        return lotSizeAMG;
     }
 
     // Add faucet user
@@ -78,10 +87,9 @@ contract TokenFaucet is Ownable, ReentrancyGuard, Pausable {
         emit FaucetUnpaused(msg.sender);
     }
 
-    // Main faucet function
     function faucetTo(
         address recipient,
-        uint256 amount,
+        uint256 numberOfLots,
         address tokenAddress
     )
         external
@@ -91,18 +99,23 @@ contract TokenFaucet is Ownable, ReentrancyGuard, Pausable {
         validAddress(recipient)
         validAddress(tokenAddress)
     {
-        require(amount > 0, "Amount must be greater than 0");
+        require(numberOfLots > 0, "Number of lots must be greater than 0");
+
+        uint256 totalAmount = getLotSizeInTokens() * numberOfLots;
 
         // Validate token contract
         IERC20 token = IERC20(tokenAddress);
         require(
-            token.balanceOf(address(this)) >= amount,
+            token.balanceOf(address(this)) >= totalAmount,
             "Insufficient faucet balance"
         );
 
         // Transfer tokens
-        require(token.transfer(recipient, amount), "Token transfer failed");
-        emit FaucetSent(recipient, amount, tokenAddress);
+        require(
+            token.transfer(recipient, totalAmount),
+            "Token transfer failed"
+        );
+        emit FaucetSent(recipient, totalAmount, tokenAddress);
     }
 
     // Emergency function to recover tokens (owner only)
