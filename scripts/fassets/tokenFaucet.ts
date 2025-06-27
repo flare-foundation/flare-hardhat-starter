@@ -1,25 +1,35 @@
 import { run } from "hardhat";
-import { TokenFaucetInstance } from "../../typechain-types";
-
-const TokenFaucet = artifacts.require("TokenFaucet");
+import { TokenFaucetInstance, IAssetManagerInstance } from "../../typechain-types";
 
 // yarn hardhat run scripts/fassets/tokenFaucet.ts --network coston2
 
-async function main() {
-    const tokenFaucet: TokenFaucetInstance = await TokenFaucet.new();
+const TokenFaucet = artifacts.require("TokenFaucet");
+const IAssetManager = artifacts.require("IAssetManager");
 
+// AssetManager address on Flare Testnet Coston2 network
+const ASSET_MANAGER_ADDRESS = "0xDeD50DA9C3492Bee44560a4B35cFe0e778F41eC5";
+
+async function main() {
+    const assetManager = (await IAssetManager.at(ASSET_MANAGER_ADDRESS)) as IAssetManagerInstance;
+    const settings = await assetManager.getSettings();
+
+    const lotSizeAMG = settings.lotSizeAMG.toString();
+
+    const args = [lotSizeAMG];
+
+    const tokenFaucet: TokenFaucetInstance = await TokenFaucet.new(...args);
     const tokenFaucetAddress = await tokenFaucet.address;
 
     try {
         await run("verify:verify", {
             address: tokenFaucetAddress,
-            constructorArguments: [],
+            constructorArguments: args,
         });
     } catch (e: any) {
         console.log(e);
     }
 
-    console.log("FAssetsSwapAndRedeem deployed to:", tokenFaucetAddress);
+    console.log("TokenFaucet deployed to:", tokenFaucetAddress);
 }
 
 main().catch(error => {
