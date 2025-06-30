@@ -80,7 +80,7 @@ contract TokenFaucet is Ownable, ReentrancyGuard, Pausable {
 
     function faucetTo(
         address recipient,
-        uint256 numberOfLots,
+        uint256 amount,
         address tokenAddress
     )
         external
@@ -90,23 +90,21 @@ contract TokenFaucet is Ownable, ReentrancyGuard, Pausable {
         validAddress(recipient)
         validAddress(tokenAddress)
     {
-        require(numberOfLots > 0, "Number of lots must be greater than 0");
-        
-        uint256 totalAmount = numberOfLots;
+        require(amount > 0, "Amount must be greater than 0");
 
         // Validate token contract
         IERC20 token = IERC20(tokenAddress);
         require(
-            token.balanceOf(address(this)) >= totalAmount,
+            token.balanceOf(address(this)) >= amount,
             "Insufficient faucet balance"
         );
 
         // Transfer tokens
         require(
-            token.transfer(recipient, totalAmount),
+            token.transfer(recipient, amount),
             "Token transfer failed"
         );
-        emit FaucetSent(recipient, totalAmount, tokenAddress);
+        emit FaucetSent(recipient, amount, tokenAddress);
     }
 
     // Emergency function to recover tokens (owner only)
