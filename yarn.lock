@@ -1098,10 +1098,10 @@
   dependencies:
     ethers "^6.7.1"
 
-"@flarenetwork/flare-periphery-contracts@0.1.26":
-  version "0.1.26"
-  resolved "https://registry.yarnpkg.com/@flarenetwork/flare-periphery-contracts/-/flare-periphery-contracts-0.1.26.tgz#f0b096a1ab1f46f10bae9b2af05d9429970439e4"
-  integrity sha512-osP0KRxl35ACbRmOwrMWnESHXdmqrF3+hkL3eEVuLpVD+wDx/iiwXSOeJMrpr0JbleTTZPEaJ+Z2aR1Fi+emMA==
+"@flarenetwork/flare-periphery-contracts@0.1.29":
+  version "0.1.29"
+  resolved "https://registry.yarnpkg.com/@flarenetwork/flare-periphery-contracts/-/flare-periphery-contracts-0.1.29.tgz#382b7143203f593a68110d8ec1da027a44949fb8"
+  integrity sha512-Kn9ZXafxKdKkoxxQCTGqLdXklsqMoxJTqnXBuMxYU2tGvIuLMxG9oO5hJqHHCHMIUpzMiX0bvUcPsGP+ksm7FA==
   dependencies:
     "@openzeppelin/contracts" "^4.6.0"
     hardhat "^2.22.5"

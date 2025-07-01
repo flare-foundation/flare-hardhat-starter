@@ -11,7 +11,6 @@ import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/
 import {AssetManagerSettings} from "@flarenetwork/flare-periphery-contracts/coston2/userInterfaces/data/AssetManagerSettings.sol";
 
 contract AssetManagerRegistry {
-
     // TXRP_HASH is the hash of the string "TXRP"
     bytes32 private constant TXRP_HASH = keccak256(abi.encodePacked("TXRP"));
 
