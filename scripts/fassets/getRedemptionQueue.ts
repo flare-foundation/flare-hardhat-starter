@@ -1,9 +1,9 @@
 import { ethers } from "hardhat";
+import { getFXRPAssetManagerAddress } from "./getFXRPAssetManagerAddress";
 
 import { FAssetsRedemptionQueueReaderContract, FAssetsRedemptionQueueReaderInstance } from "../../typechain-types";
 
-// AssetManager address on Songbird Testnet Coston network
-const ASSET_MANAGER_ADDRESS = "0x56728e46908fB6FcC5BCD2cc0c0F9BB91C3e4D34";
+// yarn hardhat run scripts/fassets/getRedemptionQueue.ts --network coston2
 
 async function main() {
     // Get the contract factory
@@ -13,7 +13,7 @@ async function main() {
 
     // Deploy the contract
     const fAssetsRedemptionQueueReader = (await FAssetsRedemptionQueueReader.deploy(
-        ASSET_MANAGER_ADDRESS
+        await getFXRPAssetManagerAddress()
     )) as FAssetsRedemptionQueueReaderInstance;
     await fAssetsRedemptionQueueReader.waitForDeployment();
     const fAssetsRedemptionQueueReaderAddress = await fAssetsRedemptionQueueReader.getAddress();
