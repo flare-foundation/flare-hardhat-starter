@@ -8,7 +8,7 @@ import {IAssetManagerController} from "@flarenetwork/flare-periphery-contracts/c
 
 import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
 
-import {AssetManagerSettings} from "@flarenetwork/flare-periphery-contracts/coston2/userInterfaces/data/AssetManagerSettings.sol";
+import {AssetManagerSettings} from "@flarenetwork/flare-periphery-contracts/coston2/data/AssetManagerSettings.sol";
 
 contract AssetManagerRegistry {
     // TXRP_HASH is the hash of the string "TXRP"
