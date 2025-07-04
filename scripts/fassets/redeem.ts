@@ -5,36 +5,22 @@ import { FAssetsRedeemInstance, IAssetManagerContract, ERC20Instance } from "../
 
 // yarn hardhat run scripts/fassets/redeem.ts --network coston2
 
-// AssetManager address on Flare Testnet Coston2 network
-const ASSET_MANAGER_ADDRESS = "0xDeD50DA9C3492Bee44560a4B35cFe0e778F41eC5";
 const LOTS_TO_REDEEM = 1;
 const UNDERLYING_ADDRESS = "rSHYuiEvsYsKR8uUHhBTuGP5zjRcGt4nm";
 
 const FAssetsRedeem = artifacts.require("FAssetsRedeem");
 
-const IAssetManager = artifacts.require("IAssetManager");
 const IERC20 = artifacts.require("IERC20");
 
-async function getFXRPAddress() {
-    const assetManager = await IAssetManager.at(ASSET_MANAGER_ADDRESS);
-    const fasset = await assetManager.fAsset();
-    return fasset;
-}
-
 async function deployAndVerifyContract() {
-    // Get FXRP address first
-    const fxrpAddress = await getFXRPAddress();
-    console.log("FXRP address:", fxrpAddress);
-
-    const args = [ASSET_MANAGER_ADDRESS, fxrpAddress];
-    const fAssetsRedeem: FAssetsRedeemInstance = await FAssetsRedeem.new(...args);
+    const fAssetsRedeem: FAssetsRedeemInstance = await FAssetsRedeem.new();
 
     const fAssetsRedeemAddress = await fAssetsRedeem.address;
 
     try {
         await run("verify:verify", {
             address: fAssetsRedeem.address,
-            constructorArguments: args,
+            constructorArguments: [],
         });
     } catch (e: any) {
         console.log(e);
@@ -47,7 +33,7 @@ async function deployAndVerifyContract() {
 
 async function approveFAssets(fAssetsRedeem: any, amountToRedeem: string) {
     console.log("Approving FAssetsRedeem contract to spend FXRP...");
-    const fxrpAddress = await getFXRPAddress();
+    const fxrpAddress = await fAssetsRedeem.getFXRPAddress();
     const fxrp: ERC20Instance = await IERC20.at(fxrpAddress);
 
     const approveTx = await fxrp.approve(await fAssetsRedeem.address, amountToRedeem);
@@ -58,7 +44,8 @@ async function parseRedemptionEvents(transactionReceipt: any, fAssetsRedeem: any
     console.log("\nParsing events...", transactionReceipt.rawLogs);
 
     // Get AssetManager contract interface
-    const assetManager = (await ethers.getContractAt("IAssetManager", ASSET_MANAGER_ADDRESS)) as IAssetManagerContract;
+    const assetManagerAddress = await fAssetsRedeem.getAssetManagerAddress();
+    const assetManager = (await ethers.getContractAt("IAssetManager", assetManagerAddress)) as IAssetManagerContract;
 
     for (const log of transactionReceipt.rawLogs) {
         try {
