@@ -12,7 +12,7 @@ import "@openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
  *
  * This contract is used to verify FDC attestations.
  */
-contract FdcVerification is IFdcVerification, AddressUpdatable {
+contract FdcVerification is IFdcVerificationOld, AddressUpdatable {
     using MerkleProof for bytes32[];
 
     /// The FDC protocol id.

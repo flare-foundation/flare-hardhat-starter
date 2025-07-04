@@ -12,7 +12,7 @@ import "./fdc/IJsonApiVerification.sol";
 /**
  * FdcVerification interface.
  */
-interface IFdcVerification is
+interface IFdcVerificationOld is
     IAddressValidityVerification,
     IBalanceDecreasingTransactionVerification,
     IConfirmedBlockHeightExistsVerification,
