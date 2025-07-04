@@ -3,7 +3,7 @@ pragma solidity ^0.8.25;
 
 import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
 import {IWeb2Json} from "@flarenetwork/flare-periphery-contracts/coston2/IWeb2Json.sol";
-import {IICustomFeed} from "@flarenetwork/flare-periphery-contracts/coston2/customFeeds/interface/IICustomFeed.sol";
+import {IICustomFeed} from "@flarenetwork/flare-periphery-contracts/coston2/customFeeds/interfaces/IICustomFeed.sol";
 
 /**
  * @title InflationCustomFeed
@@ -61,7 +61,7 @@ contract InflationCustomFeed is IICustomFeed {
         // 1. FDC Verification using the ContractRegistry for Web2Json
         require(
             ContractRegistry.getFdcVerification().verifyJsonApi(_proof),
-            "FDC: Invalid Web2Json proof" 
+            "FDC: Invalid Web2Json proof"
         );
 
         // 2. Decode Inflation Data from the proof's response body
