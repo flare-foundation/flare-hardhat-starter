@@ -60,8 +60,8 @@
     "typescript-eslint": "^8.19.1"
   },
   "dependencies": {
-    "@flarenetwork/flare-periphery-contract-artifacts": "0.1.26",
-    "@flarenetwork/flare-periphery-contracts": "0.1.26",
+    "@flarenetwork/flare-periphery-contract-artifacts": "0.1.33",
+    "@flarenetwork/flare-periphery-contracts": "0.1.33",
     "@openzeppelin/contracts": "^5.2.0",
     "@typescript-eslint/eslint-plugin": "^7.3.1",
     "@typescript-eslint/parser": "^7.3.1",
@@ -69,29 +69,5 @@
     "hardhat": "^2.22.18",
     "solhint": "^4.5.2"
   },
-  "packageManager": "yarn@1.22.22",
-  "prettier": {
-    "printWidth": 120,
-    "semi": true,
-    "singleQuote": false,
-    "trailingComma": "es5",
-    "tabWidth": 4,
-    "arrowParens": "avoid",
-    "plugins": [
-      "prettier-plugin-solidity"
-    ],
-    "overrides": [
-      {
-        "files": "*.sol",
-        "options": {
-          "parser": "solidity-parse",
-          "printWidth": 80,
-          "tabWidth": 4,
-          "useTabs": false,
-          "singleQuote": false,
-          "bracketSpacing": false
-        }
-      }
-    ]
-  }
+  "packageManager": "yarn@1.22.22"
 }
