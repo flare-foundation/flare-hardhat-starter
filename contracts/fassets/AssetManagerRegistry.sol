@@ -30,10 +30,13 @@ contract AssetManagerRegistry {
             // Get the settings of the asset manager
             AssetManagerSettings.Data memory settings = assetManager
                 .getSettings();
+            
+            // Get the pool token suffix
+            string memory poolTokenSuffix = settings.poolTokenSuffix;
 
             //return the address of the asset manager that has the pool token suffix "TXRP"
             if (
-                keccak256(abi.encodePacked(settings.poolTokenSuffix)) ==
+                keccak256(abi.encodePacked(poolTokenSuffix)) ==
                 TXRP_HASH
             ) {
                 return address(assetManager);

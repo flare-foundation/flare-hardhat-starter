@@ -1,8 +1,8 @@
 // yarn hardhat run scripts/fassets/getAssetManager.ts --network coston2
 
-async function main() {
-  const AssetManagerRegistry = artifacts.require("AssetManagerRegistry");
+const AssetManagerRegistry = artifacts.require("AssetManagerRegistry");
 
+async function main() {
   const assetManagerRegistry = await AssetManagerRegistry.new();
   console.log("FAssetsSettings deployed to:", assetManagerRegistry.address);
 
