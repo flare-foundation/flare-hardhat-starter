@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.7.6 <0.9;
 
-
 /**
  * Internal interface for contracts that depend on other contracts whose addresses can change.
  *
@@ -17,5 +16,5 @@ interface IIAddressUpdatable {
     function updateContractAddresses(
         bytes32[] memory _contractNameHashes,
         address[] memory _contractAddresses
-        ) external;
+    ) external;
 }
