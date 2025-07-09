@@ -10,69 +10,69 @@ If you are new to Hardhat please check the [Hardhat getting started doc](https:/
 
 1. Clone and install dependencies:
 
-   ```console
-   git clone https://github.com/flare-foundation/flare-hardhat-starter.git
-   cd flare-hardhat-starter
-   ```
+    ```console
+    git clone https://github.com/flare-foundation/flare-hardhat-starter.git
+    cd flare-hardhat-starter
+    ```
 
-   and then run:
+    and then run:
 
-   ```console
-   yarn
-   ```
+    ```console
+    yarn
+    ```
 
-   or
+    or
 
-   ```console
-   npm install
-   ```
+    ```console
+    npm install --force
+    ```
 
 2. Set up `.env` file
 
-   ```console
-   mv .env.example .env
-   ```
+    ```console
+    cp .env.example .env
+    ```
 
 3. Change the `PRIVATE_KEY` in the `.env` file to yours
 
 4. Compile the project
 
-   ```console
-   yarn hardhat compile
-   ```
+    ```console
+    yarn hardhat compile
+    ```
 
-   or
+    or
 
-   ```console
-   npx hardhat compile
-   ```
+    ```console
+    npx hardhat compile
+    ```
 
-   This will compile all `.sol` files in your `/contracts` folder.
-   It will also generate artifacts that will be needed for testing.
-   Contracts `Imports.sol` import MockContracts and Flare related mocks, thus enabling mocking of the contracts from typescript.
+    This will compile all `.sol` files in your `/contracts` folder.
+    It will also generate artifacts that will be needed for testing.
+    Contracts `Imports.sol` import MockContracts and Flare related mocks, thus enabling mocking of the contracts from typescript.
 
 5. Run Tests
 
-   ```console
-   yarn hardhat test
-   ```
+    ```console
+    yarn hardhat test
+    ```
 
-   or
+    or
 
-   ```console
-   npx hardhat test
-   ```
+    ```console
+    npx hardhat test
+    ```
 
 6. Deploy
 
-   Check the `hardhat.config.ts` file, where you define which networks you want to interact with.
-   Flare mainnet & test network details are already added in that file.
+    Check the `hardhat.config.ts` file, where you define which networks you want to interact with.
+    Flare mainnet & test network details are already added in that file.
 
-   Make sure that you have added API Keys in the `.env` file
+    Make sure that you have added API Keys in the `.env` file
 
-   ```console
-   npx hardhat run scripts/tryDeployment.ts
-   ```
+    ```console
+    npx hardhat run scripts/tryDeployment.ts
+    ```
 
 ## Repository structure
 
