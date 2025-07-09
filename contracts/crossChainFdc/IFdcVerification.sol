@@ -19,5 +19,5 @@ interface IFdcVerificationOld is
     IEVMTransactionVerification,
     IPaymentVerification,
     IReferencedPaymentNonexistenceVerification,
-    IJsonApiVerification
+    IJsonApiVerificationOther
 {}

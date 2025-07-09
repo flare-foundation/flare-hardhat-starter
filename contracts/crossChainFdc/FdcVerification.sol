@@ -141,7 +141,7 @@ contract FdcVerification is IFdcVerificationOld, AddressUpdatable {
     }
 
     /**
-     * @inheritdoc IJsonApiVerification
+     * @inheritdoc IJsonApiVerificationOther
      */
     function verifyJsonApi(
         IWeb2Json.Proof calldata _proof
