@@ -4,7 +4,7 @@ pragma solidity ^0.8.0;
 import {IAssetManager} from "@flarenetwork/flare-periphery-contracts/coston2/IAssetManager.sol";
 import {AssetManagerSettings} from "@flarenetwork/flare-periphery-contracts/coston2/data/AssetManagerSettings.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {FlareContractsRegistry} from "./FlareContractsRegistry.sol";
+import {AssetManagerRegistryLibrary} from "./AssetManagerRegistryLibrary.sol";
 
 contract FAssetsRedeem {
     IAssetManager public immutable assetManager;
@@ -13,7 +13,7 @@ contract FAssetsRedeem {
     address public immutable fAssetToken;
 
     constructor() {
-        assetManager = IAssetManager(FlareContractsRegistry.getFxrpAssetManager());
+        assetManager = IAssetManager(AssetManagerRegistryLibrary.getFxrpAssetManager());
         fAssetToken = address(assetManager.fAsset());
     }
 

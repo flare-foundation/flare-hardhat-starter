@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 
-import { getFXRPAssetManagerAddress } from "./getFXRPAssetManagerAddress";
+import { getFXRPAssetManagerAddress } from "./utils/getFXRPAssetManagerAddress";
 import { IAssetManagerInstance, IAssetManagerContract } from "../../typechain-types";
 
 // yarn hardhat run scripts/fassets/reserveCollateral.ts --network coston2

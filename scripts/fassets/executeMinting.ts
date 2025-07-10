@@ -1,5 +1,6 @@
 import { ethers } from "hardhat";
 
+import { getFXRPAssetManagerAddress } from "./utils/getFXRPAssetManagerAddress";
 import { prepareAttestationRequestBase } from "../fdcExample/Base";
 import { IAssetManagerInstance, IAssetManagerContract } from "../../typechain-types";
 
@@ -7,9 +8,6 @@ import { IAssetManagerInstance, IAssetManagerContract } from "../../typechain-ty
 
 // Environment variables
 const { COSTON2_DA_LAYER_URL, VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET } = process.env;
-
-// AssetManager address on Flare Testnet Coston2 network
-const ASSET_MANAGER_ADDRESS = "0xDeD50DA9C3492Bee44560a4B35cFe0e778F41eC5";
 
 // Collateral reservation ID
 const COLLATERAL_RESERVATION_ID = 2680499;
@@ -67,7 +65,9 @@ async function getProof(roundId: number) {
 async function parseEvents(receipt: any) {
     console.log("\nParsing events...", receipt.rawLogs);
 
-    const assetManager = (await ethers.getContractAt("IAssetManager", ASSET_MANAGER_ADDRESS)) as IAssetManagerContract;
+    // Get AssetManager contract interface
+    const assetManagerAddress = await getFXRPAssetManagerAddress();
+    const assetManager = (await ethers.getContractAt("IAssetManager", assetManagerAddress)) as IAssetManagerContract;
 
     for (const log of receipt.rawLogs) {
         try {
@@ -94,7 +94,8 @@ async function main() {
 
     // FAssets FXRP asset manager on Songbird Testnet Coston network
     const AssetManager = artifacts.require("IAssetManager");
-    const assetManager: IAssetManagerInstance = await AssetManager.at(ASSET_MANAGER_ADDRESS);
+    const assetManagerAddress = await getFXRPAssetManagerAddress();
+    const assetManager: IAssetManagerInstance = await AssetManager.at(assetManagerAddress);
 
     // Execute minting
     const tx = await assetManager.executeMinting(

@@ -3,7 +3,9 @@ import { run } from "hardhat";
 import { SwapAndRedeemInstance } from "../../typechain-types";
 import { ERC20Instance } from "../../typechain-types/@openzeppelin/contracts/token/ERC20/ERC20";
 
-import { getFXRPAssetManagerAddress } from "./getFXRPAssetManagerAddress";
+import { getFXRPAssetManagerAddress } from "./utils/getFXRPAssetManagerAddress";
+
+import { deployAndLinkLibrary } from "../../utils/library";
 
 // yarn hardhat run scripts/fassets/swapAndRedeem.ts --network coston2
 
@@ -15,6 +17,8 @@ const SWAP_ROUTER_ADDRESS = "0x8D29b61C41CF318d15d031BE2928F79630e068e6";
 const WC2FLR = "0xC67DCE33D7A8efA5FfEB961899C73fe01bCe9273";
 
 const IAssetManager = artifacts.require("IAssetManager");
+const SwapAndRedeem = artifacts.require("SwapAndRedeem");
+const AssetManagerRegistryLibrary = artifacts.require("AssetManagerRegistryLibrary");
 
 async function deployAndVerifyContract() {
     const assetManagerAddress = await getFXRPAssetManagerAddress();
@@ -22,9 +26,14 @@ async function deployAndVerifyContract() {
     const fassetAddress = await assetManager.fAsset();
     const swapPath = [WC2FLR, fassetAddress];
 
-    const SwapAndRedeem = artifacts.require("SwapAndRedeem");
+    // Deploy library and link to contract
+    const { library, linkedContract: linkedSwapAndRedeem } = await deployAndLinkLibrary(
+        SwapAndRedeem,
+        AssetManagerRegistryLibrary
+    );
+
     const args = [SWAP_ROUTER_ADDRESS, swapPath];
-    const swapAndRedeem: SwapAndRedeemInstance = await SwapAndRedeem.new(...args);
+    const swapAndRedeem: SwapAndRedeemInstance = await linkedSwapAndRedeem.new(...args);
 
     const fassetsSwapAndRedeemAddress = await swapAndRedeem.address;
 
@@ -32,6 +41,9 @@ async function deployAndVerifyContract() {
         await run("verify:verify", {
             address: fassetsSwapAndRedeemAddress,
             constructorArguments: args,
+            libraries: {
+                "AssetManagerRegistryLibrary": library.address
+            }
         });
     } catch (e: any) {
         console.log(e);
@@ -60,7 +72,7 @@ async function main() {
     console.log("Approve transaction: ", approveTx);
 
     // Swap and redeem
-    const swapResult = await swapAndRedeemAddress.swapAndRedeem(LOTS_TO_REDEEM, UNDERLYING_ADDRESS);
+    const swapResult = await swapAndRedeem.swapAndRedeem(LOTS_TO_REDEEM, UNDERLYING_ADDRESS);
     console.log("Swap and redeem transaction: ", swapResult);
 }
 

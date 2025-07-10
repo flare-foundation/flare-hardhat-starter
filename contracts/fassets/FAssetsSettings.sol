@@ -4,7 +4,7 @@ pragma solidity ^0.8.25;
 // Import the AssetManager interface
 import {IAssetManager} from "@flarenetwork/flare-periphery-contracts/coston2/IAssetManager.sol";
 
-import {FlareContractsRegistry} from "./FlareContractsRegistry.sol";
+import {AssetManagerRegistryLibrary} from "./AssetManagerRegistryLibrary.sol";
 
 // Contract for accessing FAssets settings from the asset manager
 contract FAssetsSettings {
@@ -13,7 +13,7 @@ contract FAssetsSettings {
 
     // Constructor initializes the contract with the AssetManager contract address
     constructor() {
-        assetManager = IAssetManager(FlareContractsRegistry.getFxrpAssetManager());
+        assetManager = IAssetManager(AssetManagerRegistryLibrary.getFxrpAssetManager());
     }
 
     // This function gets two important numbers from the asset manager settings:

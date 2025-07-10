@@ -10,11 +10,11 @@ import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/
 
 import {AssetManagerSettings} from "@flarenetwork/flare-periphery-contracts/coston2/data/AssetManagerSettings.sol";
 
-library FlareContractsRegistry {
+library AssetManagerRegistryLibrary {
     // TXRP_HASH is the hash of the string "TXRP"
     bytes32 private constant TXRP_HASH = keccak256(abi.encodePacked("TXRP"));
 
-    function getFxrpAssetManager() internal view returns (address) {
+    function getFxrpAssetManager() public view returns (address) {
         // Use the ContractRegistry library to get the AssetManagerController
         IAssetManagerController assetManagerController = ContractRegistry
             .getAssetManagerController();
@@ -30,12 +30,15 @@ library FlareContractsRegistry {
             // Get the settings of the asset manager
             AssetManagerSettings.Data memory settings = assetManager
                 .getSettings();
+            
+            // Get the pool token suffix
+            string memory poolTokenSuffix = settings.poolTokenSuffix;
+
+            // Calculate the hash of the pool token suffix
+            bytes32 poolTokenSuffixHash = keccak256(abi.encodePacked(poolTokenSuffix));
 
             //return the address of the asset manager that has the pool token suffix "TXRP"
-            if (
-                keccak256(abi.encodePacked(settings.poolTokenSuffix)) ==
-                TXRP_HASH
-            ) {
+            if (poolTokenSuffixHash == TXRP_HASH) {
                 return address(assetManager);
             }
         }
