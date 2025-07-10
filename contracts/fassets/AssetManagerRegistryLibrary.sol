@@ -1,14 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import {IFlareContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/IFlareContractRegistry.sol";
-
+// Flare periphery contracts
+import {AssetManagerSettings} from "@flarenetwork/flare-periphery-contracts/coston2/data/AssetManagerSettings.sol";
+import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
 import {IAssetManager} from "@flarenetwork/flare-periphery-contracts/coston2/IAssetManager.sol";
 import {IAssetManagerController} from "@flarenetwork/flare-periphery-contracts/coston2/IAssetManagerController.sol";
-
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
-
-import {AssetManagerSettings} from "@flarenetwork/flare-periphery-contracts/coston2/data/AssetManagerSettings.sol";
+import {IFlareContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/IFlareContractRegistry.sol";
 
 library AssetManagerRegistryLibrary {
     // TXRP_HASH is the hash of the string "TXRP"
@@ -30,12 +28,14 @@ library AssetManagerRegistryLibrary {
             // Get the settings of the asset manager
             AssetManagerSettings.Data memory settings = assetManager
                 .getSettings();
-            
+
             // Get the pool token suffix
             string memory poolTokenSuffix = settings.poolTokenSuffix;
 
             // Calculate the hash of the pool token suffix
-            bytes32 poolTokenSuffixHash = keccak256(abi.encodePacked(poolTokenSuffix));
+            bytes32 poolTokenSuffixHash = keccak256(
+                abi.encodePacked(poolTokenSuffix)
+            );
 
             //return the address of the asset manager that has the pool token suffix "TXRP"
             if (poolTokenSuffixHash == TXRP_HASH) {

@@ -37,12 +37,11 @@ contract SwapAndRedeem {
     // Path to swap WCFLR for FXRP
     address[] public swapPath;
 
-    constructor(
-        address _router,
-        address[] memory _swapPath
-    ) {
+    constructor(address _router, address[] memory _swapPath) {
         router = ISwapRouter(_router);
-        assetManager = IAssetManager(AssetManagerRegistryLibrary.getFxrpAssetManager());
+        assetManager = IAssetManager(
+            AssetManagerRegistryLibrary.getFxrpAssetManager()
+        );
         swapPath = _swapPath;
 
         token = IERC20(_swapPath[0]);

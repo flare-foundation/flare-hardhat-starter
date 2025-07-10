@@ -32,8 +32,8 @@ async function deployAndVerifyContract() {
             address: fAssetsRedeemAddress,
             constructorArguments: [],
             libraries: {
-                "AssetManagerRegistryLibrary": library.address
-            }
+                AssetManagerRegistryLibrary: library.address,
+            },
         });
     } catch (e: any) {
         console.log(e);
