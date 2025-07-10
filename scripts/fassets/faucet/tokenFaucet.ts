@@ -1,7 +1,7 @@
 import { run } from "hardhat";
 import { TokenFaucetInstance, IAssetManagerInstance } from "../../../typechain-types";
 
-// yarn hardhat run scripts/fassets/tokenFaucet.ts --network coston2
+// yarn hardhat run scripts/fassets/faucet/tokenFaucet.ts --network coston2
 
 const TokenFaucet = artifacts.require("TokenFaucet");
 const IAssetManager = artifacts.require("IAssetManager");
