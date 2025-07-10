@@ -1,6 +1,10 @@
 import { run, web3 } from "hardhat";
 import { TransferEventListenerInstance } from "../../typechain-types";
-import { prepareAttestationRequestBase, submitAttestationRequest, retrieveDataAndProofBaseWithRetry } from "./Base";
+import {
+    prepareAttestationRequestBase,
+    submitAttestationRequest,
+    retrieveDataAndProofBaseWithRetry,
+} from "../utils/fdc";
 
 const TransferEventListener = artifacts.require("TransferEventListener");
 

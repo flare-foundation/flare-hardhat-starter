@@ -1,6 +1,10 @@
 import { run, web3 } from "hardhat";
 import { StarWarsCharacterListV2Instance } from "../../typechain-types";
-import { prepareAttestationRequestBase, submitAttestationRequest, retrieveDataAndProofBaseWithRetry } from "./Base";
+import {
+    prepareAttestationRequestBase,
+    submitAttestationRequest,
+    retrieveDataAndProofBaseWithRetry,
+} from "../utils/fdc";
 
 const StarWarsCharacterListV2 = artifacts.require("StarWarsCharacterListV2");
 

@@ -4,7 +4,7 @@ import {
     prepareAttestationRequestBase,
     retrieveDataAndProofBaseWithRetry,
     submitAttestationRequest,
-} from "../fdcExample/Base";
+} from "../utils/fdc";
 import { minterAddress } from "./config";
 
 const NFTMinter = artifacts.require("NFTMinter");
