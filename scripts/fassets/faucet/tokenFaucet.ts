@@ -1,5 +1,5 @@
 import { run } from "hardhat";
-import { TokenFaucetInstance, IAssetManagerInstance } from "../../typechain-types";
+import { TokenFaucetInstance, IAssetManagerInstance } from "../../../typechain-types";
 
 // yarn hardhat run scripts/fassets/tokenFaucet.ts --network coston2
 
