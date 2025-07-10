@@ -1,6 +1,6 @@
 // yarn hardhat run scripts/fassets/getAssetManager.ts --network coston2
 
-import { deployAndLinkLibrary } from "../../utils/library";
+import { deployAndLinkLibrary } from "../utils/library";
 
 const AssetManagerRegistry = artifacts.require("AssetManagerRegistry");
 const AssetManagerRegistryLibrary = artifacts.require("AssetManagerRegistryLibrary");

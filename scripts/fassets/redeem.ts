@@ -3,7 +3,7 @@ import { formatUnits } from "ethers";
 
 import { FAssetsRedeemInstance, IAssetManagerContract, ERC20Instance } from "../../typechain-types";
 
-import { deployAndLinkLibrary } from "../../utils/library";
+import { deployAndLinkLibrary } from "../utils/library";
 
 // yarn hardhat run scripts/fassets/redeem.ts --network coston2
 

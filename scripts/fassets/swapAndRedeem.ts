@@ -3,9 +3,9 @@ import { run } from "hardhat";
 import { SwapAndRedeemInstance } from "../../typechain-types";
 import { ERC20Instance } from "../../typechain-types/@openzeppelin/contracts/token/ERC20/ERC20";
 
-import { getFXRPAssetManagerAddress } from "./utils/getFXRPAssetManagerAddress";
+import { getFXRPAssetManagerAddress } from "../utils/fassets";
 
-import { deployAndLinkLibrary } from "../../utils/library";
+import { deployAndLinkLibrary } from "../utils/library";
 
 // yarn hardhat run scripts/fassets/swapAndRedeem.ts --network coston2
 

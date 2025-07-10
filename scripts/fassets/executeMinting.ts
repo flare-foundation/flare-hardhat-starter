@@ -1,6 +1,6 @@
 import { ethers } from "hardhat";
 
-import { getFXRPAssetManagerAddress } from "./utils/getFXRPAssetManagerAddress";
+import { getFXRPAssetManagerAddress } from "../utils/fassets";
 import { prepareAttestationRequestBase } from "../fdcExample/Base";
 import { IAssetManagerInstance, IAssetManagerContract } from "../../typechain-types";
 

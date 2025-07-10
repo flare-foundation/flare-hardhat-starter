@@ -1,4 +1,4 @@
-import { getFXRPAssetManagerAddress } from "./utils/getFXRPAssetManagerAddress";
+import { getFXRPAssetManagerAddress } from "../utils/fassets";
 
 // yarn hardhat run scripts/fassets/getFXRP.ts --network coston2
 

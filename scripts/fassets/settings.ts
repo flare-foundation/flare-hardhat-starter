@@ -1,5 +1,5 @@
 import { IAssetManagerInstance } from "../../typechain-types";
-import { getFXRPAssetManagerAddress } from "./utils/getFXRPAssetManagerAddress";
+import { getFXRPAssetManagerAddress } from "../utils/fassets";
 
 // yarn hardhat run scripts/fassets/settings.ts --network coston2
 

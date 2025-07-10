@@ -1,4 +1,4 @@
-import { deployAndLinkLibrary } from "../../utils/library";
+import { deployAndLinkLibrary } from "../utils/library";
 
 // yarn hardhat run scripts/fassets/getRedemptionQueue.ts --network coston2
 

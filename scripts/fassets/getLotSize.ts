@@ -1,6 +1,6 @@
 // yarn hardhat run scripts/fassets/getLotSize.ts --network coston2
 
-import { deployAndLinkLibrary } from "../../utils/library";
+import { deployAndLinkLibrary } from "../utils/library";
 
 // Get the contract
 const FAssetsSettings = artifacts.require("FAssetsSettings");
