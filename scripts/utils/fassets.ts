@@ -28,33 +28,3 @@ export async function getFXRPAssetManagerAddress() {
         }
     }
 }
-
-async function main() {
-    const IFlareContractRegistry = artifacts.require("IFlareContractRegistry");
-    const IAssetManagerController = artifacts.require("IAssetManagerController");
-    const IAssetManager = artifacts.require("IAssetManager");
-
-    const contractsRegistry = await IFlareContractRegistry.at(FLARE_CONTRACTS_REGISTRY_ADDRESS);
-
-    // Get the AssetManagerController address
-    const assetManagerControllerAddress = await contractsRegistry.getContractAddressByName("AssetManagerController");
-
-    // Get all asset managers
-    const assetManagerController = await IAssetManagerController.at(assetManagerControllerAddress);
-    const assetManagers = await assetManagerController.getAssetManagers();
-
-    // Get the FxrpAssetManager address
-    for (const assetManager of assetManagers) {
-        const assetManagerContract = await IAssetManager.at(assetManager);
-        const settings = await assetManagerContract.getSettings();
-
-        if (settings.poolTokenSuffix === "TXRP") {
-            console.log("FxrpAssetManager address:", assetManager);
-        }
-    }
-}
-
-main().catch(error => {
-    console.error(error);
-    process.exitCode = 1;
-});
