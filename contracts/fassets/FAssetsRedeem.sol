@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
+import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
 import {IAssetManager} from "@flarenetwork/flare-periphery-contracts/coston2/IAssetManager.sol";
 import {AssetManagerSettings} from "@flarenetwork/flare-periphery-contracts/coston2/data/AssetManagerSettings.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {AssetManagerRegistryLibrary} from "./AssetManagerRegistryLibrary.sol";
 
 contract FAssetsRedeem {
     IAssetManager public immutable assetManager;
@@ -14,7 +14,7 @@ contract FAssetsRedeem {
 
     constructor() {
         assetManager = IAssetManager(
-            AssetManagerRegistryLibrary.getFxrpAssetManager()
+            ContractRegistry.auxiliaryGetAssetManagerFXRP()
         );
         fAssetToken = address(assetManager.fAsset());
     }

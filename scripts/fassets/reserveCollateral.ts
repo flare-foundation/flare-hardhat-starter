@@ -106,6 +106,12 @@ async function main() {
     const collateralReservationFee = await assetManager.collateralReservationFee(LOTS_TO_MINT);
     console.log("Collateral reservation fee:", collateralReservationFee.toString());
 
+    // To make this example simpler we're using the same fee for the executor and the agent
+    const executorFee = collateralReservationFee;
+    const totalFee = collateralReservationFee.add(executorFee);
+
+    console.log("Total reservation fee:", totalFee.toString());
+
     // Reserve collateral
     // https://dev.flare.network/fassets/reference/IAssetManager#reservecollateral
     const tx = await assetManager.reserveCollateral(
@@ -116,7 +122,7 @@ async function main() {
         ZERO_ADDRESS,
         [UNDERLYING_ADDRESS],
         // Sending the collateral reservation fee as native tokens
-        { value: collateralReservationFee }
+        { value: totalFee }
     );
 
     console.log("Collateral reservation successful:", tx);

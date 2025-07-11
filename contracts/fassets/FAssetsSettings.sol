@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
+import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+
 // Import the AssetManager interface
 import {IAssetManager} from "@flarenetwork/flare-periphery-contracts/coston2/IAssetManager.sol";
-
-import {AssetManagerRegistryLibrary} from "./AssetManagerRegistryLibrary.sol";
 
 // Contract for accessing FAssets settings from the asset manager
 contract FAssetsSettings {
@@ -14,7 +14,7 @@ contract FAssetsSettings {
     // Constructor initializes the contract with the AssetManager contract address
     constructor() {
         assetManager = IAssetManager(
-            AssetManagerRegistryLibrary.getFxrpAssetManager()
+            ContractRegistry.auxiliaryGetAssetManagerFXRP()
         );
     }
 

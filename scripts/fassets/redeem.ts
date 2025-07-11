@@ -3,8 +3,6 @@ import { formatUnits } from "ethers";
 
 import { FAssetsRedeemInstance, IAssetManagerContract, ERC20Instance } from "../../typechain-types";
 
-import { deployAndLinkLibrary } from "../utils/library";
-
 // yarn hardhat run scripts/fassets/redeem.ts --network coston2
 
 const LOTS_TO_REDEEM = 1;
@@ -12,18 +10,11 @@ const UNDERLYING_ADDRESS = "rSHYuiEvsYsKR8uUHhBTuGP5zjRcGt4nm";
 
 // Get the contract
 const FAssetsRedeem = artifacts.require("FAssetsRedeem");
-const AssetManagerRegistryLibrary = artifacts.require("AssetManagerRegistryLibrary");
 
 const IERC20 = artifacts.require("IERC20");
 
 async function deployAndVerifyContract() {
-    // Deploy library and link to contract
-    const { library, linkedContract: linkedFAssetsRedeem } = await deployAndLinkLibrary(
-        FAssetsRedeem,
-        AssetManagerRegistryLibrary
-    );
-
-    const fAssetsRedeem: FAssetsRedeemInstance = await linkedFAssetsRedeem.new();
+    const fAssetsRedeem: FAssetsRedeemInstance = await FAssetsRedeem.new();
 
     const fAssetsRedeemAddress = fAssetsRedeem.address;
 
@@ -31,9 +22,6 @@ async function deployAndVerifyContract() {
         await run("verify:verify", {
             address: fAssetsRedeemAddress,
             constructorArguments: [],
-            libraries: {
-                AssetManagerRegistryLibrary: library.address,
-            },
         });
     } catch (e: any) {
         console.log(e);

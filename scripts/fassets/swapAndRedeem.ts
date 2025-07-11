@@ -5,8 +5,6 @@ import { ERC20Instance } from "../../typechain-types/@openzeppelin/contracts/tok
 
 import { getFXRPAssetManagerAddress } from "../utils/fassets";
 
-import { deployAndLinkLibrary } from "../utils/library";
-
 // yarn hardhat run scripts/fassets/swapAndRedeem.ts --network coston2
 
 const LOTS_TO_REDEEM = 1;
@@ -18,7 +16,6 @@ const WC2FLR = "0xC67DCE33D7A8efA5FfEB961899C73fe01bCe9273";
 
 const IAssetManager = artifacts.require("IAssetManager");
 const SwapAndRedeem = artifacts.require("SwapAndRedeem");
-const AssetManagerRegistryLibrary = artifacts.require("AssetManagerRegistryLibrary");
 
 async function deployAndVerifyContract() {
     const assetManagerAddress = await getFXRPAssetManagerAddress();
@@ -26,14 +23,8 @@ async function deployAndVerifyContract() {
     const fassetAddress = await assetManager.fAsset();
     const swapPath = [WC2FLR, fassetAddress];
 
-    // Deploy library and link to contract
-    const { library, linkedContract: linkedSwapAndRedeem } = await deployAndLinkLibrary(
-        SwapAndRedeem,
-        AssetManagerRegistryLibrary
-    );
-
     const args = [SWAP_ROUTER_ADDRESS, swapPath];
-    const swapAndRedeem: SwapAndRedeemInstance = await linkedSwapAndRedeem.new(...args);
+    const swapAndRedeem: SwapAndRedeemInstance = await SwapAndRedeem.new(...args);
 
     const fassetsSwapAndRedeemAddress = await swapAndRedeem.address;
 
@@ -41,9 +32,6 @@ async function deployAndVerifyContract() {
         await run("verify:verify", {
             address: fassetsSwapAndRedeemAddress,
             constructorArguments: args,
-            libraries: {
-                AssetManagerRegistryLibrary: library.address,
-            },
         });
     } catch (e: any) {
         console.log(e);

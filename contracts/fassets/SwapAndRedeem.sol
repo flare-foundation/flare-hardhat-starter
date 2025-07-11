@@ -3,9 +3,9 @@ pragma solidity ^0.8.25;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
 import {IAssetManager} from "@flarenetwork/flare-periphery-contracts/coston2/IAssetManager.sol";
 import {AssetManagerSettings} from "@flarenetwork/flare-periphery-contracts/coston2/data/AssetManagerSettings.sol";
-import {AssetManagerRegistryLibrary} from "./AssetManagerRegistryLibrary.sol";
 
 // Uniswap V2 Router interface needed for this example to communicate with BlazeSwap
 interface ISwapRouter {
@@ -40,7 +40,7 @@ contract SwapAndRedeem {
     constructor(address _router, address[] memory _swapPath) {
         router = ISwapRouter(_router);
         assetManager = IAssetManager(
-            AssetManagerRegistryLibrary.getFxrpAssetManager()
+            ContractRegistry.auxiliaryGetAssetManagerFXRP()
         );
         swapPath = _swapPath;
 
