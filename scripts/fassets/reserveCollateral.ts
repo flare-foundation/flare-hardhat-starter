@@ -116,7 +116,7 @@ async function main() {
         ZERO_ADDRESS,
         [UNDERLYING_ADDRESS],
         // Sending the collateral reservation fee as native tokens
-        { value: totalFee }
+        { value: collateralReservationFee }
     );
 
     console.log("Collateral reservation successful:", tx);
