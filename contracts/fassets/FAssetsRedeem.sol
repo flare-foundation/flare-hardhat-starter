@@ -13,9 +13,7 @@ contract FAssetsRedeem {
     address public immutable fAssetToken;
 
     constructor() {
-        assetManager = IAssetManager(
-            ContractRegistry.auxiliaryGetAssetManagerFXRP()
-        );
+        assetManager = ContractRegistry.auxiliaryGetAssetManagerFXRP();
         fAssetToken = address(assetManager.fAsset());
     }
 

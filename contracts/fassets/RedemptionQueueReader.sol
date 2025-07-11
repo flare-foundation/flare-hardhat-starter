@@ -9,9 +9,7 @@ contract FAssetsRedemptionQueueReader {
     IAssetManager public assetManager;
 
     constructor() {
-        assetManager = IAssetManager(
-            ContractRegistry.auxiliaryGetAssetManagerFXRP()
-        );
+        assetManager = ContractRegistry.auxiliaryGetAssetManagerFXRP();
     }
 
     function getRedemptionQueue(

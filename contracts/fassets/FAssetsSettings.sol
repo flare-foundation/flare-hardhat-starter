@@ -13,9 +13,7 @@ contract FAssetsSettings {
 
     // Constructor initializes the contract with the AssetManager contract address
     constructor() {
-        assetManager = IAssetManager(
-            ContractRegistry.auxiliaryGetAssetManagerFXRP()
-        );
+        assetManager = ContractRegistry.auxiliaryGetAssetManagerFXRP();
     }
 
     // This function gets two important numbers from the asset manager settings:

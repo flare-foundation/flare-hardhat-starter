@@ -39,9 +39,7 @@ contract SwapAndRedeem {
 
     constructor(address _router, address[] memory _swapPath) {
         router = ISwapRouter(_router);
-        assetManager = IAssetManager(
-            ContractRegistry.auxiliaryGetAssetManagerFXRP()
-        );
+        assetManager = ContractRegistry.auxiliaryGetAssetManagerFXRP();
         swapPath = _swapPath;
 
         token = IERC20(_swapPath[0]);
