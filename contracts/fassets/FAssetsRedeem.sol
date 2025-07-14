@@ -45,6 +45,16 @@ contract FAssetsRedeem {
         return redeemedAmountUBA;
     }
 
+
+    function getAssetManagerAddress() public view returns (address) {
+        return address(assetManager);
+    }
+
+    function getFXRPAddress() public view returns (address) {
+        return address(assetManager.fAsset());
+    }
+
+
     function getSettings()
         public
         view
