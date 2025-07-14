@@ -1,7 +1,9 @@
-import { ethers, web3, run } from "hardhat";
+import { web3, run } from "hardhat";
 import { formatUnits } from "ethers";
 
-import { FAssetsRedeemInstance, IAssetManagerContract, ERC20Instance } from "../../typechain-types";
+import { FAssetsRedeemInstance, ERC20Instance } from "../../typechain-types";
+
+import {parseEventByName} from "../../scripts/utils/eventParsing";
 
 // yarn hardhat run scripts/fassets/redeem.ts --network coston2
 
@@ -10,6 +12,7 @@ const UNDERLYING_ADDRESS = "rSHYuiEvsYsKR8uUHhBTuGP5zjRcGt4nm";
 
 // Get the contract
 const FAssetsRedeem = artifacts.require("FAssetsRedeem");
+const AssetManager = artifacts.require("IAssetManager");
 
 const IERC20 = artifacts.require("IERC20");
 
@@ -44,28 +47,14 @@ async function approveFAssets(fAssetsRedeem: any, amountToRedeem: string) {
 async function parseRedemptionEvents(transactionReceipt: any, fAssetsRedeem: any) {
     console.log("\nParsing events...", transactionReceipt.rawLogs);
 
-    // Get AssetManager contract interface
-    const assetManagerAddress = await fAssetsRedeem.getAssetManagerAddress();
-    const assetManager = (await ethers.getContractAt("IAssetManager", assetManagerAddress)) as IAssetManagerContract;
+    const redemptionEvents = parseEventByName(transactionReceipt.rawLogs, "RedemptionRequested", AssetManager.abi);
+    if (redemptionEvents.length > 0) {
+        console.log(redemptionEvents[0].decoded);
+    }
 
-    for (const log of transactionReceipt.rawLogs) {
-        try {
-            // Try to parse the log using the AssetManager interface
-            const parsedLog = assetManager.interface.parseLog({
-                topics: log.topics,
-                data: log.data,
-            });
-
-            if (parsedLog) {
-                const redemptionEvents = ["RedemptionRequested", "RedemptionTicketUpdated"];
-                if (redemptionEvents.includes(parsedLog.name)) {
-                    console.log(`\nEvent: ${parsedLog.name}`);
-                    console.log("Arguments:", parsedLog.args);
-                }
-            }
-        } catch (e) {
-            console.log("Error parsing event:", e);
-        }
+    const redemptionTicketUpdatedEvents = parseEventByName(transactionReceipt.rawLogs, "RedemptionTicketUpdated", AssetManager.abi);
+    if (redemptionTicketUpdatedEvents.length > 0) {
+        console.log(redemptionTicketUpdatedEvents[0].decoded);
     }
 }
 
