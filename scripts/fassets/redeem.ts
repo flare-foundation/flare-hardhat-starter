@@ -3,7 +3,7 @@ import { formatUnits } from "ethers";
 
 import { FAssetsRedeemInstance, ERC20Instance } from "../../typechain-types";
 
-import {parseEventByName} from "../../scripts/utils/eventParsing";
+import { parseEventByName } from "../../scripts/utils/eventParsing";
 
 // yarn hardhat run scripts/fassets/redeem.ts --network coston2
 
@@ -52,7 +52,11 @@ async function parseRedemptionEvents(transactionReceipt: any, fAssetsRedeem: any
         console.log(redemptionEvents[0].decoded);
     }
 
-    const redemptionTicketUpdatedEvents = parseEventByName(transactionReceipt.rawLogs, "RedemptionTicketUpdated", AssetManager.abi);
+    const redemptionTicketUpdatedEvents = parseEventByName(
+        transactionReceipt.rawLogs,
+        "RedemptionTicketUpdated",
+        AssetManager.abi
+    );
     if (redemptionTicketUpdatedEvents.length > 0) {
         console.log(redemptionTicketUpdatedEvents[0].decoded);
     }

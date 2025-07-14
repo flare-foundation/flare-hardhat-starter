@@ -7,18 +7,14 @@ import {AssetManagerSettings} from "@flarenetwork/flare-periphery-contracts/cost
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract FAssetsRedeem {
-    IAssetManager public immutable assetManager;
-    IERC20 public immutable underlyingToken;
+    // IAssetManager public immutable assetManager;
+    // IERC20 public immutable underlyingToken;
 
-    address public immutable fAssetToken;
-
-    constructor() {
-        assetManager = ContractRegistry.auxiliaryGetAssetManagerFXRP();
-        fAssetToken = address(assetManager.fAsset());
-    }
+    // address public immutable fAssetToken;
 
     function approveFAssets(uint256 _amount) public returns (bool) {
-        return IERC20(fAssetToken).approve(address(this), _amount);
+        IERC20 fAssetToken = IERC20(getFXRPAddress());
+        return fAssetToken.approve(address(this), _amount);
     }
 
     function redeem(
@@ -26,15 +22,14 @@ contract FAssetsRedeem {
         string memory _redeemerUnderlyingAddressString
     ) public returns (uint256) {
         // Calculate the amount of FXRP needed for redemption
+        IAssetManager assetManager = ContractRegistry
+            .auxiliaryGetAssetManagerFXRP();
         AssetManagerSettings.Data memory settings = assetManager.getSettings();
         uint256 amountToRedeem = settings.lotSizeAMG * _lots;
 
+        IERC20 fAssetToken = IERC20(getFXRPAddress());
         // Transfer FXRP from caller to AssetManager
-        IERC20(fAssetToken).transferFrom(
-            msg.sender,
-            address(this),
-            amountToRedeem
-        );
+        fAssetToken.transferFrom(msg.sender, address(this), amountToRedeem);
 
         uint256 redeemedAmountUBA = assetManager.redeem(
             _lots,
@@ -45,21 +40,19 @@ contract FAssetsRedeem {
         return redeemedAmountUBA;
     }
 
-
-    function getAssetManagerAddress() public view returns (address) {
-        return address(assetManager);
-    }
-
     function getFXRPAddress() public view returns (address) {
+        IAssetManager assetManager = ContractRegistry
+            .auxiliaryGetAssetManagerFXRP();
         return address(assetManager.fAsset());
     }
-
 
     function getSettings()
         public
         view
         returns (uint256 lotSizeAMG, uint256 assetDecimals)
     {
+        IAssetManager assetManager = ContractRegistry
+            .auxiliaryGetAssetManagerFXRP();
         AssetManagerSettings.Data memory settings = assetManager.getSettings();
         lotSizeAMG = settings.lotSizeAMG;
         assetDecimals = settings.assetDecimals;
