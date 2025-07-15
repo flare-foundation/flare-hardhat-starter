@@ -29,8 +29,6 @@ interface ISwapRouter {
 contract SwapAndRedeem {
     // Uniswap V2 Router interface to communicate with BlazeSwap
     ISwapRouter public immutable router;
-    // FAssets assset manager interface
-    IAssetManager public immutable assetManager;
     // FAssets token (FXRP)
     IERC20 public immutable token;
 
@@ -39,10 +37,13 @@ contract SwapAndRedeem {
 
     constructor(address _router, address[] memory _swapPath) {
         router = ISwapRouter(_router);
-        assetManager = ContractRegistry.auxiliaryGetAssetManagerFXRP();
         swapPath = _swapPath;
 
         token = IERC20(_swapPath[0]);
+    }
+
+    function getAssetManager() public pure returns (IAssetManager) {
+        return ContractRegistry.auxiliaryGetAssetManagerFXRP();
     }
 
     // Swap WCFLR for FXRP and redeem FAssets
@@ -126,7 +127,7 @@ contract SwapAndRedeem {
     function calculateRedemptionAmountIn(
         uint256 _lots
     ) public view returns (uint256 amountOut, uint256 amountIn) {
-        AssetManagerSettings.Data memory settings = assetManager.getSettings();
+        AssetManagerSettings.Data memory settings = getAssetManager().getSettings();
         uint256 lotSizeAMG = settings.lotSizeAMG;
 
         // Calculate the amount of WCFLR needed to swap to FXRP
@@ -147,7 +148,7 @@ contract SwapAndRedeem {
         string memory _redeemerUnderlyingAddressString
     ) internal returns (uint256) {
         return
-            assetManager.redeem(
+            getAssetManager().redeem(
                 _lots,
                 _redeemerUnderlyingAddressString,
                 // The account that is allowed to execute redemption default (besides redeemer and agent).

@@ -6,12 +6,6 @@ import {IAssetManager} from "@flarenetwork/flare-periphery-contracts/coston2/IAs
 import {RedemptionTicketInfo} from "@flarenetwork/flare-periphery-contracts/coston2/data/RedemptionTicketInfo.sol";
 
 contract FAssetsRedemptionQueueReader {
-    IAssetManager public assetManager;
-
-    constructor() {
-        assetManager = ContractRegistry.auxiliaryGetAssetManagerFXRP();
-    }
-
     function getRedemptionQueue(
         uint256 _firstRedemptionTicketId,
         uint256 _pageSize
@@ -23,6 +17,7 @@ contract FAssetsRedemptionQueueReader {
             uint256 _nextRedemptionTicketId
         )
     {
+        IAssetManager assetManager = ContractRegistry.auxiliaryGetAssetManagerFXRP();
         return
             assetManager.redemptionQueue(_firstRedemptionTicketId, _pageSize);
     }
