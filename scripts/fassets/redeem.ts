@@ -3,7 +3,7 @@ import { formatUnits } from "ethers";
 
 import { FAssetsRedeemInstance, ERC20Instance } from "../../typechain-types";
 
-import { parseEventByName } from "../../scripts/utils/eventParsing";
+import { parseEventByName } from "../../scripts/utils/core";
 
 // yarn hardhat run scripts/fassets/redeem.ts --network coston2
 
