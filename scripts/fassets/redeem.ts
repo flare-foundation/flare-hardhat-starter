@@ -1,40 +1,30 @@
-import { ethers, web3, run } from "hardhat";
+import { web3, run } from "hardhat";
 import { formatUnits } from "ethers";
 
-import { FAssetsRedeemInstance, IAssetManagerContract, ERC20Instance } from "../../typechain-types";
+import { FAssetsRedeemInstance, ERC20Instance } from "../../typechain-types";
+
+import { parseEventByName } from "../../scripts/utils/core";
 
 // yarn hardhat run scripts/fassets/redeem.ts --network coston2
 
-// AssetManager address on Flare Testnet Coston2 network
-const ASSET_MANAGER_ADDRESS = "0xDeD50DA9C3492Bee44560a4B35cFe0e778F41eC5";
 const LOTS_TO_REDEEM = 1;
 const UNDERLYING_ADDRESS = "rSHYuiEvsYsKR8uUHhBTuGP5zjRcGt4nm";
 
+// Get the contract
 const FAssetsRedeem = artifacts.require("FAssetsRedeem");
+const AssetManager = artifacts.require("IAssetManager");
 
-const IAssetManager = artifacts.require("IAssetManager");
 const IERC20 = artifacts.require("IERC20");
 
-async function getFXRPAddress() {
-    const assetManager = await IAssetManager.at(ASSET_MANAGER_ADDRESS);
-    const fasset = await assetManager.fAsset();
-    return fasset;
-}
-
 async function deployAndVerifyContract() {
-    // Get FXRP address first
-    const fxrpAddress = await getFXRPAddress();
-    console.log("FXRP address:", fxrpAddress);
+    const fAssetsRedeem: FAssetsRedeemInstance = await FAssetsRedeem.new();
 
-    const args = [ASSET_MANAGER_ADDRESS, fxrpAddress];
-    const fAssetsRedeem: FAssetsRedeemInstance = await FAssetsRedeem.new(...args);
-
-    const fAssetsRedeemAddress = await fAssetsRedeem.address;
+    const fAssetsRedeemAddress = fAssetsRedeem.address;
 
     try {
         await run("verify:verify", {
-            address: fAssetsRedeem.address,
-            constructorArguments: args,
+            address: fAssetsRedeemAddress,
+            constructorArguments: [],
         });
     } catch (e: any) {
         console.log(e);
@@ -47,7 +37,7 @@ async function deployAndVerifyContract() {
 
 async function approveFAssets(fAssetsRedeem: any, amountToRedeem: string) {
     console.log("Approving FAssetsRedeem contract to spend FXRP...");
-    const fxrpAddress = await getFXRPAddress();
+    const fxrpAddress = await fAssetsRedeem.getFXRPAddress();
     const fxrp: ERC20Instance = await IERC20.at(fxrpAddress);
 
     const approveTx = await fxrp.approve(await fAssetsRedeem.address, amountToRedeem);
@@ -57,27 +47,18 @@ async function approveFAssets(fAssetsRedeem: any, amountToRedeem: string) {
 async function parseRedemptionEvents(transactionReceipt: any, fAssetsRedeem: any) {
     console.log("\nParsing events...", transactionReceipt.rawLogs);
 
-    // Get AssetManager contract interface
-    const assetManager = (await ethers.getContractAt("IAssetManager", ASSET_MANAGER_ADDRESS)) as IAssetManagerContract;
+    const redemptionEvents = parseEventByName(transactionReceipt.rawLogs, "RedemptionRequested", AssetManager.abi);
+    if (redemptionEvents.length > 0) {
+        console.log(redemptionEvents[0].decoded);
+    }
 
-    for (const log of transactionReceipt.rawLogs) {
-        try {
-            // Try to parse the log using the AssetManager interface
-            const parsedLog = assetManager.interface.parseLog({
-                topics: log.topics,
-                data: log.data,
-            });
-
-            if (parsedLog) {
-                const redemptionEvents = ["RedemptionRequested", "RedemptionTicketUpdated"];
-                if (redemptionEvents.includes(parsedLog.name)) {
-                    console.log(`\nEvent: ${parsedLog.name}`);
-                    console.log("Arguments:", parsedLog.args);
-                }
-            }
-        } catch (e) {
-            console.log("Error parsing event:", e);
-        }
+    const redemptionTicketUpdatedEvents = parseEventByName(
+        transactionReceipt.rawLogs,
+        "RedemptionTicketUpdated",
+        AssetManager.abi
+    );
+    if (redemptionTicketUpdatedEvents.length > 0) {
+        console.log(redemptionTicketUpdatedEvents[0].decoded);
     }
 }
 

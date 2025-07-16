@@ -1,16 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.25;
 
+import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
 import {IAssetManager} from "@flarenetwork/flare-periphery-contracts/coston2/IAssetManager.sol";
 import {RedemptionTicketInfo} from "@flarenetwork/flare-periphery-contracts/coston2/data/RedemptionTicketInfo.sol";
 
 contract FAssetsRedemptionQueueReader {
-    IAssetManager public immutable assetManager;
-
-    constructor(address _assetManager) {
-        assetManager = IAssetManager(_assetManager);
-    }
-
     function getRedemptionQueue(
         uint256 _firstRedemptionTicketId,
         uint256 _pageSize
@@ -22,6 +17,7 @@ contract FAssetsRedemptionQueueReader {
             uint256 _nextRedemptionTicketId
         )
     {
+        IAssetManager assetManager = ContractRegistry.auxiliaryGetAssetManagerFXRP();
         return
             assetManager.redemptionQueue(_firstRedemptionTicketId, _pageSize);
     }

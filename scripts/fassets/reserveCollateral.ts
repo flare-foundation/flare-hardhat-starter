@@ -1,11 +1,10 @@
 import { ethers } from "hardhat";
 
+import { getFXRPAssetManagerAddress } from "../utils/fassets";
 import { IAssetManagerInstance, IAssetManagerContract } from "../../typechain-types";
 
 // yarn hardhat run scripts/fassets/reserveCollateral.ts --network coston2
 
-// AssetManager address on Flare Testnet Coston2 network
-const ASSET_MANAGER_ADDRESS = "0xDeD50DA9C3492Bee44560a4B35cFe0e778F41eC5";
 // Number of lots to reserve
 const LOTS_TO_MINT = 1;
 // XRP Ledger address
@@ -58,7 +57,9 @@ async function findBestAgent(assetManager: IAssetManagerInstance, minAvailableLo
 async function parseCollateralReservedEvent(transactionReceipt: any, decimals: number) {
     console.log("\nParsing events...", transactionReceipt.rawLogs);
 
-    const assetManager = (await ethers.getContractAt("IAssetManager", ASSET_MANAGER_ADDRESS)) as IAssetManagerContract;
+    // Get AssetManager contract interface
+    const assetManagerAddress = await getFXRPAssetManagerAddress();
+    const assetManager = (await ethers.getContractAt("IAssetManager", assetManagerAddress)) as IAssetManagerContract;
 
     for (const log of transactionReceipt.rawLogs) {
         try {
@@ -86,7 +87,8 @@ async function parseCollateralReservedEvent(transactionReceipt: any, decimals: n
 async function main() {
     // Initialize the FAssets FXRP AssetManager contract
     const AssetManager = artifacts.require("IAssetManager");
-    const assetManager: IAssetManagerInstance = await AssetManager.at(ASSET_MANAGER_ADDRESS);
+    const assetManagerAddress = await getFXRPAssetManagerAddress();
+    const assetManager: IAssetManagerInstance = await AssetManager.at(assetManagerAddress);
 
     // Find the best agent with enough free collateral lots
     const agentVaultAddress = await findBestAgent(assetManager, LOTS_TO_MINT);
@@ -104,12 +106,9 @@ async function main() {
     const collateralReservationFee = await assetManager.collateralReservationFee(LOTS_TO_MINT);
     console.log("Collateral reservation fee:", collateralReservationFee.toString());
 
-    const IAssetManager = artifacts.require("IAssetManager");
-    const iAssetManager: IAssetManagerInstance = await IAssetManager.at(ASSET_MANAGER_ADDRESS);
-
     // Reserve collateral
     // https://dev.flare.network/fassets/reference/IAssetManager#reservecollateral
-    const tx = await iAssetManager.reserveCollateral(
+    const tx = await assetManager.reserveCollateral(
         agentVaultAddress,
         LOTS_TO_MINT,
         agentInfo.feeBIPS,

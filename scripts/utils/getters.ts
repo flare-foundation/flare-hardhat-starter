@@ -37,6 +37,7 @@ const IFdcVerification = artifacts.require("IFdcVerification");
 const IFdcHub = artifacts.require("IFdcHub");
 const IFdcRequestFeeConfigurations = artifacts.require("IFdcRequestFeeConfigurations");
 const IJsonApiVerification = artifacts.require("IJsonApiVerification");
+const IAssetManagerController = artifacts.require("IAssetManagerController");
 
 const FLARE_CONTRACT_REGISTRY_ADDRESS = "0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019";
 
@@ -228,4 +229,9 @@ export async function getJsonApiVerification() {
     assert(hre.network.name in ["coston2", "coston"], `Contract not deployed on ${hre.network.name}`);
     const address: string = await getContractAddressByName("JsonApiVerification");
     return await IJsonApiVerification.at(address);
+}
+
+export async function getAssetManagerController() {
+    const address: string = await getContractAddressByName("AssetManagerController");
+    return await IAssetManagerController.at(address);
 }
