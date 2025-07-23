@@ -3,7 +3,7 @@ import { formatUnits } from "ethers";
 
 import { FAssetsRedeemInstance, ERC20Instance } from "../../typechain-types";
 
-import { parseEventByName } from "../../scripts/utils/core";
+import { logEvents } from "../../scripts/utils/core";
 
 // yarn hardhat run scripts/fassets/redeem.ts --network coston2
 
@@ -47,19 +47,11 @@ async function approveFAssets(fAssetsRedeem: any, amountToRedeem: string) {
 async function parseRedemptionEvents(transactionReceipt: any, fAssetsRedeem: any) {
     console.log("\nParsing events...", transactionReceipt.rawLogs);
 
-    const redemptionEvents = parseEventByName(transactionReceipt.rawLogs, "RedemptionRequested", AssetManager.abi);
-    if (redemptionEvents.length > 0) {
-        console.log(redemptionEvents[0].decoded);
-    }
+    const redemptionRequestedEvents = logEvents(transactionReceipt.rawLogs, "RedemptionRequested", AssetManager.abi);
+    logEvents(transactionReceipt.rawLogs, "RedemptionTicketCreated", AssetManager.abi);
+    logEvents(transactionReceipt.rawLogs, "RedemptionTicketUpdated", AssetManager.abi);
 
-    const redemptionTicketUpdatedEvents = parseEventByName(
-        transactionReceipt.rawLogs,
-        "RedemptionTicketUpdated",
-        AssetManager.abi
-    );
-    if (redemptionTicketUpdatedEvents.length > 0) {
-        console.log(redemptionTicketUpdatedEvents[0].decoded);
-    }
+    return redemptionRequestedEvents;
 }
 
 async function main() {
@@ -83,11 +75,16 @@ async function main() {
 
     // Call redeem function and wait for transaction
     const redeemTx = await fAssetsRedeem.redeem(LOTS_TO_REDEEM, UNDERLYING_ADDRESS);
-    // const receipt = await tx.wait();
     console.log("Redeem transaction receipt", redeemTx);
 
-    // // Parse events from the transaction
-    await parseRedemptionEvents(redeemTx.receipt, fAssetsRedeem);
+    // Parse events from the transaction
+    const redemptionRequestedEvents = await parseRedemptionEvents(redeemTx.receipt, fAssetsRedeem);
+
+    // Get redemption request info for each redemption requested event
+    redemptionRequestedEvents.forEach(async (event: any) => {
+        const redemptionRequestInfo = await fAssetsRedeem.getRedemptionRequestInfo(event.decoded.requestId);
+        console.log("Redemption request info:", redemptionRequestInfo);
+    });
 }
 
 main().catch(error => {

@@ -3,7 +3,7 @@ import { run } from "hardhat";
 import { SwapAndRedeemInstance } from "../../typechain-types";
 import { ERC20Instance } from "../../typechain-types/@openzeppelin/contracts/token/ERC20/ERC20";
 
-import { getFXRPAssetManagerAddress } from "../utils/fassets";
+import { getFXRPAssetManager } from "../utils/fassets";
 
 // yarn hardhat run scripts/fassets/swapAndRedeem.ts --network coston2
 
@@ -18,7 +18,7 @@ const IAssetManager = artifacts.require("IAssetManager");
 const SwapAndRedeem = artifacts.require("SwapAndRedeem");
 
 async function deployAndVerifyContract() {
-    const assetManagerAddress = await getFXRPAssetManagerAddress();
+    const assetManagerAddress = await getFXRPAssetManager();
     const assetManager = await IAssetManager.at(assetManagerAddress);
     const fassetAddress = await assetManager.fAsset();
     const swapPath = [WC2FLR, fassetAddress];

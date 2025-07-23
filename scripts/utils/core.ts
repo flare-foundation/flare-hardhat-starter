@@ -15,7 +15,7 @@ export function sleep(ms: number) {
 }
 
 // Function to parse events by name from raw logs
-export function parseEventByName(rawLogs: any[], eventName: string, contractAbi: any) {
+export function parseEvents(rawLogs: any[], eventName: string, contractAbi: any) {
     // Get the event ABI
     const eventAbi = contractAbi.find(e => e.name === eventName);
     if (!eventAbi) {
@@ -52,4 +52,20 @@ export function parseEventByName(rawLogs: any[], eventName: string, contractAbi:
             // Remove any null results from failed parsing
             .filter(Boolean)
     );
+}
+
+export function logEvents(rawLogs: any, eventName: string, abi: any) {
+    const events = parseEvents(
+        rawLogs,
+        eventName,
+        abi
+    );
+
+    if (events.length > 0) {
+        events.forEach((event: any) => {
+            console.log(eventName, event.decoded);
+        });
+
+        return events;
+    }
 }
