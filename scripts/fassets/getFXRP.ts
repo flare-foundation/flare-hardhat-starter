@@ -1,11 +1,11 @@
-import { getFXRPAssetManagerAddress } from "../utils/fassets";
+import { getFXRPAssetManager } from "../utils/fassets";
 
 // yarn hardhat run scripts/fassets/getFXRP.ts --network coston2
 
 const IAssetManager = artifacts.require("IAssetManager");
 
 async function main() {
-    const assetManager = await IAssetManager.at(await getFXRPAssetManagerAddress());
+    const assetManager = await IAssetManager.at(await getFXRPAssetManager());
     const fasset = await assetManager.fAsset();
 
     console.log("FXRP address", fasset);

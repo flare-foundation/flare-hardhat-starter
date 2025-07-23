@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
-import {IAssetManager} from "@flarenetwork/flare-periphery-contracts/coston2/IAssetManager.sol";
-import {RedemptionTicketInfo} from "@flarenetwork/flare-periphery-contracts/coston2/data/RedemptionTicketInfo.sol";
+import {ContractRegistry} from "flare-periphery-contracts-fassets-test/coston2/ContractRegistry.sol";
+import {IAssetManager} from "flare-periphery-contracts-fassets-test/coston2/IAssetManager.sol";
+import {RedemptionTicketInfo} from "flare-periphery-contracts-fassets-test/coston2/data/RedemptionTicketInfo.sol";
 
 contract FAssetsRedemptionQueueReader {
     function getRedemptionQueue(
