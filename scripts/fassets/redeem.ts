@@ -8,6 +8,7 @@ import { logEvents } from "../../scripts/utils/core";
 // yarn hardhat run scripts/fassets/redeem.ts --network coston2
 
 const LOTS_TO_REDEEM = 1;
+// XRP address to send the redeemed lots to
 const UNDERLYING_ADDRESS = "rSHYuiEvsYsKR8uUHhBTuGP5zjRcGt4nm";
 
 // Get the contract
