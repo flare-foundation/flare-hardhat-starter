@@ -1,7 +1,7 @@
 import { ethers } from "hardhat";
 
 import { getFXRPAssetManagerAddress } from "../utils/fassets";
-import { prepareAttestationRequestBase } from "../fdcExample/Base";
+import { prepareAttestationRequestBase } from "../utils/fdc";
 import { IAssetManagerInstance, IAssetManagerContract } from "../../typechain-types";
 
 // yarn hardhat run scripts/fassets/executeMinting.ts --network coston2

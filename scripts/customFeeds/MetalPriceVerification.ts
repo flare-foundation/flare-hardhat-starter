@@ -11,7 +11,7 @@ import {
     getFdcVerification,
     postRequestToDALayer,
     sleep,
-} from "../fdcExample/Base";
+} from "../utils/fdc";
 import { IWeb2JsonVerification } from "../../typechain-types";
 
 const MetalPriceVerifierCustomFeed = artifacts.require("MetalPriceVerifierCustomFeed");
@@ -98,13 +98,18 @@ async function submitAttestationRequests(data: Map<string, string>): Promise<Map
         console.log("Submitted request transaction:", transaction.tx, "\n");
         const roundId = await calculateRoundId(transaction);
         console.log(`Attestation requested in round ${roundId}.`);
-        console.log(`Check round progress at: https://${hre.network.name}-systems-explorer.flare.rocks/voting-round/${roundId}?tab=fdc\n`);
+        console.log(
+            `Check round progress at: https://${hre.network.name}-systems-explorer.flare.rocks/voting-round/${roundId}?tab=fdc\n`
+        );
         roundIds.set(source, roundId);
     }
     return roundIds;
 }
 
-async function retrieveDataAndProofs(data: Map<string, string>, roundIds: Map<string, number>): Promise<Map<string, any>> {
+async function retrieveDataAndProofs(
+    data: Map<string, string>,
+    roundIds: Map<string, number>
+): Promise<Map<string, any>> {
     console.log("\nRetrieving data and proofs from DA Layer...\n");
     const proofs: Map<string, any> = new Map();
     const url = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
@@ -137,12 +142,20 @@ async function retrieveDataAndProofs(data: Map<string, string>, roundIds: Map<st
     return proofs;
 }
 
-async function retrieveDataAndProofsWithRetry(data: Map<string, string>, roundIds: Map<string, number>, attempts: number = 10): Promise<Map<string, any>> {
+async function retrieveDataAndProofsWithRetry(
+    data: Map<string, string>,
+    roundIds: Map<string, number>,
+    attempts: number = 10
+): Promise<Map<string, any>> {
     for (let i = 0; i < attempts; i++) {
         try {
             return await retrieveDataAndProofs(data, roundIds);
         } catch (error) {
-            console.error(`Error retrieving proof (Attempt ${i + 1}/${attempts}):`, error, "\nRetrying in 20 seconds...\n");
+            console.error(
+                `Error retrieving proof (Attempt ${i + 1}/${attempts}):`,
+                error,
+                "\nRetrying in 20 seconds...\n"
+            );
             await sleep(20000);
         }
     }
@@ -187,7 +200,7 @@ async function deployAndVerifyContract(): Promise<MetalPriceVerifierCustomFeedIn
 async function prepareDataAndProofs(retrievedProofs: Map<string, any>) {
     const IWeb2JsonVerification = await artifacts.require("IWeb2JsonVerification");
     const proof = retrievedProofs.get("web2json");
-    console.log(IWeb2JsonVerification._json.abi[0].inputs[0].components)
+    console.log(IWeb2JsonVerification._json.abi[0].inputs[0].components);
     return {
         merkleProof: proof.proof,
         data: web3.eth.abi.decodeParameter(
@@ -198,8 +211,11 @@ async function prepareDataAndProofs(retrievedProofs: Map<string, any>) {
 }
 
 async function submitDataToCustomFeed(customFeed: MetalPriceVerifierCustomFeedInstance, proof: any) {
-    console.log('\nSubmitting proof to MetalPriceVerifierCustomFeed contract...\n');
-    console.log('Proof argument being sent to contract:', JSON.stringify(proof, (k,v) => typeof v === 'bigint' ? v.toString() : v, 2));
+    console.log("\nSubmitting proof to MetalPriceVerifierCustomFeed contract...\n");
+    console.log(
+        "Proof argument being sent to contract:",
+        JSON.stringify(proof, (k, v) => (typeof v === "bigint" ? v.toString() : v), 2)
+    );
     const tx = await customFeed.verifyPrice(proof);
     console.log(`Proof for ${metalSymbol}/USD submitted successfully. Transaction hash:`, tx.tx);
 }
@@ -207,8 +223,8 @@ async function submitDataToCustomFeed(customFeed: MetalPriceVerifierCustomFeedIn
 async function getLatestMetalPrice(customFeed: MetalPriceVerifierCustomFeedInstance) {
     console.log("\nRetrieving latest verified metal price from the contract...\n");
     const { _value, _decimals } = await customFeed.getFeedDataView();
-    
-    const formattedPrice = Number(_value) / (10 ** Number(_decimals));
+
+    const formattedPrice = Number(_value) / 10 ** Number(_decimals);
 
     console.log(`Latest verified price for ${metalSymbol}/USD:`);
     console.log(`  - Price: $${formattedPrice.toFixed(4)}`);
@@ -223,7 +239,7 @@ async function main() {
     }
     console.log(`--- Starting Metal Price Verification Script for ${metalSymbol}/USD ---`);
     console.log(`Fetching data from API: ${fullApiUrl}\n`);
-    
+
     const customFeed = await deployAndVerifyContract();
     const data = await prepareAttestationRequests(requests);
     const roundIds = await submitAttestationRequests(data);
@@ -235,7 +251,7 @@ async function main() {
     };
     await submitDataToCustomFeed(customFeed, proof);
     await getLatestMetalPrice(customFeed);
-    
+
     console.log("\n--- Metal Price Verification Script Completed Successfully ---");
 }
 
