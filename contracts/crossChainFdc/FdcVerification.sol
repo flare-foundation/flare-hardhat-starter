@@ -42,7 +42,7 @@ contract FdcVerification is IFdcVerificationOld, AddressUpdatable {
     }
 
     /**
-     * @inheritdoc IAddressValidityVerification
+     * @inheritdoc IAddressValidityVerificationOther
      */
     function verifyAddressValidity(
         IAddressValidity.Proof calldata _proof
@@ -58,7 +58,7 @@ contract FdcVerification is IFdcVerificationOld, AddressUpdatable {
     }
 
     /**
-     * @inheritdoc IBalanceDecreasingTransactionVerification
+     * @inheritdoc IBalanceDecreasingTransactionVerificationOther
      */
     function verifyBalanceDecreasingTransaction(
         IBalanceDecreasingTransaction.Proof calldata _proof
@@ -75,7 +75,7 @@ contract FdcVerification is IFdcVerificationOld, AddressUpdatable {
     }
 
     /**
-     * @inheritdoc IConfirmedBlockHeightExistsVerification
+     * @inheritdoc IConfirmedBlockHeightExistsVerificationOther
      */
     function verifyConfirmedBlockHeightExists(
         IConfirmedBlockHeightExists.Proof calldata _proof
@@ -92,7 +92,7 @@ contract FdcVerification is IFdcVerificationOld, AddressUpdatable {
     }
 
     /**
-     * @inheritdoc IEVMTransactionVerification
+     * @inheritdoc IEVMTransactionVerificationOther
      */
     function verifyEVMTransaction(
         IEVMTransaction.Proof calldata _proof
@@ -108,7 +108,7 @@ contract FdcVerification is IFdcVerificationOld, AddressUpdatable {
     }
 
     /**
-     * @inheritdoc IPaymentVerification
+     * @inheritdoc IPaymentVerificationOther
      */
     function verifyPayment(
         IPayment.Proof calldata _proof
@@ -124,7 +124,7 @@ contract FdcVerification is IFdcVerificationOld, AddressUpdatable {
     }
 
     /**
-     * @inheritdoc IReferencedPaymentNonexistenceVerification
+     * @inheritdoc IReferencedPaymentNonexistenceVerificationOther
      */
     function verifyReferencedPaymentNonexistence(
         IReferencedPaymentNonexistence.Proof calldata _proof

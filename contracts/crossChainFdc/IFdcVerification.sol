@@ -13,11 +13,11 @@ import "./fdc/IJsonApiVerification.sol";
  * FdcVerification interface.
  */
 interface IFdcVerificationOld is
-    IAddressValidityVerification,
-    IBalanceDecreasingTransactionVerification,
-    IConfirmedBlockHeightExistsVerification,
-    IEVMTransactionVerification,
-    IPaymentVerification,
-    IReferencedPaymentNonexistenceVerification,
+    IAddressValidityVerificationOther,
+    IBalanceDecreasingTransactionVerificationOther,
+    IConfirmedBlockHeightExistsVerificationOther,
+    IEVMTransactionVerificationOther,
+    IPaymentVerificationOther,
+    IReferencedPaymentNonexistenceVerificationOther,
     IJsonApiVerificationOther
 {}
