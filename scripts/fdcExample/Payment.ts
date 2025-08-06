@@ -13,7 +13,7 @@ const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } =
 // yarn hardhat run scripts/fdcExample/Payment.ts --network coston2
 
 // Request data
-const transactionId = "2A3E7C7F6077B4D12207A9F063515EACE70FBBF3C55514CD8BD659D4AB721447";
+const transactionId = "2401fb25aff07e359727e14fa091a881a157afb63a0e2106a4c63f6ed1e55847";
 const inUtxo = "0";
 const utxo = "0";
 
