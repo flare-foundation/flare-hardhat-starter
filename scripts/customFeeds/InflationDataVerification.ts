@@ -11,11 +11,10 @@ import {
     getFdcVerification,
     postRequestToDALayer,
     sleep,
-} from "../fdcExample/Base";
+} from "../utils/fdc";
 
 const InflationCustomFeed = artifacts.require("InflationCustomFeed");
 const IWeb2JsonVerificationArtifact = artifacts.require("IWeb2JsonVerification");
-
 
 const { WEB2JSON_VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } = process.env;
 
@@ -109,13 +108,18 @@ async function submitAttestationRequests(data: Map<string, string>): Promise<Map
         console.log("Submitted request transaction:", transaction.tx, "\n");
         const roundId = await calculateRoundId(transaction);
         console.log(`Attestation requested in round ${roundId}.`);
-        console.log(`Check round progress at: https://${hre.network.name}-systems-explorer.flare.rocks/voting-round/${roundId}?tab=fdc\n`);
+        console.log(
+            `Check round progress at: https://${hre.network.name}-systems-explorer.flare.rocks/voting-round/${roundId}?tab=fdc\n`
+        );
         roundIds.set(source, roundId);
     }
     return roundIds;
 }
 
-async function retrieveDataAndProofs(data: Map<string, string>, roundIds: Map<string, number>): Promise<Map<string, any>> {
+async function retrieveDataAndProofs(
+    data: Map<string, string>,
+    roundIds: Map<string, number>
+): Promise<Map<string, any>> {
     console.log("\nRetrieving data and proofs from DA Layer...\n");
     const proofs: Map<string, any> = new Map();
     const url = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
@@ -148,12 +152,20 @@ async function retrieveDataAndProofs(data: Map<string, string>, roundIds: Map<st
     return proofs;
 }
 
-async function retrieveDataAndProofsWithRetry(data: Map<string, string>, roundIds: Map<string, number>, attempts: number = 10): Promise<Map<string, any>> {
+async function retrieveDataAndProofsWithRetry(
+    data: Map<string, string>,
+    roundIds: Map<string, number>,
+    attempts: number = 10
+): Promise<Map<string, any>> {
     for (let i = 0; i < attempts; i++) {
         try {
             return await retrieveDataAndProofs(data, roundIds);
         } catch (error) {
-            console.error(`Error retrieving proof (Attempt ${i + 1}/${attempts}):`, error, "\nRetrying in 20 seconds...\n");
+            console.error(
+                `Error retrieving proof (Attempt ${i + 1}/${attempts}):`,
+                error,
+                "\nRetrying in 20 seconds...\n"
+            );
             await sleep(20000);
         }
     }
@@ -170,7 +182,9 @@ async function deployAndVerifyContract(): Promise<InflationCustomFeedInstance> {
         throw new Error(`Generated feed ID has incorrect length: ${finalFeedIdHex.length}. Expected 44 characters.`);
     }
 
-    console.log(`\nDeploying InflationCustomFeed for '${inflationDatasetIdentifier}' with Feed ID: ${finalFeedIdHex}...\n`);
+    console.log(
+        `\nDeploying InflationCustomFeed for '${inflationDatasetIdentifier}' with Feed ID: ${finalFeedIdHex}...\n`
+    );
 
     const customFeedArgs: any[] = [finalFeedIdHex, inflationDatasetIdentifier];
     const customFeed: InflationCustomFeedInstance = await InflationCustomFeed.new(...customFeedArgs);
@@ -198,7 +212,7 @@ async function deployAndVerifyContract(): Promise<InflationCustomFeedInstance> {
 async function prepareDataAndProofs(data: Map<string, any>) {
     const IWeb2JsonVerification = await artifacts.require("IWeb2JsonVerification");
     const proof = data.get("web2json");
-    console.log(IWeb2JsonVerification._json.abi[0].inputs[0].components)
+    console.log(IWeb2JsonVerification._json.abi[0].inputs[0].components);
     return {
         merkleProof: proof.merkleProof,
         data: web3.eth.abi.decodeParameter(
@@ -209,8 +223,11 @@ async function prepareDataAndProofs(data: Map<string, any>) {
 }
 
 async function submitDataToCustomFeed(customFeed: InflationCustomFeedInstance, proof: any) {
-    console.log('\nSubmitting proof to InflationCustomFeed contract...\n');
-    console.log('Proof argument being sent to contract:', JSON.stringify(proof, (k,v) => typeof v === 'bigint' ? v.toString() : v, 2));
+    console.log("\nSubmitting proof to InflationCustomFeed contract...\n");
+    console.log(
+        "Proof argument being sent to contract:",
+        JSON.stringify(proof, (k, v) => (typeof v === "bigint" ? v.toString() : v), 2)
+    );
     const tx = await customFeed.verifyInflationData(proof);
     console.log(`Proof for ${inflationDatasetIdentifier} submitted successfully. Transaction hash:`, tx.tx);
 }
@@ -218,14 +235,16 @@ async function submitDataToCustomFeed(customFeed: InflationCustomFeedInstance, p
 async function getLatestInflationData(customFeed: InflationCustomFeedInstance) {
     console.log("\nRetrieving latest verified inflation data from the contract...\n");
     const { _value, _decimals, _observationYear, _verifiedTimestamp } = await customFeed.getFeedDataView();
-    
-    const formattedInflation = (Number(_value) / (10 ** Number(_decimals))) * 100;
+
+    const formattedInflation = (Number(_value) / 10 ** Number(_decimals)) * 100;
 
     console.log(`Latest verified data for ${inflationDatasetIdentifier}:`);
     console.log(`  - Inflation Rate: ${formattedInflation.toFixed(2)}%`);
     console.log(`  - (Raw contract value: ${_value.toString()}, Decimals: ${_decimals.toString()})`);
     console.log(`  - Observation Year: ${_observationYear.toString()}`);
-    console.log(`  - Verified On-Chain (Timestamp): ${_verifiedTimestamp.toString()} (${new Date(Number(_verifiedTimestamp) * 1000).toUTCString()})`);
+    console.log(
+        `  - Verified On-Chain (Timestamp): ${_verifiedTimestamp.toString()} (${new Date(Number(_verifiedTimestamp) * 1000).toUTCString()})`
+    );
 }
 
 async function main() {
@@ -236,7 +255,7 @@ async function main() {
     }
     console.log(`--- Starting Inflation Data Verification Script for ${inflationDatasetIdentifier} ---`);
     console.log(`Fetching data for year: ${targetYear} from API: ${apiUrl}?format=json&date=${targetYear}\n`);
-    
+
     const customFeed = await deployAndVerifyContract();
     const data = await prepareAttestationRequests(requests);
     const roundIds = await submitAttestationRequests(data);

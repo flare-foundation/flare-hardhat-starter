@@ -1,7 +1,6 @@
 import { run } from "hardhat";
 import fs from "fs";
-import { sleep } from "../fdcExample/Base";
-
+import { sleep } from "../utils/core";
 const AddressUpdater = artifacts.require("AddressUpdater");
 const FdcVerification = artifacts.require("FdcVerification");
 

@@ -1,5 +1,5 @@
 import fs from "fs";
-import { prepareAttestationRequestBase, submitAttestationRequest } from "../fdcExample/Base";
+import { prepareAttestationRequestBase, submitAttestationRequest } from "../utils/fdc";
 
 const { WEB2JSON_VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET } = process.env;
 

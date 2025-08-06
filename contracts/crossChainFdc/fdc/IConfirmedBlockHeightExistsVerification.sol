@@ -3,7 +3,7 @@ pragma solidity >=0.7.6 <0.9;
 
 import "@flarenetwork/flare-periphery-contracts/coston2/IConfirmedBlockHeightExists.sol";
 
-interface IConfirmedBlockHeightExistsVerification {
+interface IConfirmedBlockHeightExistsVerificationOther {
     function verifyConfirmedBlockHeightExists(
         IConfirmedBlockHeightExists.Proof calldata _proof
     ) external payable returns (bool _proved);

@@ -5,7 +5,8 @@ import { addressFdcVerification } from "./config";
 import { abiEncodedRequest, roundId } from "./request";
 import { IRelayInstance, IFdcVerificationInstance } from "../../typechain-types";
 
-import { sleep, postRequestToDALayer } from "../fdcExample/Base";
+import { postRequestToDALayer } from "../utils/fdc";
+import { sleep } from "../utils/core";
 
 const StarWarsCharacterListV3 = artifacts.require("StarWarsCharacterListV3");
 

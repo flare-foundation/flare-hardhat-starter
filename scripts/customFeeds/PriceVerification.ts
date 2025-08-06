@@ -10,7 +10,7 @@ import {
     getFdcVerification,
     postRequestToDALayer,
     sleep,
-} from "../fdcExample/Base";
+} from "../utils/fdc";
 import { IWeb2JsonVerification } from "../../typechain-types";
 
 const PriceVerifierCustomFeed = artifacts.require("PriceVerifierCustomFeed");
@@ -166,7 +166,7 @@ async function retrieveDataAndProofsWithRetry(
 async function prepareDataAndProofs(data: Map<string, any>) {
     const IWeb2JsonVerification = await artifacts.require("IWeb2JsonVerification");
     const proof = data.get("web2json");
-    console.log(IWeb2JsonVerification._json.abi[0].inputs[0].components)
+    console.log(IWeb2JsonVerification._json.abi[0].inputs[0].components);
     return {
         merkleProof: proof.merkleProof,
         data: web3.eth.abi.decodeParameter(
@@ -206,9 +206,9 @@ async function deployAndVerifyContract(): Promise<PriceVerifierCustomFeedInstanc
 }
 
 async function submitDataAndProofsToCustomFeed(customFeed: PriceVerifierCustomFeedInstance, proof: any) {
-    console.log('Proof from submitDataAndProofsToCustomFeed:', proof)
+    console.log("Proof from submitDataAndProofsToCustomFeed:", proof);
     const tx = await customFeed.verifyPrice(proof);
-       console.log(`Proof for ${priceSymbol}Price submitted successfully. Transaction hash:`, tx.transactionHash);
+    console.log(`Proof for ${priceSymbol}Price submitted successfully. Transaction hash:`, tx.transactionHash);
 }
 
 async function getLatestVerifiedPrice(customFeed: PriceVerifierCustomFeedInstance) {
@@ -235,7 +235,7 @@ async function main() {
     const proof = {
         merkleProof: proofs.get("web2json").proof,
         data: decodedData.data,
-    }
+    };
     await submitDataAndProofsToCustomFeed(customFeed, proof);
     await getLatestVerifiedPrice(customFeed);
     console.log("Price verification process completed successfully.");
