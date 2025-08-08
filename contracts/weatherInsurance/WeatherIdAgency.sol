@@ -102,7 +102,7 @@ contract WeatherIdAgency {
     function resolvePolicy(uint256 id, IWeb2Json.Proof calldata proof) public {
         Policy memory policy = registeredPolicies[id];
         require(policy.status == PolicyStatus.Open, "Policy not open");
-        require(isJsonApiProofValid(proof), "Invalid proof");
+        require(isWeb2JsonProofValid(proof), "Invalid proof");
         DataTransportObject memory dto = abi.decode(
             proof.data.responseBody.abiEncodedData,
             (DataTransportObject)
@@ -193,9 +193,9 @@ contract WeatherIdAgency {
 
     function abiSignatureHack(DataTransportObject memory dto) public pure {}
 
-    function isJsonApiProofValid(
+    function isWeb2JsonProofValid(
         IWeb2Json.Proof calldata _proof
     ) private view returns (bool) {
-        return ContractRegistry.getFdcVerification().verifyJsonApi(_proof);
+        return ContractRegistry.getFdcVerification().verifyWeb2Json(_proof);
     }
 }

@@ -42,8 +42,8 @@ contract SwapAndRedeem {
         token = IERC20(_swapPath[0]);
     }
 
-    function getAssetManager() public pure returns (IAssetManager) {
-        return ContractRegistry.auxiliaryGetAssetManagerFXRP();
+    function getAssetManager() public view returns (IAssetManager) {
+        return ContractRegistry.getAssetManagerFXRP();
     }
 
     // Swap WCFLR for FXRP and redeem FAssets
@@ -127,7 +127,8 @@ contract SwapAndRedeem {
     function calculateRedemptionAmountIn(
         uint256 _lots
     ) public view returns (uint256 amountOut, uint256 amountIn) {
-        AssetManagerSettings.Data memory settings = getAssetManager().getSettings();
+        AssetManagerSettings.Data memory settings = getAssetManager()
+            .getSettings();
         uint256 lotSizeAMG = settings.lotSizeAMG;
 
         // Calculate the amount of WCFLR needed to swap to FXRP

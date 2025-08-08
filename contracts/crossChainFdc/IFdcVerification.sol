@@ -7,7 +7,7 @@ import "./fdc/IConfirmedBlockHeightExistsVerification.sol";
 import "./fdc/IEVMTransactionVerification.sol";
 import "./fdc/IPaymentVerification.sol";
 import "./fdc/IReferencedPaymentNonexistenceVerification.sol";
-import "./fdc/IJsonApiVerification.sol";
+import "./fdc/IWeb2JsonVerification.sol";
 
 /**
  * FdcVerification interface.
@@ -19,5 +19,5 @@ interface IFdcVerificationOld is
     IEVMTransactionVerificationOther,
     IPaymentVerificationOther,
     IReferencedPaymentNonexistenceVerificationOther,
-    IJsonApiVerificationOther
+    IWeb2JsonVerificationOther
 {}

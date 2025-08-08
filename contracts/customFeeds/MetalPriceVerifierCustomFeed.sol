@@ -66,7 +66,7 @@ contract MetalPriceVerifierCustomFeed is IICustomFeed {
 
         // 2. FDC Verification (Web2Json)
         require(
-            ContractRegistry.getFdcVerification().verifyJsonApi(_proof),
+            ContractRegistry.getFdcVerification().verifyWeb2Json(_proof),
             "FDC: Invalid Web2Json proof"
         );
 

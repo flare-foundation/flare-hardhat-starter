@@ -17,7 +17,7 @@ contract FAssetsSettings {
         view
         returns (uint64 lotSizeAMG, uint8 assetDecimals)
     {
-        IAssetManager assetManager = ContractRegistry.auxiliaryGetAssetManagerFXRP();
+        IAssetManager assetManager = ContractRegistry.getAssetManagerFXRP();
         lotSizeAMG = assetManager.getSettings().lotSizeAMG;
         assetDecimals = assetManager.getSettings().assetDecimals;
 

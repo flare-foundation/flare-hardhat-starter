@@ -17,7 +17,7 @@ contract FAssetsRedemptionQueueReader {
             uint256 _nextRedemptionTicketId
         )
     {
-        IAssetManager assetManager = ContractRegistry.auxiliaryGetAssetManagerFXRP();
+        IAssetManager assetManager = ContractRegistry.getAssetManagerFXRP();
         return
             assetManager.redemptionQueue(_firstRedemptionTicketId, _pageSize);
     }
