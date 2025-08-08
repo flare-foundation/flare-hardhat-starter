@@ -90,10 +90,10 @@ async function runFastUpdatesListener() {
     console.log(`Current Score Cutoff: ${cutoff.toString()}`);
 
     // Get update history
-    const historySize = 10; // Last 10 blocks
+    const historySize = 100; // Last 10 blocks
     const updates = await fastUpdater.numberOfUpdates.staticCall(historySize); // Use staticCall
 
-    console.log("\nUpdate History (last 10 blocks):");
+    console.log("\nUpdate History (last 100 blocks):");
     updates.forEach((count: bigint, index: number) => {
         console.log(`Block -${index}: ${count.toString()} updates`);
     });
