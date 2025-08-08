@@ -1,13 +1,12 @@
 import { IAssetManagerInstance } from "../../typechain-types";
-import { getFXRPAssetManager } from "../utils/fassets";
+import { getAssetManagerFXRP } from "../utils/getters";
 
 // yarn hardhat run scripts/fassets/settings.ts --network coston2
 
 const IAssetManager = artifacts.require("IAssetManager");
 
 async function main() {
-    const assetManagerAddress = await getFXRPAssetManager();
-    const assetManager = (await IAssetManager.at(assetManagerAddress)) as IAssetManagerInstance;
+    const assetManager = await getAssetManagerFXRP();
     const settings = await assetManager.getSettings();
 
     console.log(settings);
