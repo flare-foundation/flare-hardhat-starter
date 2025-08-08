@@ -41,15 +41,9 @@ async function verifyFeedDataOnChain(ftsoV2Contract: Contract | any, feedDataWit
 }
 
 async function fetchPriceData(apiUrl: string, feedId: string): Promise<any> {
-    const apiKey = process.env.FLARE_API_KEY;
-    if (!apiKey) {
-        throw new Error("FLARE_API_KEY environment variable is required but not set.");
-    }
-
     const response = await fetch(apiUrl, {
         method: "POST",
         headers: {
-            "x-apikey": apiKey,
             "Content-Type": "application/json",
         },
         body: JSON.stringify({
@@ -71,14 +65,8 @@ async function fetchPriceData(apiUrl: string, feedId: string): Promise<any> {
 
 // Helper function to fetch feed IDs
 async function fetchFeedIds(apiUrlFeedNames: string): Promise<string[]> {
-    const apiKey = process.env.FLARE_API_KEY;
-    if (!apiKey) {
-        throw new Error("FLARE_API_KEY environment variable is required but not set.");
-    }
-
     const response = await fetch(apiUrlFeedNames, {
         headers: {
-            "x-apikey": apiKey,
             "Content-Type": "application/json",
         },
     });
