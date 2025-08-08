@@ -55,6 +55,16 @@ async function parseRedemptionEvents(transactionReceipt: any, fAssetsRedeem: any
     return redemptionRequestedEvents;
 }
 
+async function printRedemptionRequestInfo(fAssetsRedeem: any, redemptionRequestedEvents: any[]) {
+    console.log("\n=== Redemption Request Information ===");
+    
+    for (const event of redemptionRequestedEvents) {
+        const redemptionRequestInfo = await fAssetsRedeem
+            .getRedemptionRequestInfo(event.decoded.requestId);
+        console.log("Redemption request info:", redemptionRequestInfo);
+    }
+}
+
 async function main() {
     // Deploy and verify the contract
     const fAssetsRedeem = await deployAndVerifyContract();
@@ -81,11 +91,8 @@ async function main() {
     // Parse events from the transaction
     const redemptionRequestedEvents = await parseRedemptionEvents(redeemTx.receipt, fAssetsRedeem);
 
-    // Get redemption request info for each redemption requested event
-    redemptionRequestedEvents.forEach(async (event: any) => {
-        const redemptionRequestInfo = await fAssetsRedeem.getRedemptionRequestInfo(event.decoded.requestId);
-        console.log("Redemption request info:", redemptionRequestInfo);
-    });
+    // Print redemption request info for each redemption requested event
+    await printRedemptionRequestInfo(fAssetsRedeem, redemptionRequestedEvents);
 }
 
 main().catch(error => {
