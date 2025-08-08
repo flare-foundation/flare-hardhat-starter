@@ -60,7 +60,7 @@ contract InflationCustomFeed is IICustomFeed {
     function verifyInflationData(IWeb2Json.Proof calldata _proof) external {
         // 1. FDC Verification using the ContractRegistry for Web2Json
         require(
-            ContractRegistry.getFdcVerification().verifyJsonApi(_proof),
+            ContractRegistry.getFdcVerification().verifyWeb2Json(_proof),
             "FDC: Invalid Web2Json proof"
         );
 

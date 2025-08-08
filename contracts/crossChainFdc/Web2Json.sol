@@ -38,10 +38,10 @@ contract StarWarsCharacterListV3 {
     }
 
     function addCharacter(IWeb2Json.Proof calldata data) public payable {
-        bool isJsonApiProofValid = fdcVerification.verifyJsonApi{
+        bool isWeb2JsonProofValid = fdcVerification.verifyWeb2Json{
             value: msg.value
         }(data);
-        require(isJsonApiProofValid, "Invalid proof");
+        require(isWeb2JsonProofValid, "Invalid proof");
 
         DataTransportObject memory dto = abi.decode(
             data.data.responseBody.abiEncodedData,

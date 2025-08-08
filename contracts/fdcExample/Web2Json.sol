@@ -32,7 +32,7 @@ contract StarWarsCharacterListV2 {
     uint256[] public characterIds;
 
     function addCharacter(IWeb2Json.Proof calldata data) public {
-        require(isJsonApiProofValid(data), "Invalid proof");
+        require(isWeb2JsonProofValid(data), "Invalid proof");
 
         DataTransportObject memory dto = abi.decode(
             data.data.responseBody.abiEncodedData,
@@ -68,10 +68,10 @@ contract StarWarsCharacterListV2 {
 
     function abiSignatureHack(DataTransportObject calldata dto) public pure {}
 
-    function isJsonApiProofValid(
+    function isWeb2JsonProofValid(
         IWeb2Json.Proof calldata _proof
     ) private view returns (bool) {
         // Inline the check for now until we have an official contract deployed
-        return ContractRegistry.getFdcVerification().verifyJsonApi(_proof);
+        return ContractRegistry.getFdcVerification().verifyWeb2Json(_proof);
     }
 }

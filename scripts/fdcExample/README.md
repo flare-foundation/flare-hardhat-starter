@@ -6,7 +6,7 @@ This is a collection of examples on how to use the FDC protocol. Each script cor
 - `BalanceDecreasingTransaction.ts`
 - `ConfirmedBlockHeightExists.ts`
 - `EVMTransaction.ts`
-- `JsonApi.ts`
+- `Web2Json.ts`
 - `Payment.ts`
 - `ReferencedPaymentNonexistence.ts`.
 
