@@ -1,4 +1,4 @@
-import { getFXRPAssetManager } from "../utils/fassets";
+import { getAssetManagerFXRP } from "../utils/getters";
 import { IAssetManagerInstance } from "../../typechain-types";
 import { logEvents } from "../../scripts/utils/core";
 
@@ -63,7 +63,7 @@ async function parseCollateralReservedEvent(transactionReceipt: any, decimals: n
 async function main() {
     // Initialize the FAssets FXRP AssetManager contract
     
-    const assetManager: IAssetManagerInstance = await getFXRPAssetManager();
+    const assetManager: IAssetManagerInstance = await getAssetManagerFXRP();
 
     // Find the best agent with enough free collateral lots
     const agentVaultAddress = await findBestAgent(assetManager, LOTS_TO_MINT);

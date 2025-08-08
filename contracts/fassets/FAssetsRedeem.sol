@@ -13,8 +13,7 @@ contract FAssetsRedeem {
         string memory _redeemerUnderlyingAddressString
     ) public returns (uint256) {
         // Calculate the amount of FXRP needed for redemption
-        IAssetManager assetManager = ContractRegistry
-            .auxiliaryGetAssetManagerFXRP();
+        IAssetManager assetManager = ContractRegistry.getAssetManagerFXRP();
         AssetManagerSettings.Data memory settings = assetManager.getSettings();
         uint256 amountToRedeem = settings.lotSizeAMG * _lots;
 
@@ -32,8 +31,7 @@ contract FAssetsRedeem {
     }
 
     function getFXRPAddress() public view returns (address) {
-        IAssetManager assetManager = ContractRegistry
-            .auxiliaryGetAssetManagerFXRP();
+        IAssetManager assetManager = ContractRegistry.getAssetManagerFXRP();
         return address(assetManager.fAsset());
     }
 
@@ -42,8 +40,7 @@ contract FAssetsRedeem {
         view
         returns (uint256 lotSizeAMG, uint256 assetDecimals)
     {
-        IAssetManager assetManager = ContractRegistry
-            .auxiliaryGetAssetManagerFXRP();
+        IAssetManager assetManager = ContractRegistry.getAssetManagerFXRP();
         AssetManagerSettings.Data memory settings = assetManager.getSettings();
         lotSizeAMG = settings.lotSizeAMG;
         assetDecimals = settings.assetDecimals;
