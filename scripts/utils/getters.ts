@@ -37,7 +37,7 @@ const IFdcVerification = artifacts.require("IFdcVerification");
 const IFdcHub = artifacts.require("IFdcHub");
 const IFdcRequestFeeConfigurations = artifacts.require("IFdcRequestFeeConfigurations");
 const IWeb2JsonVerification = artifacts.require("IWeb2JsonVerification");
-const IAssetManagerController = artifacts.require("IAssetManagerController");
+const IAssetManager = artifacts.require("IAssetManager");
 
 const FLARE_CONTRACT_REGISTRY_ADDRESS = "0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019";
 
@@ -231,7 +231,7 @@ export async function getWeb2JsonVerification() {
     return await IWeb2JsonVerification.at(address);
 }
 
-export async function getAssetManagerController() {
-    const address: string = await getContractAddressByName("AssetManagerController");
-    return await IAssetManagerController.at(address);
+export async function getAssetManagerFXRP() {
+    const address: string = await getContractAddressByName("AssetManagerFXRP");
+    return await IAssetManager.at(address);
 }
