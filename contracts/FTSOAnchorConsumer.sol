@@ -39,7 +39,7 @@ contract FtsoV2AnchorFeedConsumer {
         // Step 1: Verify the proof
         require(ftsoV2.verifyFeedData(data), "Invalid proof");
 
-        // Step 2: Ensure the proof is for the desired feedId tp avoid manipulation
+        // Step 2: Ensure the proof is for the desired feedId to avoid manipulation
         require(
             data.body.id == FLR_USD_ID ||
                 data.body.id == BTC_USD_ID ||
