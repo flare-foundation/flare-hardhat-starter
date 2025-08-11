@@ -1,4 +1,4 @@
-import { getFXRPAssetManager } from "../utils/fassets";
+import { getAssetManagerFXRP } from "../utils/fassets";
 import { prepareAttestationRequestBase } from "../utils/fdc";
 import { IAssetManagerInstance } from "../../typechain-types";
 import { logEvents } from "../../scripts/utils/core";
@@ -75,7 +75,7 @@ async function main() {
     const proof = await getProof(TARGET_ROUND_ID);
 
     // FAssets FXRP asset manager on Songbird Testnet Coston2 network
-    const assetManager: IAssetManagerInstance = await getFXRPAssetManager();
+    const assetManager: IAssetManagerInstance = await getAssetManagerFXRP();
 
     // Execute minting
     const tx = await assetManager.executeMinting(

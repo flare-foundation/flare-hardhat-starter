@@ -52,7 +52,7 @@ async function findBestAgent(assetManager: IAssetManagerInstance, minAvailableLo
     }
 }
 
-async function parseCollateralReservedEvent(transactionReceipt: any, decimals: number) {
+async function parseCollateralReservedEvent(transactionReceipt: any) {
     console.log("\nParsing events...", transactionReceipt.rawLogs);
 
     const collateralReservedEvents = logEvents(transactionReceipt.rawLogs, "CollateralReserved", AssetManager.abi);
@@ -105,7 +105,7 @@ async function main() {
     const decimals = await assetManager.assetMintingDecimals();
 
     // Parse the CollateralReserved event
-    const collateralReservedEvent = await parseCollateralReservedEvent(tx.receipt, decimals);
+    const collateralReservedEvent = await parseCollateralReservedEvent(tx.receipt);
 
     const collateralReservationInfo = await assetManager.collateralReservationInfo(
         collateralReservedEvent.collateralReservationId

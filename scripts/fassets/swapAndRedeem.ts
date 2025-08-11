@@ -14,7 +14,6 @@ const UNDERLYING_ADDRESS = "rSHYuiEvsYsKR8uUHhBTuGP5zjRcGt4nm";
 const SWAP_ROUTER_ADDRESS = "0x8D29b61C41CF318d15d031BE2928F79630e068e6";
 const WC2FLR = "0xC67DCE33D7A8efA5FfEB961899C73fe01bCe9273";
 
-const IAssetManager = artifacts.require("IAssetManager");
 const SwapAndRedeem = artifacts.require("SwapAndRedeem");
 
 async function deployAndVerifyContract() {
