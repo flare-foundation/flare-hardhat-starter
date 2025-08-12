@@ -1,8 +1,7 @@
-import { ethers } from "hardhat";
-
-import { getFXRPAssetManagerAddress } from "../utils/fassets";
+import { getAssetManagerFXRP } from "../utils/fassets";
 import { prepareAttestationRequestBase } from "../utils/fdc";
-import { IAssetManagerInstance, IAssetManagerContract } from "../../typechain-types";
+import { IAssetManagerInstance } from "../../typechain-types";
+import { logEvents } from "../../scripts/utils/core";
 
 // yarn hardhat run scripts/fassets/executeMinting.ts --network coston2
 
@@ -10,10 +9,10 @@ import { IAssetManagerInstance, IAssetManagerContract } from "../../typechain-ty
 const { COSTON2_DA_LAYER_URL, VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET } = process.env;
 
 // Collateral reservation ID
-const COLLATERAL_RESERVATION_ID = 2680499;
+const COLLATERAL_RESERVATION_ID = 10255417;
 
 // FDC round id to get the proof for
-const TARGET_ROUND_ID = 1004741;
+const TARGET_ROUND_ID = 1053806;
 
 // FDC request data
 const attestationTypeBase = "Payment";
@@ -21,9 +20,11 @@ const sourceIdBase = "testXRP";
 const verifierUrlBase = VERIFIER_URL_TESTNET;
 const urlTypeBase = "xrp";
 
-const transactionId = "8643579D712C2596A5ACCDB0F450C85C86DE413D0BD040A7809C37B0E82A1D95";
+const transactionId = "EC0FC5F40FBE6AEAD31138898C71687B2902E462FD1BFEF3FB443BE5E2C018F9";
 const inUtxo = "0";
 const utxo = "0";
+
+const AssetManager = artifacts.require("IAssetManager");
 
 // Prepare FDC request
 async function prepareFdcRequest(transactionId: string, inUtxo: string, utxo: string) {
@@ -65,37 +66,16 @@ async function getProof(roundId: number) {
 async function parseEvents(receipt: any) {
     console.log("\nParsing events...", receipt.rawLogs);
 
-    // Get AssetManager contract interface
-    const assetManagerAddress = await getFXRPAssetManagerAddress();
-    const assetManager = (await ethers.getContractAt("IAssetManager", assetManagerAddress)) as IAssetManagerContract;
+    logEvents(receipt.rawLogs, "RedemptionTicketCreated", AssetManager.abi);
 
-    for (const log of receipt.rawLogs) {
-        try {
-            const parsedLog = assetManager.interface.parseLog({
-                topics: log.topics,
-                data: log.data,
-            });
-
-            if (!parsedLog) continue;
-
-            const collateralReservedEvents = ["RedemptionTicketCreated", "MintingExecuted"];
-            if (!collateralReservedEvents.includes(parsedLog.name)) continue;
-
-            console.log(`\nEvent: ${parsedLog.name}`);
-            console.log("Arguments:", parsedLog.args);
-        } catch (e) {
-            console.log("Error parsing event:", e);
-        }
-    }
+    logEvents(receipt.rawLogs, "MintingExecuted", AssetManager.abi);
 }
 
 async function main() {
     const proof = await getProof(TARGET_ROUND_ID);
 
-    // FAssets FXRP asset manager on Songbird Testnet Coston network
-    const AssetManager = artifacts.require("IAssetManager");
-    const assetManagerAddress = await getFXRPAssetManagerAddress();
-    const assetManager: IAssetManagerInstance = await AssetManager.at(assetManagerAddress);
+    // FAssets FXRP asset manager on Songbird Testnet Coston2 network
+    const assetManager: IAssetManagerInstance = await getAssetManagerFXRP();
 
     // Execute minting
     const tx = await assetManager.executeMinting(

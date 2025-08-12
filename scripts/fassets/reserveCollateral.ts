@@ -1,17 +1,15 @@
-import { ethers } from "hardhat";
-
-import { getFXRPAssetManagerAddress } from "../utils/fassets";
-import { IAssetManagerInstance, IAssetManagerContract } from "../../typechain-types";
+import { getAssetManagerFXRP } from "../utils/getters";
+import { IAssetManagerInstance } from "../../typechain-types";
+import { logEvents } from "../../scripts/utils/core";
 
 // yarn hardhat run scripts/fassets/reserveCollateral.ts --network coston2
 
 // Number of lots to reserve
 const LOTS_TO_MINT = 1;
-// XRP Ledger address
-const UNDERLYING_ADDRESS = "rSHYuiEvsYsKR8uUHhBTuGP5zjRcGt4nm";
-
 // Use zero address for executor since we're not using it
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
+const AssetManager = artifacts.require("IAssetManager");
 
 // Function from FAssets Bot repository
 // https://github.com/flare-foundation/fasset-bots/blob/main/packages/fasset-bots-core/src/commands/InfoBotCommands.ts#L83
@@ -54,41 +52,18 @@ async function findBestAgent(assetManager: IAssetManagerInstance, minAvailableLo
     }
 }
 
-async function parseCollateralReservedEvent(transactionReceipt: any, decimals: number) {
+async function parseCollateralReservedEvent(transactionReceipt: any) {
     console.log("\nParsing events...", transactionReceipt.rawLogs);
 
-    // Get AssetManager contract interface
-    const assetManagerAddress = await getFXRPAssetManagerAddress();
-    const assetManager = (await ethers.getContractAt("IAssetManager", assetManagerAddress)) as IAssetManagerContract;
+    const collateralReservedEvents = logEvents(transactionReceipt.rawLogs, "CollateralReserved", AssetManager.abi);
 
-    for (const log of transactionReceipt.rawLogs) {
-        try {
-            const parsedLog = assetManager.interface.parseLog({
-                topics: log.topics,
-                data: log.data,
-            });
-
-            if (!parsedLog) continue;
-
-            const collateralReservedEvents = ["CollateralReserved"];
-            if (!collateralReservedEvents.includes(parsedLog.name)) continue;
-
-            console.log(`\nEvent: ${parsedLog.name}`);
-            console.log("Arguments:", parsedLog.args);
-            const collateralReservedEvent = parsedLog.args;
-
-            return collateralReservedEvent;
-        } catch (e) {
-            console.log("Error parsing event:", e);
-        }
-    }
+    return collateralReservedEvents[0].decoded;
 }
 
 async function main() {
     // Initialize the FAssets FXRP AssetManager contract
-    const AssetManager = artifacts.require("IAssetManager");
-    const assetManagerAddress = await getFXRPAssetManagerAddress();
-    const assetManager: IAssetManagerInstance = await AssetManager.at(assetManagerAddress);
+    
+    const assetManager: IAssetManagerInstance = await getAssetManagerFXRP();
 
     // Find the best agent with enough free collateral lots
     const agentVaultAddress = await findBestAgent(assetManager, LOTS_TO_MINT);
@@ -106,6 +81,13 @@ async function main() {
     const collateralReservationFee = await assetManager.collateralReservationFee(LOTS_TO_MINT);
     console.log("Collateral reservation fee:", collateralReservationFee.toString());
 
+    console.log("agentVaultAddress", agentVaultAddress);
+    console.log("LOTS_TO_MINT", LOTS_TO_MINT);
+    console.log("agentInfo.feeBIPS", agentInfo.feeBIPS);
+    console.log("ZERO_ADDRESS", ZERO_ADDRESS);
+
+    console.log("collateralReservationFee", collateralReservationFee);
+
     // Reserve collateral
     // https://dev.flare.network/fassets/reference/IAssetManager#reservecollateral
     const tx = await assetManager.reserveCollateral(
@@ -114,7 +96,6 @@ async function main() {
         agentInfo.feeBIPS,
         // Not using the executor
         ZERO_ADDRESS,
-        [UNDERLYING_ADDRESS],
         // Sending the collateral reservation fee as native tokens
         { value: collateralReservationFee }
     );
@@ -124,14 +105,16 @@ async function main() {
     const decimals = await assetManager.assetMintingDecimals();
 
     // Parse the CollateralReserved event
-    const collateralReservedEvent = await parseCollateralReservedEvent(tx.receipt, decimals);
+    const collateralReservedEvent = await parseCollateralReservedEvent(tx.receipt);
 
     const collateralReservationInfo = await assetManager.collateralReservationInfo(
         collateralReservedEvent.collateralReservationId
     );
     console.log("Collateral reservation info:", collateralReservationInfo);
 
-    const totalUBA = collateralReservedEvent.valueUBA + collateralReservedEvent.feeUBA;
+    const valueUBA = BigInt(collateralReservedEvent.valueUBA.toString());
+    const feeUBA = BigInt(collateralReservedEvent.feeUBA.toString());
+    const totalUBA = valueUBA + feeUBA;
     const totalXRP = Number(totalUBA) / 10 ** decimals;
     console.log(`You need to pay ${totalXRP} XRP`);
 }

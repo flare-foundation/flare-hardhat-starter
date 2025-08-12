@@ -1,6 +1,6 @@
 // yarn hardhat run scripts/fassets/getLotSize.ts --network coston2
 
-// Get the contract
+// Get the contract artifact
 const FAssetsSettings = artifacts.require("FAssetsSettings");
 
 async function main() {

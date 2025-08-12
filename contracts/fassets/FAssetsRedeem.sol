@@ -5,18 +5,9 @@ import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/
 import {IAssetManager} from "@flarenetwork/flare-periphery-contracts/coston2/IAssetManager.sol";
 import {AssetManagerSettings} from "@flarenetwork/flare-periphery-contracts/coston2/data/AssetManagerSettings.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {RedemptionRequestInfo} from "@flarenetwork/flare-periphery-contracts/coston2/data/RedemptionRequestInfo.sol";
 
 contract FAssetsRedeem {
-    // IAssetManager public immutable assetManager;
-    // IERC20 public immutable underlyingToken;
-
-    // address public immutable fAssetToken;
-
-    function approveFAssets(uint256 _amount) public returns (bool) {
-        IERC20 fAssetToken = IERC20(getFXRPAddress());
-        return fAssetToken.approve(address(this), _amount);
-    }
-
     function redeem(
         uint256 _lots,
         string memory _redeemerUnderlyingAddressString
@@ -55,5 +46,11 @@ contract FAssetsRedeem {
         assetDecimals = settings.assetDecimals;
 
         return (lotSizeAMG, assetDecimals);
+    }
+
+    function getRedemptionRequestInfo(uint256 _redemptionTicketId) public view returns(RedemptionRequestInfo.Data memory) {
+        IAssetManager assetManager = ContractRegistry.getAssetManagerFXRP();
+
+        return assetManager.redemptionRequestInfo(_redemptionTicketId);
     }
 }
