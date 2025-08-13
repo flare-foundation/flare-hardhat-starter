@@ -1,6 +1,7 @@
-import hre from "hardhat";
 import { run } from "hardhat";
 import { FtsoV2AnchorFeedConsumerInstance } from "../typechain-types";
+
+const FtsoV2AnchorFeedConsumer: FtsoV2AnchorFeedConsumerInstance = artifacts.require("FtsoV2AnchorFeedConsumer");
 
 // Feed IDs, see https://dev.flare.network/ftso/scaling/anchor-feeds for full list
 const FEED_IDS = [
@@ -58,54 +59,67 @@ async function fetchAnchorFeeds(): Promise<string> {
 }
 
 /**
+ * Transforms a single raw feed object from the DA layer into the structured FeedDataWithProof format.
+ * Returns null if the feed object is malformed.
+ */
+function transformAndValidateFeed(feed: any): FeedDataWithProof | null {
+    const body = feed?.body ?? feed?.data;
+    const proof = feed?.proof as string[] | undefined;
+
+    // 1. Validate the structure of the individual feed item
+    if (!body || !Array.isArray(proof) || typeof body.votingRoundId === 'undefined' || typeof body.id === 'undefined') {
+        console.warn(`Skipping malformed data from DA layer: ${JSON.stringify(feed)}`);
+        return null;
+    }
+
+    // 2. Transform the raw body into the structured FeedData format, ensuring type correctness
+    const normalizedBody: FeedData = {
+        votingRoundId: Number(body.votingRoundId),
+        id: String(body.id),
+        value: Number(body.value),
+        turnoutBIPS: Number(body.turnoutBIPS),
+        decimals: Number(body.decimals),
+    };
+
+    return {
+        proof,
+        body: normalizedBody,
+    };
+}
+
+/**
  * Parses and validates the raw response from the DA layer into a structured format.
  */
 function parseAndNormalizeFeeds(rawResponse: string): FeedDataWithProof[] {
+    // 1. Parse the raw JSON string and ensure it's an array
     const feedsFromDALayer = JSON.parse(rawResponse) as any[];
     if (!Array.isArray(feedsFromDALayer)) {
         throw new Error(`Unexpected DA response. Expected an array, got: ${rawResponse}`);
     }
 
-    return feedsFromDALayer
-        .map(feed => {
-            const body = feed?.body ?? feed?.data;
-            const proof = feed?.proof as string[] | undefined;
+    // 2. Map each raw feed object to our structured format, validating each one
+    const processedFeeds = feedsFromDALayer.map(transformAndValidateFeed);
 
-            if (!body || !Array.isArray(proof)) {
-                console.warn(`Skipping malformed data from DA: ${JSON.stringify(feed)}`);
-                return null; // Will be filtered out later
-            }
+    // 3. Filter out any null entries, which represent malformed data that was skipped
+    const validFeeds = processedFeeds.filter(
+        (feed): feed is FeedDataWithProof => feed !== null
+    );
 
-            return {
-                proof,
-                body: {
-                    votingRoundId: Number(body.votingRoundId),
-                    id: String(body.id),
-                    value: Number(body.value),
-                    turnoutBIPS: Number(body.turnoutBIPS),
-                    decimals: Number(body.decimals),
-                },
-            };
-        })
-        .filter(Boolean) as FeedDataWithProof[]; // filter(Boolean) removes any null entries
+    return validFeeds;
 }
 
 /**
  * Deploys the FtsoV2AnchorFeedConsumer contract.
  */
 async function deployConsumerContract(): Promise<FtsoV2AnchorFeedConsumerInstance> {
-    const FtsoV2AnchorFeedConsumer = await hre.artifacts.readArtifact("FtsoV2AnchorFeedConsumer");
-    const factory = await hre.ethers.getContractFactory(
-        FtsoV2AnchorFeedConsumer.abi,
-        FtsoV2AnchorFeedConsumer.bytecode
-    );
-    const feedConsumer = await factory.deploy();
-    await feedConsumer.waitForDeployment();
-    console.log("FtsoV2AnchorFeedConsumer deployed at:", await feedConsumer.getAddress());
+    const args: any[] = [];
+    const ftsoV2AnchorFeedConsumer: FtsoV2AnchorFeedConsumerInstance = await FtsoV2AnchorFeedConsumer.new(...args);
+
+    console.log("FtsoV2AnchorFeedConsumer deployed at:", ftsoV2AnchorFeedConsumer.address);
 
     try {
         await run("verify:verify", {
-            address: await feedConsumer.getAddress(),
+            address: ftsoV2AnchorFeedConsumer.address,
             constructorArguments: [],
         });
     } catch (e: any) {
@@ -115,7 +129,7 @@ async function deployConsumerContract(): Promise<FtsoV2AnchorFeedConsumerInstanc
             console.error("Error verifying contract:", e.message);
         }
     }
-    return feedConsumer as unknown as FtsoV2AnchorFeedConsumerInstance;
+    return ftsoV2AnchorFeedConsumer;
 }
 
 /**
@@ -128,19 +142,9 @@ async function interactWithContract(
     const { label, category } = decodeFeedId(feedDataWithProof.body.id);
     console.log(`\n--- Processing ${label} [${category}] ---`);
 
-    // Use a static call first to verify the proof without spending gas on a transaction
-    try {
-        await feedConsumer.savePrice.staticCall(feedDataWithProof);
-        console.log(`Proof for ${label} verified successfully (static call).`);
-    } catch (e) {
-        console.error(`Proof verification for ${label} failed:`, e);
-        throw e; // Re-throw to stop the script if verification fails
-    }
-
-    // If the static call succeeds, send the actual transaction
     const tx = await feedConsumer.savePrice(feedDataWithProof);
-    await tx.wait();
-    console.log(`savePrice() transaction for ${label} mined: ${tx.hash}`);
+
+    console.log(`savePrice() transaction for ${label} mined: ${tx.tx}`);
 
     // Read the value back from the contract to confirm it was saved correctly
     const saved = await feedConsumer.provenFeeds(feedDataWithProof.body.votingRoundId, feedDataWithProof.body.id);
@@ -148,6 +152,7 @@ async function interactWithContract(
 
     console.log(`✅ Saved price: ${formattedPrice} at voting round: ${saved.votingRoundId.toString()}`);
 }
+
 
 async function main() {
     // 1. Fetch raw data from the Data Availability Layer
