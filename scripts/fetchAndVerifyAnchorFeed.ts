@@ -67,7 +67,7 @@ function transformAndValidateFeed(feed: any): FeedDataWithProof | null {
     const proof = feed?.proof as string[] | undefined;
 
     // 1. Validate the structure of the individual feed item
-    if (!body || !Array.isArray(proof) || typeof body.votingRoundId === 'undefined' || typeof body.id === 'undefined') {
+    if (!body || !Array.isArray(proof) || typeof body.votingRoundId === "undefined" || typeof body.id === "undefined") {
         console.warn(`Skipping malformed data from DA layer: ${JSON.stringify(feed)}`);
         return null;
     }
@@ -101,9 +101,7 @@ function parseAndNormalizeFeeds(rawResponse: string): FeedDataWithProof[] {
     const processedFeeds = feedsFromDALayer.map(transformAndValidateFeed);
 
     // 3. Filter out any null entries, which represent malformed data that was skipped
-    const validFeeds = processedFeeds.filter(
-        (feed): feed is FeedDataWithProof => feed !== null
-    );
+    const validFeeds = processedFeeds.filter((feed): feed is FeedDataWithProof => feed !== null);
 
     return validFeeds;
 }
@@ -152,7 +150,6 @@ async function interactWithContract(
 
     console.log(`✅ Saved price: ${formattedPrice} at voting round: ${saved.votingRoundId.toString()}`);
 }
-
 
 async function main() {
     // 1. Fetch raw data from the Data Availability Layer
