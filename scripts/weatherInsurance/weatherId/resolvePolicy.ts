@@ -5,7 +5,7 @@ import {
     submitAttestationRequest,
     retrieveDataAndProofBaseWithRetry,
 } from "../../utils/fdc";
-import { sleep } from "scripts/utils/core";
+import { sleep } from "../../utils/core";
 
 const { WEB2JSON_VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } = process.env;
 
