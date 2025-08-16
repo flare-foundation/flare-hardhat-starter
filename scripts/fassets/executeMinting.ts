@@ -1,4 +1,4 @@
-import { getAssetManagerFXRP } from "../utils/fassets";
+import { getAssetManagerFXRP } from "../utils/getters";
 import { prepareAttestationRequestBase } from "../utils/fdc";
 import { IAssetManagerInstance } from "../../typechain-types";
 import { logEvents } from "../../scripts/utils/core";
