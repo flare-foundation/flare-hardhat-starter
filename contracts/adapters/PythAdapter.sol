@@ -1,73 +1,29 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
 
+// Flare Network Imports
 import {TestFtsoV2Interface} from "@flarenetwork/flare-periphery-contracts/coston2/TestFtsoV2Interface.sol";
 import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
-/**
- * @title IPyth
- * @notice Interface for the Pyth Network's price feed contract.
- * @dev This is a partial interface containing only the necessary structs and functions
- * for this adapter. For the full interface, see the Pyth Network documentation: https://docs.pyth.network/developers/price-api
- */
-interface IPyth {
-    /**
-     * @notice A price with a confidence interval and other metadata.
-     * @param price The price, represented as a signed 64-bit integer.
-     * @param conf The confidence interval, represented as an unsigned 64-bit integer.
-     * @param expo The exponent for the price. The real value is price * 10^expo.
-     * @param publishTime The timestamp of the price update.
-     */
-    struct Price {
-        int64 price;
-        uint64 conf;
-        int32 expo;
-        uint publishTime;
-    }
 
-    /**
-     * @notice Get the current price for a price feed.
-     * @param id The ID of the price feed to query.
-     * @return price The current price struct for the given price feed ID.
-     */
-    function getPrice(bytes32 id) external view returns (Price memory price);
-
-    /**
-     * @notice Get the exponentially-weighted moving average price for a price feed.
-     * @param id The ID of the price feed to query.
-     * @return price The current EMA price struct for the given price feed ID.
-     */
-    function getEmaPrice(bytes32 id) external view returns (Price memory price);
-}
+// Pyth Network Imports
+import "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
+import "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
 
 /**
  * @title FtsoPythAdapter
  * @notice Exposes Flare FTSOv2 prices through Pyth Network's IPyth interface.
- *
  * @dev This contract adapts the data model of Flare's FTSO to Pyth's Price struct.
- * - FTSO provides a `value` and `decimals`.
- * - Pyth uses a `price` and an `expo` (exponent), where the real value is `price * 10^expo`.
- * - This adapter represents the FTSO price by setting `price = value` and `expo = -decimals`.
- * - FTSO does not provide a confidence interval, so `conf` is set to 0.
- *
- * IMPORTANT:
- * - Pyth's `getPrice()` is view, but FTSOv2 may require a fee to read. We are using
- * TestFtsoV2Interface which does not require a fee.
- * - We therefore cache the latest price in storage via `refresh()`, and
- * `getPrice()` returns the cached value.
- *
- * Usage:
- * - Anyone (or your keeper) calls refresh().
- * - Pyth-integrated consumers keep calling getPrice().
+ * It implements a subset of the IPyth interface, specifically `getPriceNoOlderThan`
+ * and `getPriceUnsafe`, and reverts on all other functions.
  */
 contract FtsoPythAdapter is IPyth {
     // ---- Immutable configuration ----
     bytes21 public immutable ftsoFeedId; // e.g. "BTC/USD" => 0x014254432f555344...
     bytes32 public immutable pythPriceId; // The Pyth-style price ID this adapter will serve.
     string public descriptionText; // Human readable, e.g. "FTSOv2 BTC/USD (Coston2)"
-    uint256 public immutable maxAgeSeconds; // Staleness guard for cached price
 
     // ---- Cached state ----
-    Price private _latestPrice;
+    PythStructs.Price private _latestPrice;
 
     // ---- Events ----
     event Refreshed(
@@ -81,45 +37,130 @@ contract FtsoPythAdapter is IPyth {
     constructor(
         bytes21 _ftsoFeedId,
         bytes32 _pythPriceId,
-        string memory _description,
-        uint256 _maxAgeSeconds
+        string memory _description
     ) {
         ftsoFeedId = _ftsoFeedId;
         pythPriceId = _pythPriceId;
         descriptionText = _description;
-        maxAgeSeconds = _maxAgeSeconds;
     }
 
-    // --------- Pyth IPyth Interface ---------
+    // --------- Pyth IPyth Interface Implementation ---------
 
     /**
-     * @notice Gets the latest price data for the configured feed ID.
-     * @dev Checks for a valid Pyth price ID and that the cached data is not stale.
+     * @notice Gets the latest price data for the configured feed ID, ensuring it is not stale.
+     * @dev This is the primary function for safely consuming prices from this adapter.
      * @param _id The Pyth price feed ID.
+     * @param _age The maximum allowed age of the price in seconds.
      * @return The cached Price struct.
      */
-    function getPrice(
-        bytes32 _id
-    ) external view override returns (Price memory) {
+    function getPriceNoOlderThan(
+        bytes32 _id,
+        uint _age
+    ) external view override returns (PythStructs.Price memory) {
         require(_id == pythPriceId, "INVALID_PRICE_ID");
 
-        Price memory p = _latestPrice;
+        PythStructs.Price memory p = _latestPrice;
         require(p.publishTime != 0, "NO_DATA");
+        require(block.timestamp - p.publishTime <= _age, "STALE_PRICE");
 
-        // Optional staleness guard for consumers relying solely on this call
-        if (maxAgeSeconds > 0) {
-            require(block.timestamp - p.publishTime <= maxAgeSeconds, "STALE");
-        }
         return p;
     }
 
     /**
-     * @notice EMA price is not supported by the FTSO. This function will always revert.
+     * @notice Gets the latest price data without a staleness check.
+     * @dev Use with caution. Check the publishTime of the returned struct.
+     * @param _id The Pyth price feed ID.
+     * @return The cached Price struct.
      */
-    function getEmaPrice(
+    function getPriceUnsafe(
+        bytes32 _id
+    ) external view override returns (PythStructs.Price memory) {
+        require(_id == pythPriceId, "INVALID_PRICE_ID");
+        require(_latestPrice.publishTime != 0, "NO_DATA");
+        return _latestPrice;
+    }
+
+    // --------- Unsupported IPyth Functions ---------
+    // @dev The following functions are part of the IPyth interface but are not
+    // supported by this FTSO adapter. They will always revert.
+
+    function getEmaPriceUnsafe(
         bytes32
-    ) external pure override returns (Price memory) {
-        revert("EMA_UNSUPPORTED");
+    ) external view override returns (PythStructs.Price memory) {
+        revert("UNSUPPORTED");
+    }
+
+    function getEmaPriceNoOlderThan(
+        bytes32,
+        uint
+    ) external view override returns (PythStructs.Price memory) {
+        revert("UNSUPPORTED");
+    }
+
+    function updatePriceFeeds(bytes[] calldata) external payable override {
+        revert("UNSUPPORTED");
+    }
+
+    function updatePriceFeedsIfNecessary(
+        bytes[] calldata,
+        bytes32[] calldata,
+        uint64[] calldata
+    ) external payable override {
+        revert("UNSUPPORTED");
+    }
+
+    function getUpdateFee(
+        bytes[] calldata
+    ) external view override returns (uint) {
+        revert("UNSUPPORTED");
+    }
+
+    function getTwapUpdateFee(
+        bytes[] calldata
+    ) external view override returns (uint) {
+        revert("UNSUPPORTED");
+    }
+
+    function parsePriceFeedUpdates(
+        bytes[] calldata,
+        bytes32[] calldata,
+        uint64,
+        uint64
+    ) external payable override returns (PythStructs.PriceFeed[] memory) {
+        revert("UNSUPPORTED");
+    }
+
+    function parsePriceFeedUpdatesWithConfig(
+        bytes[] calldata,
+        bytes32[] calldata,
+        uint64,
+        uint64,
+        bool,
+        bool,
+        bool
+    )
+        external
+        payable
+        override
+        returns (PythStructs.PriceFeed[] memory, uint64[] memory)
+    {
+        revert("UNSUPPORTED");
+    }
+
+    function parseTwapPriceFeedUpdates(
+        bytes[] calldata,
+        bytes32[] calldata
+    ) external payable override returns (PythStructs.TwapPriceFeed[] memory) {
+        revert("UNSUPPORTED");
+    }
+
+    function parsePriceFeedUpdatesUnique(
+        bytes[] calldata,
+        bytes32[] calldata,
+        uint64,
+        uint64
+    ) external payable override returns (PythStructs.PriceFeed[] memory) {
+        revert("UNSUPPORTED");
     }
 
     // --------- Refresh path ---------
@@ -131,15 +172,13 @@ contract FtsoPythAdapter is IPyth {
     function refresh() external {
         TestFtsoV2Interface ftsoV2 = ContractRegistry.getTestFtsoV2();
 
-        // Read FTSO value (returns integer value, feed decimals, and timestamp)
         (uint256 rawValue, int8 ftsoDecimals, uint64 ts) = ftsoV2.getFeedById(
             ftsoFeedId
         );
         require(ts != 0, "FTSO_NO_DATA");
 
-        // Cache the price in Pyth's format
-        _latestPrice = Price({
-            price: int64(uint64(rawValue)), // Safe two-step cast
+        _latestPrice = PythStructs.Price({
+            price: int64(uint64(rawValue)),
             conf: 0, // FTSO does not provide a confidence interval
             expo: -ftsoDecimals,
             publishTime: ts
@@ -156,19 +195,11 @@ contract FtsoPythAdapter is IPyth {
 
     // --------- Admin niceties (optional, non-critical) ---------
 
-    /**
-     * @notice Updates the description text.
-     * @param newDesc The new description string.
-     */
     function setDescription(string calldata newDesc) external {
-        // Optional: make this ownable if you want; left open for simplicity
         descriptionText = newDesc;
     }
 
-    /**
-     * @notice A helper function to view the currently cached price data.
-     */
-    function latestPrice() external view returns (Price memory) {
+    function latestPrice() external view returns (PythStructs.Price memory) {
         return _latestPrice;
     }
 }

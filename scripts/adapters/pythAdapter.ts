@@ -1,26 +1,25 @@
 import { run, artifacts } from "hardhat";
 import { FtsoPythAdapterInstance } from "../../typechain-types";
 
-// --- CONFIGURATION ---
 const FtsoPythAdapter: FtsoPythAdapterInstance = artifacts.require("FtsoPythAdapter");
 
 // FTSO Feed ID for BTC / USD (bytes21)
 const FTSO_FEED_ID = "0x014254432f55534400000000000000000000000000";
 // Pyth Price ID for the same feed (bytes32)
+// This should be a unique identifier for your adapted feed.
 const PYTH_PRICE_ID = "0x4254432f55534400000000000000000000000000000000000000000000000001";
 // Description for the adapter
 const DESCRIPTION = "FTSOv2 BTC/USD adapted for Pyth";
-// Max age for the price data in seconds (e.g., 1 hour)
+// Max age for the price data in seconds (e.g., 1 hour) used in getPriceNoOlderThan
 const MAX_AGE_SECONDS = 3600;
 
 async function deployAndVerify() {
-    const args: any[] = [FTSO_FEED_ID, PYTH_PRICE_ID, DESCRIPTION, MAX_AGE_SECONDS];
+    const args: any[] = [FTSO_FEED_ID, PYTH_PRICE_ID, DESCRIPTION];
 
     console.log("Deploying FtsoPythAdapter with arguments:");
     console.log(`  - FTSO Feed ID: ${args[0]}`);
     console.log(`  - Pyth Price ID: ${args[1]}`);
     console.log(`  - Description: ${args[2]}`);
-    console.log(`  - Max Age (seconds): ${args[3]}`);
 
     const adapter = (await FtsoPythAdapter.new(...args)) as FtsoPythAdapterInstance;
 
@@ -43,9 +42,9 @@ async function deployAndVerify() {
 async function interactWithContract(adapter: FtsoPythAdapterInstance) {
     console.log(`\nInteracting with FtsoPythAdapter at ${adapter.address}`);
 
-    // 1. Read the initial price data
+    // 1. Read the initial price data using the safe, age-checked function
     try {
-        const initialData = await adapter.getPrice(PYTH_PRICE_ID);
+        const initialData = await adapter.getPriceNoOlderThan(PYTH_PRICE_ID, MAX_AGE_SECONDS);
         console.log("\n--- Initial State ---");
         logPriceData("Initial cached data", initialData);
     } catch (error: any) {
@@ -77,22 +76,18 @@ async function interactWithContract(adapter: FtsoPythAdapterInstance) {
 
     // 3. Read the updated price data
     console.log("\n--- Reading updated price data ---");
-    const finalData = await adapter.getPrice(PYTH_PRICE_ID);
+    const finalData = await adapter.getPriceNoOlderThan(PYTH_PRICE_ID, MAX_AGE_SECONDS);
     logPriceData("New cached data", finalData);
 }
 
 /**
- * Logs the price data in a human-readable format.
+ * Logs the price data from the PythStructs.Price struct in a human-readable format.
  * @param label The label for the price data.
- * @param data The price data to log.
+ * @param data The Price struct returned from the contract.
  */
 function logPriceData(label: string, data: any) {
-    const price = data[0];
-    const conf = data[1];
-    const expo = data[2];
-    const publishTime = data[3];
+    const { price, conf, expo, publishTime } = data;
 
-    // Handle both BigNumber and regular number types for the timestamp
     const timestamp = typeof publishTime.toNumber === "function" ? publishTime.toNumber() : publishTime;
 
     console.log(`${label}:`);
