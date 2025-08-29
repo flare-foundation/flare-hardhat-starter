@@ -3,7 +3,7 @@ import { ProofOfReservesInstance, IRelayInstance, IFdcVerificationInstance } fro
 import { prepareAttestationRequestBase, getFdcRequestFee, calculateRoundId, postRequestToDALayer } from "../utils/fdc";
 import { getFdcHub, getRelay, getFdcVerification } from "../utils/getters";
 import { sleep } from "../utils/core";
-import { tokenAddresses, readerAddresses, proofOfReservesAddress, transactionHashes } from "./config";
+import { tokenAddresses, readerAddresses, proofOfReservesAddress, transactionHashes } from "./config/all";
 
 const ProofOfReserves = artifacts.require("ProofOfReserves");
 
@@ -29,7 +29,7 @@ const requests: AttestationRequest[] = [
         verifierApiKey: VERIFIER_API_KEY_TESTNET,
         urlTypeBase: "",
         data: {
-            apiUrl: "https://api.htdigitalassets.com/alm-stablecoin-db/metrics/current_reserves_amount",
+            apiUrl: "https://mock-data.free.beeceptor.com/usdt0/reserves",
             httpMethod: "GET",
             headers: "{}",
             queryParams: "{}",

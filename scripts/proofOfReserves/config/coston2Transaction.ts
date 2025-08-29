@@ -1,0 +1,1 @@
+export const coston2Transaction = "0x5b5c7e45b3ec724e68add657df2923aebf86bb38ceac25f6fc4ad7c9969fedb2";

@@ -1,7 +1,8 @@
 import hre from "hardhat";
+import fs from "fs";
 import { TokenStateReaderInstance } from "../../typechain-types";
 
-import { tokenAddresses, readerAddresses } from "./config";
+import { tokenAddresses, readerAddresses } from "./config/all";
 
 const TokenStateReader = artifacts.require("TokenStateReader");
 
@@ -15,6 +16,11 @@ async function main() {
 
     const transaction = await reader.broadcastTokenSupply(tokenAddress);
     console.log(`(${network}) Transaction id:`, transaction.tx, "\n");
+
+    fs.writeFileSync(
+        `scripts/proofOfReserves/config/${hre.network.name}Transaction.ts`,
+        `export const ${hre.network.name}Transaction = "${transaction.tx}";`
+    );
 }
 
 void main().then(() => {
