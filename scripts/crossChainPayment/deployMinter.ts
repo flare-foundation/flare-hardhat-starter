@@ -1,6 +1,7 @@
 import { run } from "hardhat";
+import fs from "fs";
 import { NFTMinterInstance, MyNFTInstance } from "../../typechain-types";
-import { nftAddress } from "./config";
+import { nftAddress } from "./config/nft";
 
 const NFTMinter = artifacts.require("NFTMinter");
 const MyNFT = artifacts.require("MyNFT");
@@ -27,6 +28,11 @@ async function deployAndVerify() {
 
     await myNFT.grantRole(minterRole, nftMinter.address);
     console.log("NFTMinter has MINTER_ROLE:", await myNFT.hasRole(minterRole, nftMinter.address), "\n");
+
+    fs.writeFileSync(
+        `scripts/crossChainPayment/config/minter.ts`,
+        `export const minterAddress = "${nftMinter.address}";`
+    );
 }
 
 void deployAndVerify().then(() => {

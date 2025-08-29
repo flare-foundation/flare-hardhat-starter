@@ -1,0 +1,1 @@
+export const minterAddress = "0x92a74043693573033017667562A1A6B1e65B0E3e";
