@@ -1,4 +1,5 @@
 import hre, { run } from "hardhat";
+import fs from "fs";
 import { MinTempAgencyInstance } from "../../../typechain-types";
 
 const MinTempAgency = artifacts.require("MinTempAgency");
@@ -17,6 +18,8 @@ async function deployAndVerify() {
         console.log(e);
     }
     console.log(`(${hre.network.name}) MinTempAgency deployed to`, agency.address, "\n");
+
+    fs.writeFileSync(`scripts/weatherInsurance/minTemp/config.ts`, `export const agencyAddress = "${agency.address}";`);
 }
 
 void deployAndVerify().then(() => {

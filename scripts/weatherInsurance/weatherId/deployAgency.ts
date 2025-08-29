@@ -1,4 +1,5 @@
 import hre, { run } from "hardhat";
+import fs from "fs";
 import { WeatherIdAgencyInstance } from "../../../typechain-types";
 
 const WeatherIdAgency = artifacts.require("WeatherIdAgency");
@@ -17,6 +18,11 @@ async function deployAndVerify() {
         console.log(e);
     }
     console.log(`(${hre.network.name}) WeatherIdAgency deployed to`, agency.address, "\n");
+
+    fs.writeFileSync(
+        `scripts/weatherInsurance/weatherId/config.ts`,
+        `export const agencyAddress = "${agency.address}";`
+    );
 }
 
 void deployAndVerify().then(() => {
