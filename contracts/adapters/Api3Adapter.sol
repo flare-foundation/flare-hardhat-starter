@@ -20,7 +20,7 @@ interface IApi3ReaderProxy {
 }
 
 /**
- * @title FtsoApi3Adapter
+ * @title FtsoApi3AdapterBase
  * @notice Exposes Flare FTSOv2 prices through an API3-compatible interface.
  *
  * @dev This contract adapts FTSO price data to the format expected by API3 consumers
@@ -39,11 +39,11 @@ interface IApi3ReaderProxy {
  * - Anyone (or your keeper) calls refresh().
  * - API3-integrated consumers call read().
  */
-contract FtsoApi3Adapter is IApi3ReaderProxy {
+abstract contract FtsoApi3AdapterBase is IApi3ReaderProxy {
     // ---- Immutable configuration ----
-    bytes21 public immutable ftsoFeedId; // e.g. "BTC/USD" => 0x014254432f555344...
-    string public descriptionText; // Human readable, e.g. "FTSOv2 BTC/USD (Coston2)"
-    uint256 public immutable maxAgeSeconds; // Staleness guard for cached price
+    bytes21 internal immutable ftsoFeedId; // e.g. "BTC/USD" => 0x014254432f555344...
+    string internal descriptionText; // Human readable, e.g. "FTSOv2 BTC/USD (Coston2)"
+    uint256 internal immutable maxAgeSeconds; // Staleness guard for cached price
 
     // ---- Constants ----
     uint8 private constant API3_DECIMALS = 18;
@@ -79,7 +79,7 @@ contract FtsoApi3Adapter is IApi3ReaderProxy {
      * @return value The latest scaled value of the data feed.
      * @return timestamp The timestamp of the latest value.
      */
-    function read() external view override returns (int224, uint32) {
+    function read() public view virtual override returns (int224, uint32) {
         DataPoint memory d = _latest;
         require(d.timestamp != 0, "NO_DATA");
 
@@ -97,7 +97,6 @@ contract FtsoApi3Adapter is IApi3ReaderProxy {
      * @dev Anyone can call this function to update the price.
      */
     function refresh() external {
-        // Resolve registry contracts
         TestFtsoV2Interface ftsoV2 = ContractRegistry.getTestFtsoV2();
 
         // Read FTSO value

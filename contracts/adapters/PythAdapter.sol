@@ -16,14 +16,14 @@ import "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
  * It implements a subset of the IPyth interface, specifically `getPriceNoOlderThan`
  * and `getPriceUnsafe`, and reverts on all other functions.
  */
-contract FtsoPythAdapter is IPyth {
+abstract contract FtsoPythAdapterBase is IPyth {
     // ---- Immutable configuration ----
-    bytes21 public immutable ftsoFeedId; // e.g. "BTC/USD" => 0x014254432f555344...
-    bytes32 public immutable pythPriceId; // The Pyth-style price ID this adapter will serve.
-    string public descriptionText; // Human readable, e.g. "FTSOv2 BTC/USD (Coston2)"
+    bytes21 internal immutable ftsoFeedId; // e.g. "BTC/USD" => 0x014254432f555344...
+    bytes32 internal immutable pythPriceId; // The Pyth-style price ID this adapter will serve.
+    string internal descriptionText; // Human readable, e.g. "FTSOv2 BTC/USD (Coston2)"
 
     // ---- Cached state ----
-    PythStructs.Price private _latestPrice;
+    PythStructs.Price internal _latestPrice;
 
     // ---- Events ----
     event Refreshed(
@@ -56,7 +56,7 @@ contract FtsoPythAdapter is IPyth {
     function getPriceNoOlderThan(
         bytes32 _id,
         uint _age
-    ) external view override returns (PythStructs.Price memory) {
+    ) public view virtual override returns (PythStructs.Price memory) {
         require(_id == pythPriceId, "INVALID_PRICE_ID");
 
         PythStructs.Price memory p = _latestPrice;
@@ -74,7 +74,7 @@ contract FtsoPythAdapter is IPyth {
      */
     function getPriceUnsafe(
         bytes32 _id
-    ) external view override returns (PythStructs.Price memory) {
+    ) public view virtual override returns (PythStructs.Price memory) {
         require(_id == pythPriceId, "INVALID_PRICE_ID");
         require(_latestPrice.publishTime != 0, "NO_DATA");
         return _latestPrice;

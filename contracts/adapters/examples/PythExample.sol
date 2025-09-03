@@ -1,33 +1,33 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
+import {FtsoPythAdapterBase} from "../PythAdapter.sol";
 import "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
 
 /**
  * @title PythNftMinter
- * @notice A simple contract that mints an NFT for a given price.
- * @dev This contracts uses the Pyth Network's IPyth interface to get the price of an asset.
- * It implements simple minting logic and uses the FTSO price adapter to get the price of an asset.
+ * @notice A simple contract that mints an NFT for $1 worth of a given asset.
+ * @dev This contract IS a Pyth-compatible price feed and uses its own inherited
+ * functions to value the asset for minting.
  */
-contract PythNftMinter {
-    IPyth internal ftsoAdapter;
-    bytes32 internal priceId;
-
-    // A simple counter for NFT token IDs
+contract PythNftMinter is FtsoPythAdapterBase {
     uint256 private _nextTokenId;
-
     error InsufficientFee();
 
-    constructor(address _ftsoAdapterAddress, bytes32 _priceId) {
-        // Implementing the IPyth interface
-        ftsoAdapter = IPyth(_ftsoAdapterAddress);
-        priceId = _priceId;
+    constructor(
+        bytes21 _ftsoFeedId,
+        bytes32 _pythPriceId,
+        string memory _description
+    ) FtsoPythAdapterBase(_ftsoFeedId, _pythPriceId, _description) {}
+
+    // --- Public Refresh Function ---
+    function _refresh() external {
+        this.refresh();
     }
 
     function mint() public payable {
-        PythStructs.Price memory price = ftsoAdapter.getPriceNoOlderThan(
-            priceId,
+        PythStructs.Price memory price = this.getPriceNoOlderThan(
+            pythPriceId,
             60
         );
 
@@ -39,7 +39,6 @@ contract PythNftMinter {
             revert InsufficientFee();
         }
 
-        // User paid enough, mint the NFT.
         _mint(msg.sender);
     }
 

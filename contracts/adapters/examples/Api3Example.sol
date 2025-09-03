@@ -1,14 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
-
-interface IApi3ReaderProxy {
-    /**
-     * @notice Reads the latest data feed value.
-     * @return value The latest value of the data feed.
-     * @return timestamp The timestamp of the latest value.
-     */
-    function read() external view returns (int224 value, uint32 timestamp);
-}
+import {FtsoApi3AdapterBase} from "../Api3Adapter.sol";
 
 /**
  * @title PriceGuesser
@@ -16,10 +8,9 @@ interface IApi3ReaderProxy {
  * @dev This contract uses an API3-compatible price feed to settle the market.
  * All bets are made in the native network token (e.g., C2FLR).
  */
-contract PriceGuesser {
+contract PriceGuesser is FtsoApi3AdapterBase {
     // --- State Variables ---
 
-    IApi3ReaderProxy public immutable priceFeed;
     uint256 public immutable strikePrice; // The target price (with 18 decimals).
     uint256 public immutable expiryTimestamp; // When the betting round ends.
 
@@ -55,13 +46,19 @@ contract PriceGuesser {
     event WinningsClaimed(address indexed user, uint256 amount);
 
     constructor(
-        address _priceFeedAddress,
-        uint256 _strikePrice, // e.g., 15000000000000000 for $0.015
-        uint256 _durationSeconds // e.g., 86400 for a 1-day round
-    ) {
-        priceFeed = IApi3ReaderProxy(_priceFeedAddress);
+        bytes21 _ftsoFeedId,
+        string memory _description,
+        uint256 _maxAgeSeconds,
+        uint256 _strikePrice,
+        uint256 _durationSeconds
+    ) FtsoApi3AdapterBase(_ftsoFeedId, _description, _maxAgeSeconds) {
         strikePrice = _strikePrice;
         expiryTimestamp = block.timestamp + _durationSeconds;
+    }
+
+    // --- Public Refresh Function ---
+    function _refresh() external {
+        this.refresh();
     }
 
     // --- User Functions ---
@@ -99,7 +96,7 @@ contract PriceGuesser {
         if (outcome != Outcome.Unsettled) revert RoundAlreadySettled();
 
         // Read the price from the FtsoApi3Adapter.
-        (int224 finalPrice, ) = priceFeed.read();
+        (int224 finalPrice, ) = this.read();
 
         // Determine the outcome.
         if (int256(finalPrice) >= int256(strikePrice)) {

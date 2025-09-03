@@ -1,8 +1,7 @@
-import { artifacts, network, run, web3 } from "hardhat";
-import { AssetVaultInstance, FtsoChainlinkAdapterInstance } from "../../../typechain-types";
+import { artifacts, run, web3 } from "hardhat";
+import { AssetVaultInstance } from "../../typechain-types";
 
 // --- Configuration ---
-const FtsoChainlinkAdapter: FtsoChainlinkAdapterInstance = artifacts.require("FtsoChainlinkAdapter");
 const AssetVault: AssetVaultInstance = artifacts.require("AssetVault");
 
 // FTSO Feed ID for FLR / USD (bytes21) on the Coston2 network.
@@ -15,54 +14,37 @@ const DESCRIPTION = "FTSOv2 FLR/USD adapted for Chainlink";
 const MAX_AGE_SECONDS = 3600; // 1 hour
 
 /**
- * Deploys and verifies the FtsoChainlinkAdapter and AssetVault contracts.
+ * Deploys and verifies the AssetVault contract.
  */
-async function deployContracts(): Promise<{ adapter: FtsoChainlinkAdapterInstance; vault: AssetVaultInstance }> {
-    // 1. Deploy the Adapter
-    const adapterArgs: any[] = [FTSO_FEED_ID, CHAINLINK_DECIMALS, DESCRIPTION, MAX_AGE_SECONDS];
-    console.log("Deploying FtsoChainlinkAdapter with arguments:");
-    console.log(`  - FTSO Feed ID: ${adapterArgs[0]}`);
-    console.log(`  - Chainlink Decimals: ${adapterArgs[1]}`);
-    console.log(`  - Description: ${adapterArgs[2]}`);
-    console.log(`  - Max Age (seconds): ${adapterArgs[3]}`);
-
-    const adapter = await FtsoChainlinkAdapter.new(...adapterArgs);
-    console.log("\n✅ FtsoChainlinkAdapter deployed to:", adapter.address);
-
-    // 2. Deploy the AssetVault, linking it to the adapter
-    const vaultArgs: any[] = [adapter.address];
+async function deployContracts(): Promise<{ vault: AssetVaultInstance }> {
+    // 1. Deploy the AssetVault, linking it to the adapter
+    const vaultArgs: any[] = [FTSO_FEED_ID, CHAINLINK_DECIMALS, DESCRIPTION, MAX_AGE_SECONDS];
     console.log("\nDeploying AssetVault with arguments:");
     console.log(`  - Price Feed Address: ${vaultArgs[0]}`);
+    console.log(`  - Chainlink Decimals: ${vaultArgs[1]}`);
+    console.log(`  - Description: ${vaultArgs[2]}`);
+    console.log(`  - Max Age (seconds): ${vaultArgs[3]}`);
 
     const vault = await AssetVault.new(...vaultArgs);
     console.log("\n✅ AssetVault deployed to:", vault.address);
 
-    // 3. Verify contracts on a live network
-    try {
-        console.log("\nVerifying FtsoChainlinkAdapter on block explorer...");
-        await run("verify:verify", { address: adapter.address, constructorArguments: adapterArgs });
-        console.log("Adapter verification successful.");
-    } catch (e: any) {
-        console.error("Adapter verification failed:", e.message);
-    }
-
+    // 2. Verify contracts on a live network
     try {
         console.log("\nVerifying AssetVault on block explorer...");
         await run("verify:verify", { address: vault.address, constructorArguments: vaultArgs });
         console.log("Vault verification successful.");
     } catch (e: any) {
-        console.error("Minter verification failed:", e.message);
+        console.error("Vault verification failed:", e.message);
     }
 
-    return { adapter, vault };
+    return { vault };
 }
 
 /**
  * Simulates a user's full lifecycle with the AssetVault.
- * @param adapter The deployed FtsoChainlinkAdapter instance.
  * @param vault The deployed AssetVault instance.
  */
-async function interactWithVault(adapter: FtsoChainlinkAdapterInstance, vault: AssetVaultInstance) {
+async function interactWithVault(vault: AssetVaultInstance) {
     const [user] = await web3.eth.getAccounts();
     const depositAmount = 100n * 10n ** 18n; // 100 native tokens (e.g., CFLR)
 
@@ -76,7 +58,7 @@ async function interactWithVault(adapter: FtsoChainlinkAdapterInstance, vault: A
 
     // Step 2: Refresh the price feed on the adapter
     console.log("\nStep 2: Refreshing the FTSO price on the adapter...");
-    await adapter.refresh({ from: user });
+    await vault._refresh({ from: user });
     console.log("✅ Price feed refreshed.");
 
     // Step 3: Check the value of the deposited collateral
@@ -109,8 +91,8 @@ async function interactWithVault(adapter: FtsoChainlinkAdapterInstance, vault: A
 
 async function main() {
     console.log("🚀 Starting Asset Vault Management Script 🚀");
-    const { adapter, vault } = await deployContracts();
-    await interactWithVault(adapter, vault);
+    const { vault } = await deployContracts();
+    await interactWithVault(vault);
     console.log("\n🎉 Script finished successfully! 🎉");
 }
 

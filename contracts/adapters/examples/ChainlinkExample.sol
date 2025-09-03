@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
 
-import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+import {FtsoChainlinkAdapterBase} from "../ChainlinkAdapter.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 /**
@@ -10,11 +10,8 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
  * @dev This contract uses a Chainlink-compatible price feed
  * to value collateral. It also acts as the ERC20 token for MUSD.
  */
-contract AssetVault is ERC20 {
+contract AssetVault is ERC20, FtsoChainlinkAdapterBase {
     // --- State Variables ---
-
-    // The Chainlink-compatible price feed for the collateral asset.
-    AggregatorV3Interface public immutable priceFeed;
 
     // Mapping of user addresses to their deposited collateral amount in wei.
     mapping(address => uint256) public collateral;
@@ -35,8 +32,34 @@ contract AssetVault is ERC20 {
     event LoanBorrowed(address indexed user, uint256 amount);
     event LoanRepaid(address indexed user, uint256 amount);
 
-    constructor(address _priceFeedAddress) ERC20("Mock USD", "MUSD") {
-        priceFeed = AggregatorV3Interface(_priceFeedAddress);
+    constructor(
+        bytes21 _ftsoFeedId,
+        uint8 _chainlinkDecimals,
+        string memory _description,
+        uint256 _maxAgeSeconds
+    )
+        ERC20("Mock USD", "MUSD")
+        FtsoChainlinkAdapterBase(
+            _ftsoFeedId,
+            _chainlinkDecimals,
+            _description,
+            _maxAgeSeconds
+        )
+    {}
+
+    // --- Public Refresh Function ---
+    function _refresh() external {
+        this.refresh();
+    }
+
+    function decimals()
+        public
+        view
+        virtual
+        override(ERC20, FtsoChainlinkAdapterBase)
+        returns (uint8)
+    {
+        return ERC20.decimals();
     }
 
     // --- Core Functions ---
@@ -117,8 +140,8 @@ contract AssetVault is ERC20 {
         if (userCollateral == 0) return 0;
 
         // Fetch the latest price data from the adapter.
-        (, int256 price, , , ) = priceFeed.latestRoundData();
-        uint8 feedDecimals = priceFeed.decimals();
+        (, int256 price, , , ) = this.latestRoundData();
+        uint8 feedDecimals = chainlinkDecimals;
 
         // The price is an integer, so we scale it up by 18 (our standard) and
         // scale it down by the feed's decimals to get a consistent value.

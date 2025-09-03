@@ -18,12 +18,12 @@ import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/
  * - Anyone (or your keeper) calls refresh().
  * - CL-integrated consumers keep calling latestRoundData()/decimals()/description().
  */
-contract FtsoChainlinkAdapter is AggregatorV3Interface {
+abstract contract FtsoChainlinkAdapterBase is AggregatorV3Interface {
     // ---- Immutable configuration ----
-    bytes21 public immutable ftsoFeedId; // e.g. "BTC/USD" => 0x014254432f555344... (bytes21)
-    uint8 public immutable chainlinkDecimals; // e.g. 8 to match most CL feeds
-    string public descriptionText; // human readable, e.g. "FTSOv2 BTC/USD (Coston2)"
-    uint256 public immutable maxAgeSeconds; // staleness guard for cached price
+    bytes21 internal immutable ftsoFeedId; // e.g. "BTC/USD" => 0x014254432f555344... (bytes21)
+    uint8 internal immutable chainlinkDecimals; // e.g. 8 to match most CL feeds
+    string internal descriptionText; // human readable, e.g. "FTSOv2 BTC/USD (Coston2)"
+    uint256 internal immutable maxAgeSeconds; // staleness guard for cached price
 
     // ---- Cached round state ----
     struct Round {
@@ -59,7 +59,7 @@ contract FtsoChainlinkAdapter is AggregatorV3Interface {
 
     // --------- Chainlink AggregatorV3Interface ---------
 
-    function decimals() external view override returns (uint8) {
+    function decimals() external view virtual override returns (uint8) {
         return chainlinkDecimals;
     }
 
@@ -132,7 +132,6 @@ contract FtsoChainlinkAdapter is AggregatorV3Interface {
      * @dev Anyone can call.
      */
     function refresh() external {
-        // Resolve registry contracts (keeps addresses upgradable without redeploy)
         TestFtsoV2Interface ftsoV2 = ContractRegistry.getTestFtsoV2();
 
         // Read FTSO value (returns integer value, feed decimals, and timestamp)
