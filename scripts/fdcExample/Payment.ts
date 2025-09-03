@@ -13,9 +13,14 @@ const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } =
 // yarn hardhat run scripts/fdcExample/Payment.ts --network coston2
 
 // Request data
-const transactionId = "2401fb25aff07e359727e14fa091a881a157afb63a0e2106a4c63f6ed1e55847";
+const transactionId = "C35B9D376DA75687E19780DB3A99B89CD8DFD451C842E51C7005048CE602464F";
 const inUtxo = "0";
 const utxo = "0";
+// WARN:(Nik) Because the lowestUsedTimestamp for the Payment attestation type on XRPL is 2 weeks,
+// the transaction hash must be regularly updated.
+// If the script fails with an error that says, that the transaction does not exist, this is why.
+// In that case a new Payment transaction has to be found on the XRPL testchain explorer,
+// and the transaction hash has to be updated with the new hash.
 
 // Configuration constants
 const attestationTypeBase = "Payment";
