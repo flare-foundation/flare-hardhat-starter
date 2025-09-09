@@ -1,4 +1,5 @@
 import hre, { run } from "hardhat";
+import fs from "fs";
 import { ProofOfReservesInstance } from "../../typechain-types";
 
 const ProofOfReserves = artifacts.require("ProofOfReserves");
@@ -18,6 +19,11 @@ async function deployAndVerify() {
         console.log(e);
     }
     console.log(`(${hre.network.name}) ProofOfReserves deployed to`, proofOfReserves.address, "\n");
+
+    fs.writeFileSync(
+        `scripts/proofOfReserves/config/proofOfReserves.ts`,
+        `export const proofOfReservesAddress = "${proofOfReserves.address}";`
+    );
 }
 
 void deployAndVerify().then(() => {

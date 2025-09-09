@@ -5,7 +5,7 @@ import {
     retrieveDataAndProofBaseWithRetry,
     submitAttestationRequest,
 } from "../utils/fdc";
-import { minterAddress } from "./config";
+import { minterAddress } from "./config/minter";
 
 const NFTMinter = artifacts.require("NFTMinter");
 

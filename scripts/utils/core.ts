@@ -1,3 +1,5 @@
+import fs from "fs";
+
 export function toHex(data: string) {
     let result = "";
     for (let i = 0; i < data.length; i++) {
@@ -55,11 +57,7 @@ export function parseEvents(rawLogs: any[], eventName: string, contractAbi: any)
 }
 
 export function logEvents(rawLogs: any, eventName: string, abi: any) {
-    const events = parseEvents(
-        rawLogs,
-        eventName,
-        abi
-    );
+    const events = parseEvents(rawLogs, eventName, abi);
 
     if (events.length > 0) {
         events.forEach((event: any) => {
@@ -68,4 +66,10 @@ export function logEvents(rawLogs: any, eventName: string, abi: any) {
 
         return events;
     }
+}
+
+export function replaceInFile(fileName: string, pattern: string, replace: string) {
+    const content = fs.readFileSync(fileName, "utf8");
+    content.replace(pattern, replace);
+    fs.writeFileSync(fileName, content);
 }

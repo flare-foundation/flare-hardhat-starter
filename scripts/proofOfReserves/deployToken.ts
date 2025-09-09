@@ -1,4 +1,5 @@
 import hre, { run } from "hardhat";
+import fs from "fs";
 import { MyStablecoinInstance } from "../../typechain-types";
 
 const MyStablecoin = artifacts.require("MyStablecoin");
@@ -19,6 +20,11 @@ async function deployAndVerify() {
         console.log(e);
     }
     console.log(`(${hre.network.name}) MyStablecoin deployed to`, myStablecoin.address, "\n");
+
+    fs.writeFileSync(
+        `scripts/proofOfReserves/config/${hre.network.name}Token.ts`,
+        `export const ${hre.network.name}TokenAddress = "${myStablecoin.address}";`
+    );
 }
 
 void deployAndVerify().then(() => {

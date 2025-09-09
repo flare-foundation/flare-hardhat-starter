@@ -1,4 +1,5 @@
 import hre, { run } from "hardhat";
+import fs from "fs";
 import { TokenStateReaderInstance } from "../../typechain-types";
 
 const TokenStateReader = artifacts.require("TokenStateReader");
@@ -17,6 +18,11 @@ async function deployAndVerify() {
         console.log(e);
     }
     console.log(`(${hre.network.name}) TokenStateReader deployed to`, tokenStateReader.address, "\n");
+
+    fs.writeFileSync(
+        `scripts/proofOfReserves/config/${hre.network.name}Reader.ts`,
+        `export const ${hre.network.name}ReaderAddress = "${tokenStateReader.address}";`
+    );
 }
 
 void deployAndVerify().then(() => {

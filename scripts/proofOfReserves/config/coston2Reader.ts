@@ -1,0 +1,1 @@
+export const coston2ReaderAddress = "0x8d01566b34920E3523958b9649f0646F3F544Bf6";
