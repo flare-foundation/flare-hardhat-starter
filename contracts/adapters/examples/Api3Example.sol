@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
-import {FtsoApi3AdapterBase} from "../Api3Adapter.sol";
+import {FtsoApi3AdapterLibrary} from "../Api3Adapter.sol";
 
 /**
  * @title PriceGuesser
@@ -8,29 +8,28 @@ import {FtsoApi3AdapterBase} from "../Api3Adapter.sol";
  * @dev This contract uses an API3-compatible price feed to settle the market.
  * All bets are made in the native network token (e.g., C2FLR).
  */
-contract PriceGuesser is FtsoApi3AdapterBase {
-    // --- State Variables ---
+contract PriceGuesser {
+    // --- Adapter State ---
+    bytes21 public immutable ftsoFeedId;
+    string public descriptionText;
+    uint256 public immutable maxAgeSeconds;
 
-    uint256 public immutable strikePrice; // The target price (with 18 decimals).
-    uint256 public immutable expiryTimestamp; // When the betting round ends.
+    // The PriceGuesser is now responsible for storing the cached price data.
+    FtsoApi3AdapterLibrary.DataPoint private _latestDataPoint;
 
-    // Total funds in each betting pool.
+    // --- Prediction Market State ---
+    uint256 public immutable strikePrice;
+    uint256 public immutable expiryTimestamp;
     uint256 public totalBetsAbove;
     uint256 public totalBetsBelow;
-
-    // Mapping of user bets for each pool.
     mapping(address => uint256) public betsAbove;
     mapping(address => uint256) public betsBelow;
-
-    // The final outcome of the market.
     enum Outcome {
         Unsettled,
         Above,
         Below
     }
     Outcome public outcome;
-
-    // Tracks if a user has already claimed their winnings.
     mapping(address => bool) public hasClaimed;
 
     // --- Errors ---
@@ -51,14 +50,26 @@ contract PriceGuesser is FtsoApi3AdapterBase {
         uint256 _maxAgeSeconds,
         uint256 _strikePrice,
         uint256 _durationSeconds
-    ) FtsoApi3AdapterBase(_ftsoFeedId, _description, _maxAgeSeconds) {
+    ) {
+        // Initialize the adapter configuration state.
+        ftsoFeedId = _ftsoFeedId;
+        descriptionText = _description;
+        maxAgeSeconds = _maxAgeSeconds;
+
+        // Initialize the prediction market state.
         strikePrice = _strikePrice;
         expiryTimestamp = block.timestamp + _durationSeconds;
     }
 
     // --- Public Refresh Function ---
-    function _refresh() external {
-        this.refresh();
+    function refresh() external {
+        // Call the library's logic, passing this contract's state to be updated.
+        FtsoApi3AdapterLibrary.refresh(_latestDataPoint, ftsoFeedId);
+    }
+
+    function read() public view returns (int224, uint32) {
+        // Call the library's logic, passing this contract's state to be read.
+        return FtsoApi3AdapterLibrary.read(_latestDataPoint, maxAgeSeconds);
     }
 
     // --- User Functions ---
@@ -95,16 +106,14 @@ contract PriceGuesser is FtsoApi3AdapterBase {
         if (block.timestamp < expiryTimestamp) revert RoundNotSettledYet();
         if (outcome != Outcome.Unsettled) revert RoundAlreadySettled();
 
-        // Read the price from the FtsoApi3Adapter.
-        (int224 finalPrice, ) = this.read();
+        // Call this contract's own public read function.
+        (int224 finalPrice, ) = read();
 
-        // Determine the outcome.
         if (int256(finalPrice) >= int256(strikePrice)) {
             outcome = Outcome.Above;
         } else {
             outcome = Outcome.Below;
         }
-
         emit MarketSettled(outcome, finalPrice);
     }
 

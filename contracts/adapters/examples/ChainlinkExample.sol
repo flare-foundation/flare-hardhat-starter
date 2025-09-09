@@ -1,17 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
 
-import {FtsoChainlinkAdapterBase} from "../ChainlinkAdapter.sol";
+import {FtsoChainlinkAdapterLibrary} from "../ChainlinkAdapter.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-/**
- * @title AssetVault
- * @notice A simple vault for borrowing a synthetic stablecoin (MUSD) against native token collateral.
- * @dev This contract uses a Chainlink-compatible price feed
- * to value collateral. It also acts as the ERC20 token for MUSD.
- */
-contract AssetVault is ERC20, FtsoChainlinkAdapterBase {
-    // --- State Variables ---
+contract AssetVault is ERC20 {
+    // --- Adapter State ---
+    bytes21 public immutable ftsoFeedId;
+    uint8 public immutable chainlinkDecimals;
+    string public descriptionText;
+    uint256 public immutable maxAgeSeconds;
+
+    // The AssetVault is now responsible for storing the cached price data.
+    FtsoChainlinkAdapterLibrary.Round private _latestPriceData;
 
     // Mapping of user addresses to their deposited collateral amount in wei.
     mapping(address => uint256) public collateral;
@@ -37,28 +38,39 @@ contract AssetVault is ERC20, FtsoChainlinkAdapterBase {
         uint8 _chainlinkDecimals,
         string memory _description,
         uint256 _maxAgeSeconds
-    )
-        ERC20("Mock USD", "MUSD")
-        FtsoChainlinkAdapterBase(
-            _ftsoFeedId,
-            _chainlinkDecimals,
-            _description,
-            _maxAgeSeconds
-        )
-    {}
-
-    // --- Public Refresh Function ---
-    function _refresh() external {
-        this.refresh();
+    ) ERC20("Mock USD", "MUSD") {
+        // Initialize the adapter configuration state.
+        ftsoFeedId = _ftsoFeedId;
+        chainlinkDecimals = _chainlinkDecimals;
+        descriptionText = _description;
+        maxAgeSeconds = _maxAgeSeconds;
     }
 
-    function decimals()
+    // --- Public Refresh Function ---
+    // --- Public Adapter Functions ---
+    function refresh() external {
+        // Call the library's logic, passing this contract's state to be updated.
+        FtsoChainlinkAdapterLibrary.refresh(
+            _latestPriceData,
+            ftsoFeedId,
+            chainlinkDecimals
+        );
+    }
+
+    function latestRoundData()
         public
         view
-        virtual
-        override(ERC20, FtsoChainlinkAdapterBase)
-        returns (uint8)
+        returns (uint80, int256, uint256, uint256, uint80)
     {
+        // Call the library's logic, passing this contract's state to be read.
+        return
+            FtsoChainlinkAdapterLibrary.latestRoundData(
+                _latestPriceData,
+                maxAgeSeconds
+            );
+    }
+
+    function decimals() public view virtual override(ERC20) returns (uint8) {
         return ERC20.decimals();
     }
 
@@ -139,13 +151,9 @@ contract AssetVault is ERC20, FtsoChainlinkAdapterBase {
         uint256 userCollateral = collateral[_user];
         if (userCollateral == 0) return 0;
 
-        // Fetch the latest price data from the adapter.
-        (, int256 price, , , ) = this.latestRoundData();
-        uint8 feedDecimals = chainlinkDecimals;
+        // Call this contract's own public latestRoundData function.
+        (, int256 price, , , ) = latestRoundData();
 
-        // The price is an integer, so we scale it up by 18 (our standard) and
-        // scale it down by the feed's decimals to get a consistent value.
-        // (collateralAmount * price * 10^18) / (10^18 * 10^feedDecimals)
-        return (userCollateral * uint256(price)) / (10 ** feedDecimals);
+        return (userCollateral * uint256(price)) / (10 ** chainlinkDecimals);
     }
 }

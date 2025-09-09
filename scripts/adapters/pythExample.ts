@@ -48,7 +48,7 @@ async function interactWithMinter(minter: PythNftMinterInstance) {
 
     // 1. Refresh the price from the FTSO on the minter contract itself.
     console.log("\nCalling refresh() to update the price from the FTSO...");
-    const refreshResult = await minter._refresh();
+    const refreshResult = await minter.refresh();
     console.log(`Refresh transaction successful! Hash: ${refreshResult.tx}`);
 
     // 2. Fetch and log the latest price data from the minter contract.

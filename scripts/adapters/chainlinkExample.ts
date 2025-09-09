@@ -58,7 +58,7 @@ async function interactWithVault(vault: AssetVaultInstance) {
 
     // Step 2: Refresh the price feed on the adapter
     console.log("\nStep 2: Refreshing the FTSO price on the adapter...");
-    await vault._refresh({ from: user });
+    await vault.refresh({ from: user });
     console.log("✅ Price feed refreshed.");
 
     // Step 3: Check the value of the deposited collateral
