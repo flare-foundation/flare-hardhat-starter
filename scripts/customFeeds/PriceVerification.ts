@@ -1,244 +1,145 @@
 import { artifacts, web3, run } from "hardhat";
-import { PriceVerifierCustomFeedInstance, IRelayInstance, IFdcVerificationInstance } from "../../typechain-types";
+import { PriceVerifierCustomFeedInstance } from "../../typechain-types";
 import {
     prepareAttestationRequestBase,
-    getFdcHub,
-    getFdcRequestFee,
-    calculateRoundId,
-    toUtf8HexString,
-    getRelay,
-    getFdcVerification,
-    postRequestToDALayer,
-    sleep,
+    submitAttestationRequest,
+    retrieveDataAndProofBaseWithRetry,
 } from "../utils/fdc";
-import { IWeb2JsonVerification } from "../../typechain-types";
 
 const PriceVerifierCustomFeed = artifacts.require("PriceVerifierCustomFeed");
-const IWeb2JsonVerificationArtifact = artifacts.require("IWeb2JsonVerification");
 
 const { WEB2JSON_VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } = process.env;
 
-type AttestationRequest = {
-    source: string;
-    sourceIdBase: string;
-    verifierUrlBase: string;
-    verifierApiKey: string;
-    urlTypeBase: string;
-    data: any;
-};
-
+// --- Configuration Constants ---
 const priceSymbol = "BTC";
 const priceDecimals = 2;
-const coinGeckoIds: { [key: string]: string } = { BTC: "bitcoin", ETH: "ethereum" };
+const coinGeckoId = "bitcoin";
 
 // --- CoinGecko BTC Price Request Data ---
-const symbolForRequest = priceSymbol;
-const decimalsForRequest = priceDecimals;
-const coinGeckoId = coinGeckoIds[symbolForRequest];
-if (!coinGeckoId) throw new Error(`CoinGecko ID not found for symbol: ${symbolForRequest}`);
 const dateToFetch = new Date();
-dateToFetch.setDate(dateToFetch.getDate() - 2);
+dateToFetch.setDate(dateToFetch.getDate() - 2); // Fetch a historical price to ensure it's final
 const day = String(dateToFetch.getDate()).padStart(2, "0");
 const month = String(dateToFetch.getMonth() + 1).padStart(2, "0");
 const year = dateToFetch.getFullYear();
 const dateString = `${day}-${month}-${year}`;
 const fullApiUrl = `https://api.coingecko.com/api/v3/coins/${coinGeckoId}/history`;
-const postprocessJq = `{price: (.market_data.current_price.usd * ${10 ** decimalsForRequest} | floor)}`;
+const postprocessJq = `{price: (.market_data.current_price.usd * ${10 ** priceDecimals} | floor)}`;
 const abiSig = `{"components": [{"internalType": "uint256","name": "price","type": "uint256"}],"internalType": "struct PriceData","name": "priceData","type": "tuple"}`;
 const stringifiedQueryParams = JSON.stringify({
     date: dateString,
     localization: "false",
 });
 
-const requests: AttestationRequest[] = [
-    {
-        source: "web2json",
-        sourceIdBase: "PublicWeb2",
-        verifierUrlBase: WEB2JSON_VERIFIER_URL_TESTNET!,
-        verifierApiKey: VERIFIER_API_KEY_TESTNET!,
-        urlTypeBase: "",
-        data: {
-            apiUrl: fullApiUrl,
-            httpMethod: "GET",
-            headers: "{}",
-            queryParams: stringifiedQueryParams,
-            body: "",
-            postProcessJq: postprocessJq,
-            abiSignature: abiSig,
-            logDisplayUrl: fullApiUrl,
-        },
-    },
-];
+// --- FDC Configuration ---
+const attestationTypeBase = "Web2Json";
+const sourceIdBase = "PublicWeb2";
+const verifierUrlBase = WEB2JSON_VERIFIER_URL_TESTNET;
 
-async function prepareWeb2JsonAttestationRequest(transaction: AttestationRequest) {
-    const attestationTypeBase = "Web2Json";
+/**
+ * Prepares the attestation request by calling the shared utility function.
+ */
+async function prepareAttestationRequest() {
+    console.log("\nPreparing data...");
     const requestBody = {
-        url: transaction.data.apiUrl,
-        httpMethod: transaction.data.httpMethod,
-        headers: transaction.data.headers,
-        queryParams: transaction.data.queryParams,
-        body: transaction.data.body,
-        postProcessJq: transaction.data.postProcessJq,
-        abiSignature: transaction.data.abiSignature,
+        url: fullApiUrl,
+        httpMethod: "GET",
+        headers: "{}",
+        queryParams: stringifiedQueryParams,
+        body: "{}",
+        postProcessJq: postprocessJq,
+        abiSignature: abiSig,
     };
-    const url = `${transaction.verifierUrlBase}Web2Json/prepareRequest`;
-    const apiKey = transaction.verifierApiKey;
-    return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, transaction.sourceIdBase, requestBody);
+    const url = `${verifierUrlBase}Web2Json/prepareRequest`;
+    const apiKey = VERIFIER_API_KEY_TESTNET!;
+    return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, sourceIdBase, requestBody);
 }
 
-async function prepareAttestationRequests(transactions: AttestationRequest[]) {
-    console.log("\nPreparing data...\n");
-    const data: Map<string, string> = new Map();
-    for (const transaction of transactions) {
-        console.log(`(${transaction.source})\n`);
-        const responseData = await prepareWeb2JsonAttestationRequest(transaction);
-        console.log("Data:", responseData, "\n");
-        data.set(transaction.source, responseData.abiEncodedRequest);
-    }
-    return data;
-}
-
-async function submitAttestationRequests(data: Map<string, string>) {
-    console.log("\nSubmitting attestation requests...\n");
-    const fdcHub = await getFdcHub();
-    const roundIds: Map<string, number> = new Map();
-    for (const [source, abiEncodedRequest] of data.entries()) {
-        console.log(`(${source})\n`);
-        const requestFee = await getFdcRequestFee(abiEncodedRequest);
-        const transaction = await fdcHub.requestAttestation(abiEncodedRequest, { value: requestFee });
-        console.log("Submitted request:", transaction.tx, "\n");
-        const roundId = await calculateRoundId(transaction);
-        console.log(
-            `Check round progress at: https://${hre.network.name}-systems-explorer.flare.rocks/voting-round/${roundId}?tab=fdc\n`
-        );
-        roundIds.set(source, roundId);
-    }
-    return roundIds;
-}
-
-async function retrieveDataAndProofs(data: Map<string, string>, roundIds: Map<string, number>) {
-    console.log("\nRetrieving data and proofs...\n");
-    const proofs: Map<string, any> = new Map();
+/**
+ * Retrieves the data and proof by calling the shared utility function with a retry mechanism.
+ */
+async function retrieveDataAndProof(abiEncodedRequest: string, roundId: number) {
+    console.log("\nRetrieving data and proof...");
     const url = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
-    console.log("Url:", url, "\n");
-    for (const [source, roundId] of roundIds.entries()) {
-        console.log(`(${source})\n`);
-        console.log("Waiting for the round to finalize...");
-        const relay: IRelayInstance = await getRelay();
-        const fdcVerification: IFdcVerificationInstance = await getFdcVerification();
-        const protocolId = 200;
-        console.log("Protocol ID:", protocolId);
-        while (!(await relay.isFinalized(protocolId, roundId))) {
-            await sleep(10000);
-        }
-        console.log("Round finalized!\n");
-        const request = { votingRoundId: roundId, requestBytes: data.get(source) };
-        console.log("Prepared request:\n", request, "\n");
-        let proof = await postRequestToDALayer(url, request, true);
-        console.log("Waiting for the DA Layer to generate the proof...");
-        while (proof.response_hex == undefined) {
-            await sleep(10000);
-            proof = await postRequestToDALayer(url, request, false);
-        }
-        console.log("Proof generated!\n");
-        console.log("Proof:", proof, "\n");
-        proofs.set(source, proof);
-    }
-    return proofs;
+    return await retrieveDataAndProofBaseWithRetry(url, abiEncodedRequest, roundId);
 }
 
-async function retrieveDataAndProofsWithRetry(
-    data: Map<string, string>,
-    roundIds: Map<string, number>,
-    attempts: number = 10
-) {
-    for (let i = 0; i < attempts; i++) {
-        try {
-            return await retrieveDataAndProofs(data, roundIds);
-        } catch (error) {
-            console.log("Error:", error, "\n", "Remaining attempts:", attempts - i, "\n");
-            await sleep(20000);
-        }
-    }
-    throw new Error(`Failed to retrieve data and proofs after ${attempts} attempts`);
-}
-
-async function prepareDataAndProofs(data: Map<string, any>) {
-    const IWeb2JsonVerification = await artifacts.require("IWeb2JsonVerification");
-    const proof = data.get("web2json");
-    console.log(IWeb2JsonVerification._json.abi[0].inputs[0].components);
-    return {
-        merkleProof: proof.merkleProof,
-        data: web3.eth.abi.decodeParameter(
-            IWeb2JsonVerification._json.abi[0].inputs[0].components[1],
-            proof.data || proof.response_hex
-        ),
-    };
-}
-
+/**
+ * Deploys and verifies the PriceVerifierCustomFeed contract.
+ */
 async function deployAndVerifyContract(): Promise<PriceVerifierCustomFeedInstance> {
     const feedIdString = `${priceSymbol}/USD-HIST`;
-    const feedIdHex = toUtf8HexString(feedIdString).substring(2);
-    const truncatedFeedIdHex = feedIdHex.substring(0, 40);
-    const finalFeedIdHex = `0x21${truncatedFeedIdHex}`;
-    if (finalFeedIdHex.length !== 44) {
-        throw new Error(
-            `Generated feed ID has incorrect length: ${finalFeedIdHex.length}. Expected 44 characters (0x + 42 hex). Feed string: ${feedIdString}`
-        );
-    }
+    // Use keccak256 for a standard, fixed-length hash of the feed name.
+    const feedNameHash = web3.utils.keccak256(feedIdString);
+    // Construct the final feed ID: 0x21 (custom feed category) + first 20 bytes of the hash.
+    const finalFeedIdHex = `0x21${feedNameHash.substring(2, 42)}`;
+    
+    console.log(`\nDeploying PriceVerifierCustomFeed with Feed ID: ${finalFeedIdHex}`);
     const customFeedArgs: any[] = [finalFeedIdHex, priceSymbol, priceDecimals];
     const customFeed: PriceVerifierCustomFeedInstance = await PriceVerifierCustomFeed.new(...customFeedArgs);
-    console.log(`PriceVerifierCustomFeed deployed to: ${customFeed.address}\n`);
-    console.log("Waiting 10 seconds before attempting verification on explorer...");
-    await sleep(10000);
+    console.log(`✅ PriceVerifierCustomFeed deployed to: ${customFeed.address}`);
 
     try {
         await run("verify:verify", {
             address: customFeed.address,
             constructorArguments: customFeedArgs,
-            contract: "contracts/customFeeds/PriceVerifierCustomFeed.sol:PriceVerifierCustomFeed",
-        });
-        console.log("Contract verification successful.\n");
-    } catch (error) {
-        console.log("Contract verification failed:", error);
-    }
+                contract: "contracts/customFeeds/PriceVerifierCustomFeed.sol:PriceVerifierCustomFeed",
+            });
+            console.log("✅ Contract verification successful.");
+        } catch (error) {
+            console.log("Contract verification failed:", error);
+        }
     return customFeed;
 }
 
-async function submitDataAndProofsToCustomFeed(customFeed: PriceVerifierCustomFeedInstance, proof: any) {
-    console.log("Proof from submitDataAndProofsToCustomFeed:", proof);
-    const tx = await customFeed.verifyPrice(proof);
-    console.log(`Proof for ${priceSymbol}Price submitted successfully. Transaction hash:`, tx.transactionHash);
-}
+/**
+ * Decodes the proof and submits it to the deployed custom feed contract.
+ */
+async function interactWithContract(customFeed: PriceVerifierCustomFeedInstance, proof: any) {
+    console.log("\nSubmitting proof to custom feed contract...");
 
-async function getLatestVerifiedPrice(customFeed: PriceVerifierCustomFeedInstance) {
-    console.log("\nRetrieving latest verified price from the contract...");
+    // Decode the raw hex proof into the struct the contract expects.
+    const IWeb2JsonVerification = await artifacts.require("IWeb2JsonVerification");
+    const responseType = IWeb2JsonVerification._json.abi[0].inputs[0].components[1];
+    const decodedResponse = web3.eth.abi.decodeParameter(responseType, proof.response_hex);
+
+    const fullProof = {
+        merkleProof: proof.proof,
+        data: decodedResponse,
+    };
+
+    const tx = await customFeed.verifyPrice(fullProof);
+    console.log(`✅ Proof for ${priceSymbol} submitted successfully. Tx: ${tx.tx}`);
+    
+    // Read the price back from the contract to confirm it was stored.
     const { _value, _decimals } = await customFeed.getFeedDataView();
     const formattedPrice = Number(_value) / 10 ** Number(_decimals);
     console.log(
-        `Latest verified price for ${priceSymbol}/USD: ${formattedPrice} (raw value: ${_value.toString()}, decimals: ${_decimals})`
+        `✅ Latest verified price for ${priceSymbol}/USD: $${formattedPrice}`
     );
-    return formattedPrice;
 }
 
 async function main() {
-    if (!WEB2JSON_VERIFIER_URL_TESTNET || !VERIFIER_API_KEY_TESTNET || !COSTON2_DA_LAYER_URL) {
-        throw new Error(
-            "Missing one or more required environment variables: WEB2JSON_VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL"
-        );
+    if (!verifierUrlBase || !VERIFIER_API_KEY_TESTNET || !COSTON2_DA_LAYER_URL) {
+        throw new Error("Missing one or more required environment variables.");
     }
+    // 1. Prepare
+    const data = await prepareAttestationRequest();
+    console.log("Prepared Data:", data);
+
+    // 2. Submit
+    const abiEncodedRequest = data.abiEncodedRequest;
+    const roundId = await submitAttestationRequest(abiEncodedRequest);
+
+    // 3. Retrieve
+    const proof = await retrieveDataAndProof(abiEncodedRequest, roundId);
+
+    // 4. Deploy
     const customFeed = await deployAndVerifyContract();
-    const data = await prepareAttestationRequests(requests);
-    const roundIds = await submitAttestationRequests(data);
-    const proofs = await retrieveDataAndProofsWithRetry(data, roundIds);
-    const decodedData = await prepareDataAndProofs(proofs);
-    const proof = {
-        merkleProof: proofs.get("web2json").proof,
-        data: decodedData.data,
-    };
-    await submitDataAndProofsToCustomFeed(customFeed, proof);
-    await getLatestVerifiedPrice(customFeed);
-    console.log("Price verification process completed successfully.");
+
+    // 5. Interact
+    await interactWithContract(customFeed, proof);
+
+    console.log("\n🎉 Price verification process completed successfully. 🎉");
 }
 
 void main().then(() => {

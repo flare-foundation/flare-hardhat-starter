@@ -125,77 +125,37 @@ contract MetalPriceVerifierCustomFeed is IICustomFeed {
     }
 
     // --- Internal Helper Functions ---
-
     /**
-     * @notice Helper function to extract a slice of bytes.
-     * @param data The original bytes array.
-     * @param start The starting index (inclusive).
-     * @param end The ending index (exclusive).
-     * @return The sliced bytes.
+     * @notice Extracts the symbol from a URL like ".../instrument/SYMBOL/USD".
      */
-    function slice(
-        bytes memory data,
-        uint256 start,
-        uint256 end
-    ) internal pure returns (bytes memory) {
-        require(end >= start, "Slice: end before start");
-        require(data.length >= end, "Slice: end out of bounds");
-        bytes memory result = new bytes(end - start);
-        for (uint256 i = start; i < end; i++) {
-            result[i - start] = data[i];
-        }
-        return result;
-    }
-
-    /**
-     * @notice Helper function to find the first occurrence of a marker in bytes data.
-     * @param data The bytes data to search within.
-     * @param marker The bytes marker to find.
-     * @param searchStart The index to start searching from.
-     * @return The starting index of the marker, or type(uint256).max if not found.
-     */
-    function _findMarker(
-        bytes memory data,
-        bytes memory marker,
-        uint256 searchStart
-    ) internal pure returns (uint256) {
-        uint256 dataLen = data.length;
-        uint256 markerLen = marker.length;
-        if (markerLen == 0 || dataLen < markerLen + searchStart) {
-            return type(uint256).max;
-        }
-
-        for (uint256 i = searchStart; i <= dataLen - markerLen; i++) {
-            bool foundMatch = true;
-            for (uint256 j = 0; j < markerLen; j++) {
-                if (data[i + j] != marker[j]) {
-                    foundMatch = false;
-                    break;
-                }
-            }
-            if (foundMatch) {
-                return i;
-            }
-        }
-        return type(uint256).max;
-    }
-
-    /**
-     * @notice Extracts the symbol from the URL.
-     * @param url The URL to extract the symbol from.
-     * @return The extracted symbol.
-     */
-    function _extractSymbolFromUrl(
-        string memory url
-    ) internal pure returns (string memory) {
-        // Implement symbol extraction logic here
-        // For demonstration purposes, assume the symbol is the last part of the URL path
+    function _extractSymbolFromUrl(string memory url) internal pure returns (string memory) {
         bytes memory urlBytes = bytes(url);
-        uint256 lastSlashIndex = _findMarker(urlBytes, bytes("/"), 0);
-        if (lastSlashIndex == type(uint256).max) return "";
+        uint256 len = urlBytes.length;
+        uint256 end = 0;
+        uint256 start = 0;
 
-        uint256 symbolStart = lastSlashIndex + 1;
-        uint256 symbolEnd = urlBytes.length;
-        return string(slice(urlBytes, symbolStart, symbolEnd));
+        // Find the last slash, which is before the quote currency (e.g., "USD")
+        for (uint256 i = len - 1; i > 0; i--) {
+            if (urlBytes[i] == '/') {
+                end = i;
+                break;
+            }
+        }
+        if (end == 0) return ""; // Revert or return empty if no slashes found
+
+        // Find the second-to-last slash, which is before the base symbol (e.g., "XAU")
+        for (uint256 i = end - 1; i > 0; i--) {
+            if (urlBytes[i] == '/') {
+                start = i + 1;
+                break;
+            }
+        }
+        if (start == 0) return ""; // Should not happen with the expected URL format
+
+        bytes memory symbolBytes = new bytes(end - start);
+        for (uint256 i = 0; i < symbolBytes.length; i++) {
+            symbolBytes[i] = urlBytes[start + i];
+        }
+        return string(symbolBytes);
     }
 }
