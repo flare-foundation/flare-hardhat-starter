@@ -14,13 +14,18 @@ const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } =
 // yarn hardhat run scripts/crossChainPayment/collectAndProcessTransferEvents.ts --network coston2
 
 // Request data
-const transactionHash = "0x4e636c6590b22d8dcdade7ee3b5ae5572f42edb1878f09b3034b2f7c3362ef3c";
+const transactionHash = "0x452d7251ab6655c8738245e2bd2e2717450c110b2213bb7e352e4fabaf878f50";
+// NOTE:(Nik) A random transaction on Coston. It's recipient matches the OWNER in the
+// Minter contract. We chose to use a Coston transaction, instead of on on Sepolia,
+// because only a limited number of blocks are available on Sepolia, and thus the code
+// would need to be updated periodically. The same is not true on Coston, where the search
+// depth is unlimited.
 
 // Configuration constants
 const attestationTypeBase = "EVMTransaction";
-const sourceIdBase = "testETH";
+const sourceIdBase = "testSGB";
 const verifierUrlBase = VERIFIER_URL_TESTNET;
-const urlTypeBase = "eth";
+const urlTypeBase = "sgb";
 
 async function prepareAttestationRequest(transactionHash: string) {
     const requiredConfirmations = "1";
