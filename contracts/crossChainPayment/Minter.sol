@@ -22,8 +22,9 @@ contract NFTMinter is INFTMinter {
     // USDC contract address on sepolia
     address public constant USDC_CONTRACT =
         0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238;
-    // Our address on Sepolia
-    address public constant OWNER = 0x3fC91A3afd70395Cd496C647d5a6CC9D4B2b7FAD;
+    // Our address on Coston (in fact, the recipient of a random transaction - look at
+    // the scripts/crossChainPayment/collectAndProcessTransferEvents.ts script for more details)
+    address public constant OWNER = 0xF5488132432118596fa13800B68df4C0fF25131d;
 
     MyNFT public token;
     TokenTransfer[] public tokenTransfers;
