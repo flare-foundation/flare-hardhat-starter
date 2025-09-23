@@ -36,8 +36,9 @@ const RewardsV2Interface = artifacts.require("RewardsV2Interface");
 const IFdcVerification = artifacts.require("IFdcVerification");
 const IFdcHub = artifacts.require("IFdcHub");
 const IFdcRequestFeeConfigurations = artifacts.require("IFdcRequestFeeConfigurations");
-const IWeb2JsonVerification = artifacts.require("IWeb2JsonVerification");
+const IAssetManagerController = artifacts.require("IAssetManagerController");
 const IAssetManager = artifacts.require("IAssetManager");
+const IJsonApiVerification = artifacts.require("IJsonApiVerification");
 
 const FLARE_CONTRACT_REGISTRY_ADDRESS = "0xaD67FE66660Fb8dFE9d6b1b4240d8650e30F6019";
 
@@ -225,13 +226,19 @@ export async function getFdcRequestFeeConfigurations() {
     return await IFdcRequestFeeConfigurations.at(address);
 }
 
-export async function getWeb2JsonVerification() {
-    assert(hre.network.name in ["coston2", "coston"], `Contract not deployed on ${hre.network.name}`);
-    const address: string = await getContractAddressByName("Web2JsonVerification");
-    return await IWeb2JsonVerification.at(address);
+export async function getAssetManagerController() {
+    const address: string = await getContractAddressByName("AssetManagerController");
+    return await IAssetManagerController.at(address);
 }
 
 export async function getAssetManagerFXRP() {
+    assert(hre.network.name in ["coston2", "coston", "songbird"], `Contract not deployed on ${hre.network.name}`);
     const address: string = await getContractAddressByName("AssetManagerFXRP");
     return await IAssetManager.at(address);
+}
+
+export async function getJsonApiVerification() {
+    assert(hre.network.name in ["coston2", "coston"], `Contract not deployed on ${hre.network.name}`);
+    const address: string = await getContractAddressByName("JsonApiVerification");
+    return await IJsonApiVerification.at(address);
 }
