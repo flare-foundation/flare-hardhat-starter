@@ -1,15 +1,27 @@
+import { getAssetManagerFXRP } from "../utils/getters";
+
 // yarn hardhat run scripts/fassets/getRedemptionQueue.ts --network coston2
 
-// Get the contract
-const FAssetsRedemptionQueueReader = artifacts.require("FAssetsRedemptionQueueReader");
-
 async function main() {
-    // Deploy the contract
-    const fAssetsRedemptionQueueReader = await FAssetsRedemptionQueueReader.new();
-    console.log("FAssetsRedemptionQueueReader deployed to:", fAssetsRedemptionQueueReader.address);
+    
+    const assetManager = await getAssetManagerFXRP();
+    const settings = await assetManager.getSettings();
+    const maxRedeemedTickets = settings.maxRedeemedTickets;
+    const lotSizeAMG = settings.lotSizeAMG;
 
-    const redemptionQueue = await fAssetsRedemptionQueueReader.getRedemptionQueue(0, 20);
-    console.log("Redemption queue:", redemptionQueue);
+    const redemptionQueueResult = await assetManager.redemptionQueue(0, maxRedeemedTickets);
+    const redemptionQueue = redemptionQueueResult._queue;
+
+    // Sum all ticket values in the redemption queue
+    const totalValueUBA = redemptionQueue.reduce((sum, ticket) => {
+        return sum + BigInt(ticket.ticketValueUBA);
+    }, BigInt(0));
+
+    console.log("\nTotal value in redemption queue (UBA):", totalValueUBA.toString());
+
+    // Calculate total lots in the redemption queue
+    const totalLots = totalValueUBA / BigInt(lotSizeAMG);
+    console.log("\nTotal lots in redemption queue:", totalLots.toString());
 }
 
 main().catch(error => {
