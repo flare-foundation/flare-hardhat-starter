@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
 
-import {FtsoChainlinkAdapterLibrary} from "../ChainlinkAdapter.sol";
+import {FtsoChainlinkAdapterLibrary} from "@flarenetwork/ftso-adapters/contracts/coston2/ChainlinkAdapter.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract AssetVault is ERC20 {

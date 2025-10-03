@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
-import {FtsoApi3AdapterLibrary} from "../Api3Adapter.sol";
+import {FtsoApi3AdapterLibrary} from "@flarenetwork/ftso-adapters/contracts/coston2/Api3Adapter.sol";
 
 /**
  * @title PriceGuesser

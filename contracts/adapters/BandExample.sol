@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import {IStdReference, FtsoBandAdapterLibrary} from "../BandAdapter.sol";
+import {IStdReference, FtsoBandAdapterLibrary} from "@flarenetwork/ftso-adapters/contracts/coston2/BandAdapter.sol";
 
 /**
  * @title PriceTriggeredSafe

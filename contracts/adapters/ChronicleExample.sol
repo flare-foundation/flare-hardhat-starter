@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import {FtsoChronicleAdapterLibrary} from "../ChronicleAdapter.sol"; // The new library
+import {FtsoChronicleAdapterLibrary} from "@flarenetwork/ftso-adapters/contracts/coston2/ChronicleAdapter.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 interface IChronicle {

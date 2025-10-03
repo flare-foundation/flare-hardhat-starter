@@ -1,9 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import {FtsoPythAdapterLibrary} from "../PythAdapter.sol"; // Import the new library
-import "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
-import "@pythnetwork/pyth-sdk-solidity/PythStructs.sol";
+import {FtsoPythAdapterLibrary} from "@flarenetwork/ftso-adapters/contracts/coston2/PythAdapter.sol";
+import {IPyth, PythStructs} from "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
 
 /**
  * @title PythNftMinter
