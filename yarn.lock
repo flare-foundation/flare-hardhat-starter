@@ -1349,17 +1349,17 @@
   resolved "https://registry.yarnpkg.com/@fastify/busboy/-/busboy-2.1.1.tgz#b9da6a878a371829a0502c9b6c1c143ef6663f4d"
   integrity sha512-vBZP4NlzfOlerQTnba4aqZoMhE/a9HY7HRqoOPaETQcSQuWEIyZMHGfVu6w9wGtGK5fED5qRs2DteVCjOH60sA==
 
-"@flarenetwork/flare-periphery-contract-artifacts@0.1.35":
-  version "0.1.35"
-  resolved "https://registry.yarnpkg.com/@flarenetwork/flare-periphery-contract-artifacts/-/flare-periphery-contract-artifacts-0.1.35.tgz#0c1f585ab030b459f904b904edfd901f60e9eeb7"
-  integrity sha512-bXjQDuqfFSN/TTKbkR8AgJnxLfj1fF6g4io8fONUWn3Fwuntcaa+XlI8DKKaGF1exK31/YB8aHNDFUm2yBC2cA==
+"@flarenetwork/flare-periphery-contract-artifacts@0.1.37":
+  version "0.1.37"
+  resolved "https://registry.yarnpkg.com/@flarenetwork/flare-periphery-contract-artifacts/-/flare-periphery-contract-artifacts-0.1.37.tgz#904616228c1875ccd354f94d6e87a6975de20baf"
+  integrity sha512-XwJrlgl4sTISToTmIYoVmLHqeMplD9Ygy6hDhbCokMslsBg0If+6SMygWMf6/HeZTtd3r/jwpZvAa4M4CUYy/Q==
   dependencies:
     ethers "^6.7.1"
 
-"@flarenetwork/flare-periphery-contracts@0.1.35":
-  version "0.1.35"
-  resolved "https://registry.yarnpkg.com/@flarenetwork/flare-periphery-contracts/-/flare-periphery-contracts-0.1.35.tgz#5c446b0740dac9c61a0787112729d7f34b1758bf"
-  integrity sha512-toHW/PVI0v45Ik5SJAUk5pFseVbDwG2TglRzmDy7/cHDR54PaII9wP7ewVx75KtpP175K4KIVFaDpG5DrMoexw==
+"@flarenetwork/flare-periphery-contracts@0.1.37":
+  version "0.1.37"
+  resolved "https://registry.yarnpkg.com/@flarenetwork/flare-periphery-contracts/-/flare-periphery-contracts-0.1.37.tgz#57576cf68a9b8845957e5d5868cd171fec8ec699"
+  integrity sha512-kZfCtUijF5G/RJNMqqlXgaT6ZKW7Or652R5DRT6ocecMFGBZk+nUKSITCNwAPuiMd5YZSOwyUJYx/BqS7DSQig==
   dependencies:
     "@openzeppelin/contracts" "^4.6.0"
 
