@@ -8,6 +8,11 @@ deployments
 node_modules
 typechain-types
 
+# foundry / anchor for layer0
+out
+target
+.anchor
+
 .env
 
 
