@@ -83,6 +83,9 @@ async function main() {
         availableToMintLots = Math.min(remainingCapacityLots, availableToMintLots);
     }
 
+    // ============================================
+    // 5. Display Results with Progress Bar
+    // ============================================
     console.log("\n================================================");
     console.log("MINTING CAPACITY SUMMARY");
     console.log("================================================");
@@ -92,7 +95,30 @@ async function main() {
     
     const formattedMintingCap = Number(mintingCap) / Math.pow(10, Number(assetDecimals));
     console.log(`Minting Cap (FXRP): ${formattedMintingCap}`);
-    console.log("================================================");
+    
+    // Calculate usage percentage
+    if (mintingCap > 0n) {
+        const usedAmount = totalSupply;
+        const remainingAmount = mintingCap - totalSupply;
+        const usagePercentage = (Number(usedAmount) / Number(mintingCap)) * 100;
+        const remainingPercentage = 100 - usagePercentage;
+        
+        console.log("\n--- Minting Cap Usage ---");
+        console.log(`Used:      ${Number(usedAmount) / Math.pow(10, Number(assetDecimals))} FXRP (${usagePercentage.toFixed(2)}%)`);
+        console.log(`Remaining: ${Number(remainingAmount) / Math.pow(10, Number(assetDecimals))} FXRP (${remainingPercentage.toFixed(2)}%)`);
+        
+        // Create visual progress bar
+        const barLength = 50;
+        const filledLength = Math.round((usagePercentage / 100) * barLength);
+        const emptyLength = barLength - filledLength;
+        const progressBar = '█'.repeat(filledLength) + '░'.repeat(emptyLength);
+        
+        console.log(`\n[${progressBar}] ${usagePercentage.toFixed(2)}%`);
+    } else {
+        console.log("\nNo minting cap set (unlimited minting)");
+    }
+    
+    console.log("\n================================================");
     console.log(`Available Lots to Mint: ${availableToMintLots}`);
     console.log("================================================\n");
 }
