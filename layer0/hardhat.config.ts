@@ -31,6 +31,7 @@ if (accounts == null) {
     )
 }
 
+
 const config: HardhatUserConfig = {
     paths: {
         cache: 'cache/hardhat',
@@ -49,25 +50,32 @@ const config: HardhatUserConfig = {
         ],
     },
     networks: {
-        'flare': {
+        // Mainnet Networks
+        flare: {
             eid: EndpointId.FLARE_V2_MAINNET,
             url: process.env.RPC_URL_FLARE || 'https://flare-api.flare.network/ext/C/rpc',
             accounts,
         },
-        'coston2': {
+        ethereum: {
+            eid: EndpointId.ETHEREUM_V2_MAINNET,
+            url: 'https://rpc.ankr.com/eth/e0c8f3abfebe5b3516cca51e6e7829b50220929a8c2d0e0b40b3f2f5dc38c8b1',
+            accounts,
+        },
+        // Testnet Networks
+        coston2: {
             eid: EndpointId.FLARE_V2_TESTNET,
             url: process.env.RPC_URL_COSTON2 || 'https://coston2-api.flare.network/ext/C/rpc',
             accounts,
         },
-        'sepolia-testnet': {
-            eid: EndpointId.SEPOLIA_TESTNET,
-            url: process.env.RPC_URL_SEPOLIA || 'https://sepolia.gateway.tenderly.co',
+        sepolia: { // Renamed for clarity
+            eid: EndpointId.SEPOLIA_V2_TESTNET,
+            url: process.env.RPC_URL_SEPOLIA || 'https://rpc.sepolia.org',
             accounts,
         },
         hardhat: {
             // Need this for testing because TestHelperOz5.sol is exceeding the compiled contract size limit
             allowUnlimitedContractSize: true,
-        },
+        }
     },
     namedAccounts: {
         deployer: {

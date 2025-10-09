@@ -1,4 +1,5 @@
 import assert from 'assert'
+import { run } from 'hardhat'
 
 import { type DeployFunction } from 'hardhat-deploy/types'
 
@@ -31,12 +32,12 @@ async function deployOApp(hre: any, deployer: string, endpointV2Deployment: any)
 
 async function verifyOApp(hre: any, address: string) {
     console.log("\nVerifying contract...");
-    try {
-        await hre.run("verify:verify", { address })
-        console.log("Contract verified successfully")
-    } catch (error) {
-        console.error("Error verifying contract:", error)
-    }
+    // try {
+    //     await run("verify:verify", { address })
+    //     console.log("Contract verified successfully")
+    // } catch (error) {
+    //     console.error("Error verifying contract:", error)
+    // }
 }
 
 const deploy: DeployFunction = async (hre) => {
