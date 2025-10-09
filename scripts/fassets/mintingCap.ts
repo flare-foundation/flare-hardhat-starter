@@ -6,7 +6,7 @@ const IERC20 = artifacts.require("ERC20");
 
 // Agent status constants
 const AGENT_STATUS_NORMAL = 0;
-const AGENT_STATUS_CCB = 1; // Collateral Call Band
+const AGENT_STATUS_LIQUIDATION = 1;
 
 async function main() {
     // ============================================
@@ -55,10 +55,10 @@ async function main() {
 
         // Only count agents that are active and publicly available
         // Status 0 = NORMAL, Status 1 = CCB (Collateral Call Band)
-        const isAgentActive = (Number(info.status) === AGENT_STATUS_NORMAL || Number(info.status) === AGENT_STATUS_CCB);
+        const isAgentActiveOrLiquidation = (Number(info.status) === AGENT_STATUS_NORMAL || Number(info.status) === AGENT_STATUS_LIQUIDATION);
         const isPubliclyAvailable = info.publiclyAvailable === true;
         
-        if (isAgentActive && isPubliclyAvailable) {
+        if (isAgentActiveOrLiquidation && isPubliclyAvailable) {
             availableToMintLots += Number(info.freeCollateralLots);
         }
     }
