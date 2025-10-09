@@ -70,13 +70,13 @@ describe("MyOApp Test", function () {
         await myOAppB.connect(ownerB).setPeer(eidA, ethers.utils.zeroPad(myOAppA.address, 32));
     });
 
-    it("deploys contracts with valid addresses", async function () {
-      expect(utils.isAddress(myOAppA.address)).to.be.true;
-      expect(utils.isAddress(myOAppB.address)).to.be.true;
-      expect(utils.isAddress(mockEndpointV2A.address)).to.be.true;
-      expect(utils.isAddress(mockEndpointV2B.address)).to.be.true;
+    it("deploys contracts with valid addresses", function () {
+        expect(utils.isAddress(myOAppA.address)).to.be.true;
+        expect(utils.isAddress(myOAppB.address)).to.be.true;
+        expect(utils.isAddress(mockEndpointV2A.address)).to.be.true;
+        expect(utils.isAddress(mockEndpointV2B.address)).to.be.true;
     });
-    
+
     it("quote() returns a fee struct without reverting", async function () {
         const options = Options.newOptions().addExecutorLzReceiveOption(200000, 0).toHex();
         const fee = await myOAppA.callStatic.quote(eidB, "Hello", options);

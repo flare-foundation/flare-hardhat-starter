@@ -58,7 +58,7 @@ const config: HardhatUserConfig = {
         },
         ethereum: {
             eid: EndpointId.ETHEREUM_V2_MAINNET,
-            url: 'https://rpc.ankr.com/eth/e0c8f3abfebe5b3516cca51e6e7829b50220929a8c2d0e0b40b3f2f5dc38c8b1',
+            url: process.env.RPC_URL_ETHEREUM || 'https://rpc.ankr.com/eth',
             accounts,
         },
         // Testnet Networks
@@ -67,7 +67,7 @@ const config: HardhatUserConfig = {
             url: process.env.RPC_URL_COSTON2 || 'https://coston2-api.flare.network/ext/C/rpc',
             accounts,
         },
-        sepolia: { // Renamed for clarity
+        sepolia: {
             eid: EndpointId.SEPOLIA_V2_TESTNET,
             url: process.env.RPC_URL_SEPOLIA || 'https://rpc.sepolia.org',
             accounts,
