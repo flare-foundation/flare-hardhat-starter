@@ -27,7 +27,6 @@ interface ISwapRouter {
 
     function exactInputSingle(ExactInputSingleParams calldata params) external payable returns (uint256 amountOut);
     function exactInput(ExactInputParams calldata params) external payable returns (uint256 amountOut);
-    function weth9() external view returns (address);
     function factory() external view returns (address);
 }
 
@@ -167,21 +166,5 @@ contract UniswapV3Wrapper {
         address tokenOut = address(bytes20(path[path.length-20:path.length]));
         
         emit SwapExecuted(msg.sender, tokenIn, tokenOut, amountIn, amountOut, deadline, "exactInput");
-    }
-
-    function getBalance(address token) external view returns (uint256) {
-        if (token == address(0)) {
-            return address(this).balance;
-        } else {
-            return IERC20(token).balanceOf(address(this));
-        }
-    }
-
-    function getUserBalance(address user, address token) external view returns (uint256) {
-        return IERC20(token).balanceOf(user);
-    }
-
-    function getUserAllowance(address user, address token) external view returns (uint256) {
-        return IERC20(token).allowance(user, address(this));
     }
 }

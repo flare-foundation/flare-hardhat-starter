@@ -59,7 +59,6 @@ async function main() {
     uint256 amountOutMinimum
   )) external payable returns (uint256)`,
     "function getPool(address tokenA, address tokenB, uint24 fee) external view returns (address pool)",
-    "function WETH9() external view returns (address)",
     "function factory() external view returns (address)",
     "function multicall(bytes[] calldata data) external payable returns (bytes[] memory results)"
   ];
