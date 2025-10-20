@@ -111,7 +111,7 @@ contract UniswapV3Wrapper {
         require(pool.liquidity() > 0, "Pool has no liquidity");
         
         // Transfer tokens from user to this contract
-        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
         
         // Approve router to spend tokens using SafeERC20
         IERC20(tokenIn).approve(address(swapRouter), amountIn);
@@ -145,7 +145,7 @@ contract UniswapV3Wrapper {
         address tokenIn = address(bytes20(path[0:20]));
         
         // Transfer tokens from user to this contract
-        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
+        IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
         
         // Approve router to spend tokens using SafeERC20
         IERC20(tokenIn).approve(address(swapRouter), amountIn);
