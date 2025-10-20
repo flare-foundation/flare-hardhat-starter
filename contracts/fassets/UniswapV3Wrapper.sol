@@ -133,38 +133,4 @@ contract UniswapV3Wrapper {
         
         emit SwapExecuted(msg.sender, tokenIn, tokenOut, amountIn, amountOut, deadline, "exactInputSingle");
     }
-
-    function swapExactInput(
-        bytes calldata path,
-        uint256 amountIn,
-        uint256 amountOutMinimum,
-        uint256 deadline
-    ) external returns (uint256 amountOut) {
-        // Extract token addresses from path
-        address tokenIn = address(bytes20(path[0:20]));
-        
-        // Transfer tokens from user to this contract
-        IERC20(tokenIn).safeTransferFrom(msg.sender, address(this), amountIn);
-        
-        // Approve router to spend tokens using SafeERC20
-        IERC20(tokenIn).approve(address(swapRouter), amountIn);
-        emit TokensApproved(tokenIn, address(swapRouter), amountIn);
-        
-        // Prepare swap parameters
-        ISwapRouter.ExactInputParams memory params = ISwapRouter.ExactInputParams({
-            path: path,
-            recipient: msg.sender,
-            deadline: deadline,
-            amountIn: amountIn,
-            amountOutMinimum: amountOutMinimum
-        });
-        
-        // Execute swap
-        amountOut = swapRouter.exactInput(params);
-        
-        // Extract output token from path (last 20 bytes)
-        address tokenOut = address(bytes20(path[path.length-20:path.length]));
-        
-        emit SwapExecuted(msg.sender, tokenIn, tokenOut, amountIn, amountOut, deadline, "exactInput");
-    }
 }
