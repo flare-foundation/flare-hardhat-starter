@@ -7,7 +7,8 @@ import { ERC20Instance } from "../../typechain-types/@openzeppelin/contracts/tok
 
 // yarn hardhat run scripts/fassets/uniswapV3Wrapper.ts --network flare
 
-const IAssetManager = artifacts.require("IAssetManager");
+const UniswapV3Wrapper = artifacts.require("UniswapV3Wrapper");
+const ERC20 = artifacts.require("ERC20");
 
 // Flare Uniswap V3 addresses
 // https://docs.sparkdex.ai/additional-information/smart-contract-overview/v2-v3.1-dex
@@ -23,10 +24,6 @@ const FEE = 500; // 0.05%
 // Swap parameters
 const AMOUNT_IN = ethers.parseUnits("1.0", 6); // 1 USDT0 (6 decimals)
 const AMOUNT_OUT_MIN = ethers.parseUnits("0.3", 6); // 0.3 FXRP minimum expected (6 decimals)
-
-const UniswapV3Wrapper = artifacts.require("UniswapV3Wrapper");
-
-const ERC20 = artifacts.require("ERC20");
 
 async function deployAndVerifyContract() {
   const args = [SWAP_ROUTER];
