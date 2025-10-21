@@ -48,12 +48,9 @@ async function deployAndVerifyContract() {
   return uniswapV3Wrapper;
 }
 
-async function main() {
-  const uniswapV3Wrapper: UniswapV3WrapperInstance = await deployAndVerifyContract();
-  const uniswapV3WrapperAddress = await uniswapV3Wrapper.address;
-  
+async function setupAndInitializeTokens() {
   const accounts = await web3.eth.getAccounts();
-    const deployer = accounts[0];
+  const deployer = accounts[0];
   
   console.log("Deployer:", deployer);
   console.log("Total accounts available:", accounts.length);
@@ -79,16 +76,22 @@ async function main() {
   console.log("Initial USDT0 balance:", initialUsdt0Balance.toString());
   console.log("Initial FXRP balance:", initialFxrpBalance.toString());
   
-  // Check if we have enough USDT0
+  // Check if there are enough USDT0
   const amountInBN = AMOUNT_IN;
   if (initialUsdt0Balance < amountInBN) {
     console.log("❌ Insufficient USDT0 balance. Need:", AMOUNT_IN.toString(), "Have:", initialUsdt0Balance.toString());
     console.log("Please ensure you have sufficient USDT0 tokens to perform the swap.");
-    return;
+    throw new Error("Insufficient USDT0 balance");
   }
 
-  // Step 1: Check pool using wrapper
-  console.log("\n=== Step 1: Pool Verification ===");
+  return { deployer, usdt0, fxrp, initialUsdt0Balance, initialFxrpBalance };
+}
+
+async function verifyPoolAndLiquidity(uniswapV3Wrapper: UniswapV3WrapperInstance) {
+  console.log("\n=== Pool Verification ===");
+  const assetManager = await getAssetManagerFXRP();
+  const FXRP = await assetManager.fAsset();
+  
   const poolInfo = await uniswapV3Wrapper.checkPool(USDT0, FXRP, FEE);
   console.log("Pool info:", poolInfo);
   const poolAddress = poolInfo.poolAddress;
@@ -102,23 +105,30 @@ async function main() {
   if (poolAddress === "0x0000000000000000000000000000000000000000") {
     console.log("❌ Pool does not exist for this token pair and fee tier");
     console.log("Please check if the USDT0/FXRP pool exists on SparkDEX");
-    return;
+    throw new Error("Pool does not exist");
   }
   
   if (!hasLiquidity) {
     console.log("❌ Pool exists but has no liquidity");
-    return;
+    throw new Error("Pool has no liquidity");
   }
   
   console.log("✅ Pool verification successful!");
+  return { poolAddress, hasLiquidity, liquidity };
+}
 
-  // Step 2: Approve USDT0 to wrapper contract
-  console.log("\n=== Step 2: Token Approval ===");
+async function approveUsdt0ForSwap(usdt0: ERC20Instance, uniswapV3WrapperAddress: string) {
+  console.log("\n=== Token Approval ===");
   const approveTx = await usdt0.approve(uniswapV3WrapperAddress, AMOUNT_IN.toString());
   console.log("✅ USDT0 approved to wrapper contract", approveTx);
+  return approveTx;
+}
 
-  // Step 3: Execute swap using wrapper
-  console.log("\n=== Step 3: Execute SparkDEX Swap ===");
+async function executeSparkDexSwap(uniswapV3Wrapper: UniswapV3WrapperInstance) {
+  console.log("\n=== Execute SparkDEX Swap ===");
+  const assetManager = await getAssetManagerFXRP();
+  const FXRP = await assetManager.fAsset();
+  
   const deadline = Math.floor(Date.now() / 1000) + 20 * 60; // 20 minutes
   console.log("Deadline:", deadline);
   
@@ -130,7 +140,8 @@ async function main() {
     AMOUNT_IN.toString(),
     AMOUNT_OUT_MIN.toString(),
     deadline,
-    0 // sqrtPriceLimitX96 = 0 (no limit)
+    0 // sqrtPriceLimitX96 = 0 (no limit for the price)
+    // https://docs.uniswap.org/contracts/v3/guides/swaps/single-swaps#swap-input-parameters
   );
   
   console.log("Transaction submitted:", swapTx);
@@ -138,20 +149,34 @@ async function main() {
   const swapReceipt = await swapTx.receipt;
   console.log("✅ SparkDEX swap executed successfully!");
   
-  // Extract amount out from events or calculate from balance change
-  const finalFxrpBalance = BigInt((await fxrp.balanceOf(deployer)).toString());
-  const amountOut = finalFxrpBalance - initialFxrpBalance;
-  console.log("Amount out:", amountOut.toString());
+  return { swapTx, swapReceipt };
+}
 
-  // Step 4: Check final balances
-  console.log("\n=== Step 4: Final Balances ===");
+async function checkFinalBalances(usdt0: ERC20Instance, fxrp: ERC20Instance, deployer: string, initialUsdt0Balance: bigint, initialFxrpBalance: bigint) {
+  console.log("\n=== Final Balances ===");
   const finalUsdt0Balance = BigInt((await usdt0.balanceOf(deployer)).toString());
   const finalFxrpBalanceAfter = BigInt((await fxrp.balanceOf(deployer)).toString());
   
   console.log("Final USDT0 balance:", finalUsdt0Balance.toString());
   console.log("Final FXRP balance:", finalFxrpBalanceAfter.toString());
   console.log("USDT0 spent:", (initialUsdt0Balance - finalUsdt0Balance).toString());
-  console.log("FXRP received:", (finalFxrpBalanceAfter- initialFxrpBalance).toString());
+  console.log("FXRP received:", (finalFxrpBalanceAfter - initialFxrpBalance).toString());
+  
+  return { finalUsdt0Balance, finalFxrpBalanceAfter };
+}
+
+async function main() {
+  const uniswapV3Wrapper: UniswapV3WrapperInstance = await deployAndVerifyContract();
+  
+  const { deployer, usdt0, fxrp, initialUsdt0Balance, initialFxrpBalance } = await setupAndInitializeTokens();
+  
+  await verifyPoolAndLiquidity(uniswapV3Wrapper);
+  
+  await approveUsdt0ForSwap(usdt0, uniswapV3Wrapper.address);
+  
+  await executeSparkDexSwap(uniswapV3Wrapper);
+  
+  await checkFinalBalances(usdt0, fxrp, deployer, initialUsdt0Balance, initialFxrpBalance);
 }
 
 main().catch((error) => {
