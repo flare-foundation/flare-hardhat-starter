@@ -38,7 +38,6 @@ import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/
  * ```
  */
 contract FTSOv2RateProvider is IRateProvider {
-
     // ========================================= STATE =========================================
 
     /**
@@ -69,10 +68,7 @@ contract FTSOv2RateProvider is IRateProvider {
      * @param _feedId Feed ID to track (e.g., 0x014254432f555344... for BTC/USD)
      * @param _rateDecimals Decimals for returned rate (match base asset)
      */
-    constructor(
-        bytes21 _feedId,
-        uint8 _rateDecimals
-    ) {
+    constructor(bytes21 _feedId, uint8 _rateDecimals) {
         if (_feedId == bytes21(0)) revert FTSOv2RateProvider__ZeroFeedId();
 
         feedId = _feedId;
@@ -123,11 +119,11 @@ contract FTSOv2RateProvider is IRateProvider {
      * - ETH/USD = 3500, decimals = 0 → 3500 → $3,500
      * - Small value = 1234, decimals = 2 → 1234 * 100 = 123,400
      */
-    function _scalePrice(uint256 value, int8 ftsoDecimals, uint8 toDecimals)
-        internal
-        pure
-        returns (uint256)
-    {
+    function _scalePrice(
+        uint256 value,
+        int8 ftsoDecimals,
+        uint8 toDecimals
+    ) internal pure returns (uint256) {
         // First, convert FTSO value to a standard base
         uint256 baseValue;
 

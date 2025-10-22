@@ -16,7 +16,6 @@ import {IFtsoRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/IFt
  * - DO NOT use in production!
  */
 contract SimpleFTSORateProvider is IRateProvider {
-
     IFtsoRegistry public immutable ftsoRegistry;
     string public symbol;
     uint8 public immutable rateDecimals;
@@ -32,8 +31,8 @@ contract SimpleFTSORateProvider is IRateProvider {
     }
 
     function getRate() external view override returns (uint256) {
-        (uint256 price,, uint256 ftsoDecimals) =
-            ftsoRegistry.getCurrentPriceWithDecimals(symbol);
+        (uint256 price, , uint256 ftsoDecimals) = ftsoRegistry
+            .getCurrentPriceWithDecimals(symbol);
 
         // Scale to desired decimals
         if (ftsoDecimals == rateDecimals) {

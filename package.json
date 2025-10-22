@@ -51,7 +51,6 @@
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-prettier": "^5.0.0",
     "hardhat-gas-reporter": "^1.0.8",
-    "hardhat-preprocessor": "^0.1.5",
     "prettier": "^3.0.0",
     "prettier-plugin-solidity": "^1.4.2",
     "solidity-coverage": "^0.8.0",
