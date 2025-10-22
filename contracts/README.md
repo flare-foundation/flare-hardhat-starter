@@ -7,6 +7,7 @@ For a more detailed explanation look at `scripts/README.md`.
 
 ```
 contracts
+├── boringVault: contracts used for examples of Veda's BoringVault contract
 ├── customFeeds: contracts used for examples of custom feed contracts
 ├── fdcExample: contracts used in examples for all attestation types
 ├── proofOfReserves: contracts used in the Proof of reserves dApp example
