@@ -10,7 +10,7 @@
     "typechain-ethers",
     "hardhat.config.ts",
     "layerzero.config.ts"
-, "scripts/deploy/wiring.ts"  ],
+, "scripts/deploy/wiring.ts", "scripts/deploy/FAssetRedeemComposer.ts"  ],
   "compilerOptions": {
     "outDir": "dist",
     "target": "es2020",
