@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {ERC20} from "@solady/tokens/ERC20.sol";
-import {WETH} from "@solady/tokens/WETH.sol";
+import {ERC20} from "solady/src/tokens/ERC20.sol";
+import {WETH} from "solady/src/tokens/WETH.sol";
 import {BoringVault} from "./BoringVault.sol";
 import {AccountantWithRateProviders} from "./AccountantWithRateProviders.sol";
-import {FixedPointMathLib} from "@solady/utils/FixedPointMathLib.sol";
-import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
+import {FixedPointMathLib} from "solady/src/utils/FixedPointMathLib.sol";
+import {SafeTransferLib} from "solady/src/utils/SafeTransferLib.sol";
 import {IBeforeTransferHook} from "./interfaces/IBeforeTransferHook.sol";
-import {Ownable} from "@solady/auth/Ownable.sol";
-import {ReentrancyGuard} from "@solady/utils/ReentrancyGuard.sol";
+import {Ownable} from "solady/src/auth/Ownable.sol";
+import {ReentrancyGuard} from "solady/src/utils/ReentrancyGuard.sol";
 import {IPausable} from "./interfaces/IPausable.sol";
 
 contract TellerWithMultiAssetSupport is Ownable, IBeforeTransferHook, ReentrancyGuard, IPausable {

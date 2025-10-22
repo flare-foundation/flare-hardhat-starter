@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {FixedPointMathLib} from "@solady/utils/FixedPointMathLib.sol";
+import {FixedPointMathLib} from "solady/src/utils/FixedPointMathLib.sol";
 import {IRateProvider} from "./interfaces/IRateProvider.sol";
-import {ERC20} from "@solady/tokens/ERC20.sol";
-import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
+import {ERC20} from "solady/src/tokens/ERC20.sol";
+import {SafeTransferLib} from "solady/src/utils/SafeTransferLib.sol";
 import {BoringVault} from "./BoringVault.sol";
-import {Ownable} from "@solady/auth/Ownable.sol";
+import {Ownable} from "solady/src/auth/Ownable.sol";
 import {IPausable} from "./interfaces/IPausable.sol";
 
 contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {

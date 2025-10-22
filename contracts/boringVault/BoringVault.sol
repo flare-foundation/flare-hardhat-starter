@@ -4,11 +4,11 @@ pragma solidity ^0.8.25;
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import {ERC1155Holder} from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
-import {FixedPointMathLib} from "@solady/utils/FixedPointMathLib.sol";
-import {SafeTransferLib} from "@solady/utils/SafeTransferLib.sol";
-import {ERC20} from "@solady/tokens/ERC20.sol";
+import {FixedPointMathLib} from "solady/src/utils/FixedPointMathLib.sol";
+import {SafeTransferLib} from "solady/src/utils/SafeTransferLib.sol";
+import {ERC20} from "solady/src/tokens/ERC20.sol";
 import {IBeforeTransferHook} from "./interfaces/IBeforeTransferHook.sol";
-import {Ownable} from "@solady/auth/Ownable.sol";
+import {Ownable} from "solady/src/auth/Ownable.sol";
 
 contract BoringVault is ERC20, Ownable, ERC721Holder, ERC1155Holder {
     using Address for address;
