@@ -7,6 +7,7 @@ In depth guides can be found on the [Flare Developer Hub](https://dev.flare.netw
 
 ```
 scripts
+├── boringVault: scripts used for examples of Veda's BoringVault contract
 ├── deployFTSOConsumer.ts: deploys and verifies the FtsoV2Consumer contract
 ├── customFeeds: scripts used for examples of custom feed contracts
 ├── fastUpdates.ts: demonstrates usage of FTSO fast updates
