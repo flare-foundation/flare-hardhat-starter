@@ -9167,6 +9167,11 @@ solady@0.0.182:
   resolved "https://registry.yarnpkg.com/solady/-/solady-0.0.182.tgz#bd8c47f128a3a752358ad052782773966d74c400"
   integrity sha512-FW6xo1akJoYpkXMzu58/56FcNU3HYYNamEbnFO3iSibXk0nSHo0DV2Gu/zI3FPg3So5CCX6IYli1TT1IWATnvg==
 
+solady@^0.1.26:
+  version "0.1.26"
+  resolved "https://registry.yarnpkg.com/solady/-/solady-0.1.26.tgz#80b4d621cfdbd82b772c5c701877d2f0ca12736f"
+  integrity sha512-dhGr/ptJFdea/1KE6xgqgwEdbMhUiSfRc6A+jLeltPe16zyt9qtED3PElIBVRnzEmUO5aZTjKVAr6SlqXBBcIw==
+
 solc@0.8.26:
   version "0.8.26"
   resolved "https://registry.yarnpkg.com/solc/-/solc-0.8.26.tgz#afc78078953f6ab3e727c338a2fefcd80dd5b01a"
