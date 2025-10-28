@@ -4,11 +4,6 @@
     "repository": "https://github.com/flare-foundation/flare-hardhat-starter",
     "license": "MIT",
     "scripts": {
-        "build": "nest build",
-        "start": "nest start",
-        "start:dev": "nest start --watch",
-        "start:debug": "nest start --debug --watch",
-        "start:prod": "node dist/main",
         "-----Linting-----": "echo \"Linting scripts\"",
         "lint:fix": "yarn lint:fix-typescript && yarn lint:fix-solidity",
         "lint:check": "yarn lint:check-typescript && yarn lint:check-solidity",
