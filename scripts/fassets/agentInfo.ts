@@ -18,7 +18,7 @@ async function main() {
     const agentAddress = agents._agents[0].ownerManagementAddress;
 
     // Call getSettings function
-    const agentName = await fassetsAgentInfo.getAgentName(agentAddress); 
+    const agentName = await fassetsAgentInfo.getAgentName(agentAddress);
     console.log("Agent name:", agentName);
 
     const agentDescription = await fassetsAgentInfo.getAgentDescription(agentAddress);
@@ -40,7 +40,7 @@ async function main() {
     console.log("Terms of use URL:", agentDetails[3]);
 }
 
-main().catch(error => {
+main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });

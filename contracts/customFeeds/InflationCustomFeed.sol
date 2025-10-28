@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
-import {IWeb2Json} from "@flarenetwork/flare-periphery-contracts/coston2/IWeb2Json.sol";
-import {IICustomFeed} from "@flarenetwork/flare-periphery-contracts/coston2/customFeeds/interfaces/IICustomFeed.sol";
+import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import { IWeb2Json } from "@flarenetwork/flare-periphery-contracts/coston2/IWeb2Json.sol";
+import { IICustomFeed } from "@flarenetwork/flare-periphery-contracts/coston2/customFeeds/interfaces/IICustomFeed.sol";
 
 /**
  * @title InflationCustomFeed
@@ -59,16 +59,10 @@ contract InflationCustomFeed is IICustomFeed {
      */
     function verifyInflationData(IWeb2Json.Proof calldata _proof) external {
         // 1. FDC Verification using the ContractRegistry for Web2Json
-        require(
-            ContractRegistry.getFdcVerification().verifyWeb2Json(_proof),
-            "FDC: Invalid Web2Json proof"
-        );
+        require(ContractRegistry.getFdcVerification().verifyWeb2Json(_proof), "FDC: Invalid Web2Json proof");
 
         // 2. Decode Inflation Data from the proof's response body
-        InflationData memory newInflationData = abi.decode(
-            _proof.data.responseBody.abiEncodedData,
-            (InflationData)
-        );
+        InflationData memory newInflationData = abi.decode(_proof.data.responseBody.abiEncodedData, (InflationData));
 
         // 3. Store verified data and timestamp
         latestInflationData = newInflationData;
@@ -98,12 +92,7 @@ contract InflationCustomFeed is IICustomFeed {
      * @notice Gets the latest verified inflation rate, its decimals, and the on-chain verification timestamp.
      * @inheritdoc IICustomFeed
      */
-    function getCurrentFeed()
-        external
-        payable
-        override
-        returns (uint256 _value, int8 _decimals, uint64 _timestamp)
-    {
+    function getCurrentFeed() external payable override returns (uint256 _value, int8 _decimals, uint64 _timestamp) {
         _value = latestInflationData.inflationRate;
         _decimals = DECIMALS;
         _timestamp = latestVerifiedTimestamp;
@@ -134,12 +123,7 @@ contract InflationCustomFeed is IICustomFeed {
     function getFeedDataView()
         external
         view
-        returns (
-            uint256 _value,
-            int8 _decimals,
-            uint256 _observationYear,
-            uint64 _verifiedTimestamp
-        )
+        returns (uint256 _value, int8 _decimals, uint256 _observationYear, uint64 _verifiedTimestamp)
     {
         _value = latestInflationData.inflationRate;
         _decimals = DECIMALS;

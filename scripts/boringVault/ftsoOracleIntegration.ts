@@ -61,6 +61,7 @@ async function demonstrateFtsoPrices(ftsoRegistry: any) {
             console.log(`  Status: ${priceAge < 300 ? "✅ Fresh" : "⚠️  Stale"}\n`);
         } catch (error: any) {
             console.log(`${symbol}/USD: ⚠️  Not available on testnet\n`);
+            console.log(`  Error: ${error.message}\n`);
         }
     }
 }
@@ -89,6 +90,7 @@ async function compareRateApproaches(ftsoRegistry: any) {
         console.log("✅ Oracle Approach (FTSO):");
         console.log("   Would fetch live ETH/USD price from FTSO");
         console.log("   (Not available on this testnet)\n");
+        console.log("Error: ", error);
     }
 }
 

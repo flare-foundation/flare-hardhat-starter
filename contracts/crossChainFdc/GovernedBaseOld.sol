@@ -34,11 +34,7 @@ abstract contract GovernedBaseOld {
     mapping(bytes4 => TimelockedCall) public timelockedCalls;
 
     /// Emitted when a new governance call has been recorded and is now waiting for the time lock to expire.
-    event GovernanceCallTimelocked(
-        bytes4 selector,
-        uint256 allowedAfterTimestamp,
-        bytes encodedCall
-    );
+    event GovernanceCallTimelocked(bytes4 selector, uint256 allowedAfterTimestamp, bytes encodedCall);
     /// Emitted when a timelocked governance call is executed.
     event TimelockedGovernanceCallExecuted(bytes4 selector, uint256 timestamp);
     /// Emitted when a timelocked governance call is canceled before execution.
@@ -81,10 +77,7 @@ abstract contract GovernedBaseOld {
         require(governanceSettings.isExecutor(msg.sender), "only executor");
         TimelockedCall storage call = timelockedCalls[_selector];
         require(call.allowedAfterTimestamp != 0, "timelock: invalid selector");
-        require(
-            block.timestamp >= call.allowedAfterTimestamp,
-            "timelock: not allowed yet"
-        );
+        require(block.timestamp >= call.allowedAfterTimestamp, "timelock: not allowed yet");
         bytes memory encodedCall = call.encodedCall;
         delete timelockedCalls[_selector];
         executing = true;
@@ -100,13 +93,8 @@ abstract contract GovernedBaseOld {
      * @dev Only governance can call this method.
      * @param _selector The method selector.
      */
-    function cancelGovernanceCall(
-        bytes4 _selector
-    ) external onlyImmediateGovernance {
-        require(
-            timelockedCalls[_selector].allowedAfterTimestamp != 0,
-            "timelock: invalid selector"
-        );
+    function cancelGovernanceCall(bytes4 _selector) external onlyImmediateGovernance {
+        require(timelockedCalls[_selector].allowedAfterTimestamp != 0, "timelock: invalid selector");
         emit TimelockedGovernanceCallCanceled(_selector, block.timestamp);
         delete timelockedCalls[_selector];
     }
@@ -143,10 +131,7 @@ abstract contract GovernedBaseOld {
      * Returns the current effective governance address.
      */
     function governance() public view returns (address) {
-        return
-            productionMode
-                ? governanceSettings.getGovernanceAddress()
-                : initialGovernance;
+        return productionMode ? governanceSettings.getGovernanceAddress() : initialGovernance;
     }
 
     function _beforeExecute() private {
@@ -171,10 +156,7 @@ abstract contract GovernedBaseOld {
         }
         uint256 timelock = governanceSettings.getTimelock();
         uint256 allowedAt = block.timestamp + timelock;
-        timelockedCalls[selector] = TimelockedCall({
-            allowedAfterTimestamp: allowedAt,
-            encodedCall: _data
-        });
+        timelockedCalls[selector] = TimelockedCall({ allowedAfterTimestamp: allowedAt, encodedCall: _data });
         emit GovernanceCallTimelocked(selector, allowedAt, _data);
     }
 

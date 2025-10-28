@@ -9,7 +9,7 @@ async function main() {
     console.log(settings);
 }
 
-main().catch(error => {
+main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });

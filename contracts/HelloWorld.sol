@@ -13,9 +13,7 @@ contract HelloWorld {
         worldGreeting = string.concat("Hello, ", world, "!");
     }
 
-    function greetByName(
-        string memory name
-    ) public pure returns (string memory personalizedGreeting) {
+    function greetByName(string memory name) public pure returns (string memory personalizedGreeting) {
         personalizedGreeting = string.concat("Hello, ", name, "!");
     }
 }

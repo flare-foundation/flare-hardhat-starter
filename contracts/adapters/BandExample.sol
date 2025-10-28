@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import {IStdReference, FtsoBandAdapterLibrary} from "@flarenetwork/ftso-adapters/contracts/coston2/BandAdapter.sol";
+import { IStdReference, FtsoBandAdapterLibrary } from "@flarenetwork/ftso-adapters/contracts/coston2/BandAdapter.sol";
 
 /**
  * @title PriceTriggeredSafe
@@ -23,11 +23,7 @@ contract PriceTriggeredSafe {
     // --- Events ---
     event Deposited(address indexed user, uint256 amount);
     event Withdrawn(address indexed user, uint256 amount);
-    event MarketLocked(
-        string indexed volatileAsset,
-        uint256 oldPrice,
-        uint256 newPrice
-    );
+    event MarketLocked(string indexed volatileAsset, uint256 oldPrice, uint256 newPrice);
     event MarketUnlocked();
 
     modifier onlyOwner() {
@@ -75,8 +71,7 @@ contract PriceTriggeredSafe {
         quotes[2] = "USD";
 
         // Use the library to get all prices in a single call.
-        IStdReference.ReferenceData[] memory prices = FtsoBandAdapterLibrary
-            .getReferenceDataBulk(bases, quotes);
+        IStdReference.ReferenceData[] memory prices = FtsoBandAdapterLibrary.getReferenceDataBulk(bases, quotes);
 
         for (uint i = 0; i < prices.length; i++) {
             string memory base = bases[i];
@@ -90,9 +85,7 @@ contract PriceTriggeredSafe {
             }
 
             // Check for significant price movement.
-            uint256 priceDiff = (lastPrice > currentPrice)
-                ? lastPrice - currentPrice
-                : currentPrice - lastPrice;
+            uint256 priceDiff = (lastPrice > currentPrice) ? lastPrice - currentPrice : currentPrice - lastPrice;
             uint256 changeBIPS = (priceDiff * 10000) / lastPrice;
 
             if (changeBIPS > VOLATILITY_THRESHOLD_BIPS) {

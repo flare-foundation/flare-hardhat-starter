@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.7.6;
 
-import {GovernedBaseOld} from "./GovernedBaseOld.sol";
+import { GovernedBaseOld } from "./GovernedBaseOld.sol";
 
 /**
  * Defines behaviors for governed contracts that must have a governor set at construction-time.

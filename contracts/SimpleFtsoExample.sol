@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.6;
 
-import {TestFtsoV2Interface} from "@flarenetwork/flare-periphery-contracts/coston2/TestFtsoV2Interface.sol";
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
-import {IFtsoFeedIdConverter} from "@flarenetwork/flare-periphery-contracts/coston2/IFtsoFeedIdConverter.sol";
+import { TestFtsoV2Interface } from "@flarenetwork/flare-periphery-contracts/coston2/TestFtsoV2Interface.sol";
+import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import { IFtsoFeedIdConverter } from "@flarenetwork/flare-periphery-contracts/coston2/IFtsoFeedIdConverter.sol";
 
 contract SimpleFtsoExample {
     /**
@@ -49,8 +49,7 @@ contract SimpleFtsoExample {
     ) public view returns (uint256 _price1, uint256 _price2, bool _is_higher) {
         // WARNING: This is a test contract, do not use it in production
         TestFtsoV2Interface ftsoV2 = ContractRegistry.getTestFtsoV2();
-        IFtsoFeedIdConverter feedConverter = ContractRegistry
-            .getFtsoFeedIdConverter();
+        IFtsoFeedIdConverter feedConverter = ContractRegistry.getFtsoFeedIdConverter();
         bytes21[] memory feedIds = new bytes21[](2);
         feedIds[0] = feedConverter.getFeedId(1, token1);
         feedIds[1] = feedConverter.getFeedId(1, token2);

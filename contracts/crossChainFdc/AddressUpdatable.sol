@@ -26,13 +26,7 @@ abstract contract AddressUpdatable is IIAddressUpdatable {
         address[] memory _contractAddresses
     ) external onlyAddressUpdater {
         // update addressUpdater address
-        setAddressUpdaterValue(
-            _getContractAddress(
-                _contractNameHashes,
-                _contractAddresses,
-                "AddressUpdater"
-            )
-        );
+        setAddressUpdaterValue(_getContractAddress(_contractNameHashes, _contractAddresses, "AddressUpdater"));
         // update all other addresses
         _updateContractAddresses(_contractNameHashes, _contractAddresses);
     }

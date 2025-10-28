@@ -3,7 +3,6 @@ import { getAssetManagerFXRP } from "../utils/getters";
 // yarn hardhat run scripts/fassets/getRedemptionQueue.ts --network coston2
 
 async function main() {
-    
     const assetManager = await getAssetManagerFXRP();
     const settings = await assetManager.getSettings();
     const maxRedeemedTickets = settings.maxRedeemedTickets;
@@ -24,7 +23,7 @@ async function main() {
     console.log("\nTotal lots in redemption queue:", totalLots.toString());
 }
 
-main().catch(error => {
+main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });

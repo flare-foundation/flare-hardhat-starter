@@ -1,4 +1,4 @@
-import hre, { artifacts, web3, run } from "hardhat";
+import { artifacts, web3, run } from "hardhat";
 import { MetalPriceVerifierCustomFeedInstance } from "../../typechain-types";
 import {
     prepareAttestationRequestBase,
@@ -42,7 +42,7 @@ async function prepareAttestationRequest() {
         abiSignature: abiSig,
     };
     const url = `${verifierUrlBase}Web2Json/prepareRequest`;
-    const apiKey = VERIFIER_API_KEY_TESTNET!;
+    const apiKey = VERIFIER_API_KEY_TESTNET;
     return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, sourceIdBase, requestBody);
 }
 

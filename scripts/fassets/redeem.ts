@@ -41,11 +41,11 @@ async function approveFAssets(fAssetsRedeem: any, amountToRedeem: string) {
     const fxrpAddress = await fAssetsRedeem.getFXRPAddress();
     const fxrp: ERC20Instance = await IERC20.at(fxrpAddress);
 
-    const approveTx = await fxrp.approve(await fAssetsRedeem.address, amountToRedeem);
+    await fxrp.approve(await fAssetsRedeem.address, amountToRedeem);
     console.log("FXRP approval completed");
 }
 
-async function parseRedemptionEvents(transactionReceipt: any, fAssetsRedeem: any) {
+function parseRedemptionEvents(transactionReceipt: any, fAssetsRedeem: any) {
     console.log("\nParsing events...", transactionReceipt.rawLogs);
 
     const redemptionRequestedEvents = logEvents(transactionReceipt.rawLogs, "RedemptionRequested", AssetManager.abi);
@@ -57,10 +57,9 @@ async function parseRedemptionEvents(transactionReceipt: any, fAssetsRedeem: any
 
 async function printRedemptionRequestInfo(fAssetsRedeem: any, redemptionRequestedEvents: any[]) {
     console.log("\n=== Redemption Request Information ===");
-    
+
     for (const event of redemptionRequestedEvents) {
-        const redemptionRequestInfo = await fAssetsRedeem
-            .getRedemptionRequestInfo(event.decoded.requestId);
+        const redemptionRequestInfo = await fAssetsRedeem.getRedemptionRequestInfo(event.decoded.requestId);
         console.log("Redemption request info:", redemptionRequestInfo);
     }
 }
@@ -89,13 +88,13 @@ async function main() {
     console.log("Redeem transaction receipt", redeemTx);
 
     // Parse events from the transaction
-    const redemptionRequestedEvents = await parseRedemptionEvents(redeemTx.receipt, fAssetsRedeem);
+    const redemptionRequestedEvents = parseRedemptionEvents(redeemTx.receipt, fAssetsRedeem);
 
     // Print redemption request info for each redemption requested event
     await printRedemptionRequestInfo(fAssetsRedeem, redemptionRequestedEvents);
 }
 
-main().catch(error => {
+main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });

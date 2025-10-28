@@ -18,7 +18,7 @@ async function main() {
     console.log("Lot size in XRP", lotSizeFXRP);
 }
 
-main().catch(error => {
+main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });

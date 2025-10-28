@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
-import {IWeb2Json} from "@flarenetwork/flare-periphery-contracts/coston2/IWeb2Json.sol";
-import {IICustomFeed} from "@flarenetwork/flare-periphery-contracts/coston2/customFeeds/interfaces/IICustomFeed.sol";
+import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import { IWeb2Json } from "@flarenetwork/flare-periphery-contracts/coston2/IWeb2Json.sol";
+import { IICustomFeed } from "@flarenetwork/flare-periphery-contracts/coston2/customFeeds/interfaces/IICustomFeed.sol";
 
 struct MetalPriceData {
     uint256 price;
@@ -50,31 +50,17 @@ contract MetalPriceVerifierCustomFeed is IICustomFeed {
      */
     function verifyPrice(IWeb2Json.Proof calldata _proof) external {
         // 1. Symbol Verification (from URL)
-        string memory metalSymbolFromUrl = _extractSymbolFromUrl(
-            _proof.data.requestBody.url
-        );
+        string memory metalSymbolFromUrl = _extractSymbolFromUrl(_proof.data.requestBody.url);
         emit UrlParsingCheck(_proof.data.requestBody.url, metalSymbolFromUrl); // For debugging URL parsing
-        if (
-            keccak256(abi.encodePacked(metalSymbolFromUrl)) !=
-            keccak256(abi.encodePacked(expectedSymbol))
-        ) {
-            revert InvalidSymbolInUrl(
-                _proof.data.requestBody.url,
-                metalSymbolFromUrl
-            );
+        if (keccak256(abi.encodePacked(metalSymbolFromUrl)) != keccak256(abi.encodePacked(expectedSymbol))) {
+            revert InvalidSymbolInUrl(_proof.data.requestBody.url, metalSymbolFromUrl);
         }
 
         // 2. FDC Verification (Web2Json)
-        require(
-            ContractRegistry.getFdcVerification().verifyWeb2Json(_proof),
-            "FDC: Invalid Web2Json proof"
-        );
+        require(ContractRegistry.getFdcVerification().verifyWeb2Json(_proof), "FDC: Invalid Web2Json proof");
 
         // 3. Decode Price Data
-        MetalPriceData memory newPriceData = abi.decode(
-            _proof.data.responseBody.abiEncodedData,
-            (MetalPriceData)
-        );
+        MetalPriceData memory newPriceData = abi.decode(_proof.data.responseBody.abiEncodedData, (MetalPriceData));
 
         // 4. Store verified data
         latestVerifiedPrice = newPriceData.price;
@@ -100,21 +86,12 @@ contract MetalPriceVerifierCustomFeed is IICustomFeed {
         return 0;
     }
 
-    function getFeedDataView()
-        external
-        view
-        returns (uint256 _value, int8 _decimals)
-    {
+    function getFeedDataView() external view returns (uint256 _value, int8 _decimals) {
         _value = latestVerifiedPrice;
         _decimals = decimals_;
     }
 
-    function getCurrentFeed()
-        external
-        payable
-        override
-        returns (uint256 _value, int8 _decimals, uint64 _timestamp)
-    {
+    function getCurrentFeed() external payable override returns (uint256 _value, int8 _decimals, uint64 _timestamp) {
         _value = latestVerifiedPrice;
         _decimals = decimals_;
         _timestamp = latestVerifiedTimestamp;
@@ -136,7 +113,7 @@ contract MetalPriceVerifierCustomFeed is IICustomFeed {
 
         // Find the last slash, which is before the quote currency (e.g., "USD")
         for (uint256 i = len - 1; i > 0; i--) {
-            if (urlBytes[i] == '/') {
+            if (urlBytes[i] == "/") {
                 end = i;
                 break;
             }
@@ -145,7 +122,7 @@ contract MetalPriceVerifierCustomFeed is IICustomFeed {
 
         // Find the second-to-last slash, which is before the base symbol (e.g., "XAU")
         for (uint256 i = end - 1; i > 0; i--) {
-            if (urlBytes[i] == '/') {
+            if (urlBytes[i] == "/") {
                 start = i + 1;
                 break;
             }

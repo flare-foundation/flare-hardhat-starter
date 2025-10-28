@@ -26,30 +26,24 @@ contract FdcVerification is IFdcVerificationOld, AddressUpdatable {
      * @param _addressUpdater The address of the AddressUpdater contract.
      * @param _fdcProtocolId The FDC protocol id.
      */
-    constructor(
-        address _addressUpdater,
-        uint8 _fdcProtocolId
-    ) AddressUpdatable(_addressUpdater) {
+    constructor(address _addressUpdater, uint8 _fdcProtocolId) AddressUpdatable(_addressUpdater) {
         fdcProtocolId = _fdcProtocolId;
     }
 
     // HACK:(Nik)
     function updateRelay() external {
         address _addressUpdater = getAddressUpdater();
-        address _relay = IIAddressUpdater(_addressUpdater)
-            .getContractAddressByHash(keccak256(abi.encode("Relay")));
+        address _relay = IIAddressUpdater(_addressUpdater).getContractAddressByHash(keccak256(abi.encode("Relay")));
         relay = IRelay(_relay);
     }
 
     /**
      * @inheritdoc IAddressValidityVerificationOther
      */
-    function verifyAddressValidity(
-        IAddressValidity.Proof calldata _proof
-    ) external payable returns (bool _proved) {
+    function verifyAddressValidity(IAddressValidity.Proof calldata _proof) external payable returns (bool _proved) {
         return
             _proof.data.attestationType == bytes32("AddressValidity") &&
-            relay.verify{value: msg.value}(
+            relay.verify{ value: msg.value }(
                 fdcProtocolId,
                 _proof.data.votingRound,
                 keccak256(abi.encode(_proof.data)),
@@ -64,9 +58,8 @@ contract FdcVerification is IFdcVerificationOld, AddressUpdatable {
         IBalanceDecreasingTransaction.Proof calldata _proof
     ) external payable returns (bool _proved) {
         return
-            _proof.data.attestationType ==
-            bytes32("BalanceDecreasingTransaction") &&
-            relay.verify{value: msg.value}(
+            _proof.data.attestationType == bytes32("BalanceDecreasingTransaction") &&
+            relay.verify{ value: msg.value }(
                 fdcProtocolId,
                 _proof.data.votingRound,
                 keccak256(abi.encode(_proof.data)),
@@ -81,9 +74,8 @@ contract FdcVerification is IFdcVerificationOld, AddressUpdatable {
         IConfirmedBlockHeightExists.Proof calldata _proof
     ) external payable returns (bool _proved) {
         return
-            _proof.data.attestationType ==
-            bytes32("ConfirmedBlockHeightExists") &&
-            relay.verify{value: msg.value}(
+            _proof.data.attestationType == bytes32("ConfirmedBlockHeightExists") &&
+            relay.verify{ value: msg.value }(
                 fdcProtocolId,
                 _proof.data.votingRound,
                 keccak256(abi.encode(_proof.data)),
@@ -94,12 +86,10 @@ contract FdcVerification is IFdcVerificationOld, AddressUpdatable {
     /**
      * @inheritdoc IEVMTransactionVerificationOther
      */
-    function verifyEVMTransaction(
-        IEVMTransaction.Proof calldata _proof
-    ) external payable returns (bool _proved) {
+    function verifyEVMTransaction(IEVMTransaction.Proof calldata _proof) external payable returns (bool _proved) {
         return
             _proof.data.attestationType == bytes32("EVMTransaction") &&
-            relay.verify{value: msg.value}(
+            relay.verify{ value: msg.value }(
                 fdcProtocolId,
                 _proof.data.votingRound,
                 keccak256(abi.encode(_proof.data)),
@@ -110,12 +100,10 @@ contract FdcVerification is IFdcVerificationOld, AddressUpdatable {
     /**
      * @inheritdoc IPaymentVerificationOther
      */
-    function verifyPayment(
-        IPayment.Proof calldata _proof
-    ) external payable returns (bool _proved) {
+    function verifyPayment(IPayment.Proof calldata _proof) external payable returns (bool _proved) {
         return
             _proof.data.attestationType == bytes32("Payment") &&
-            relay.verify{value: msg.value}(
+            relay.verify{ value: msg.value }(
                 fdcProtocolId,
                 _proof.data.votingRound,
                 keccak256(abi.encode(_proof.data)),
@@ -130,9 +118,8 @@ contract FdcVerification is IFdcVerificationOld, AddressUpdatable {
         IReferencedPaymentNonexistence.Proof calldata _proof
     ) external payable returns (bool _proved) {
         return
-            _proof.data.attestationType ==
-            bytes32("ReferencedPaymentNonexistence") &&
-            relay.verify{value: msg.value}(
+            _proof.data.attestationType == bytes32("ReferencedPaymentNonexistence") &&
+            relay.verify{ value: msg.value }(
                 fdcProtocolId,
                 _proof.data.votingRound,
                 keccak256(abi.encode(_proof.data)),
@@ -143,12 +130,10 @@ contract FdcVerification is IFdcVerificationOld, AddressUpdatable {
     /**
      * @inheritdoc IWeb2JsonVerificationOther
      */
-    function verifyWeb2Json(
-        IWeb2Json.Proof calldata _proof
-    ) external payable returns (bool _proved) {
+    function verifyWeb2Json(IWeb2Json.Proof calldata _proof) external payable returns (bool _proved) {
         return
             _proof.data.attestationType == bytes32("Web2Json") &&
-            relay.verify{value: msg.value}(
+            relay.verify{ value: msg.value }(
                 fdcProtocolId,
                 _proof.data.votingRound,
                 keccak256(abi.encode(_proof.data)),
@@ -164,12 +149,6 @@ contract FdcVerification is IFdcVerificationOld, AddressUpdatable {
         bytes32[] memory _contractNameHashes,
         address[] memory _contractAddresses
     ) internal virtual override {
-        relay = IRelay(
-            _getContractAddress(
-                _contractNameHashes,
-                _contractAddresses,
-                "Relay"
-            )
-        );
+        relay = IRelay(_getContractAddress(_contractNameHashes, _contractAddresses, "Relay"));
     }
 }

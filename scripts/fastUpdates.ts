@@ -1,3 +1,4 @@
+import hre from "hardhat";
 import {
     FlareContractRegistryAddress,
     flare,
@@ -154,7 +155,7 @@ async function main() {
     await runFastUpdatesListener();
 }
 
-main().catch(error => {
+main().catch((error) => {
     console.error(error);
     process.exit(1);
 });

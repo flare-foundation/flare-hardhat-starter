@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {IRateProvider} from "../interfaces/IRateProvider.sol";
-import {TestFtsoV2Interface} from "@flarenetwork/flare-periphery-contracts/coston2/TestFtsoV2Interface.sol";
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import { IRateProvider } from "../interfaces/IRateProvider.sol";
+import { TestFtsoV2Interface } from "@flarenetwork/flare-periphery-contracts/coston2/TestFtsoV2Interface.sol";
+import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
 
 /**
  * @title FTSOv2RateProvider
@@ -119,11 +119,7 @@ contract FTSOv2RateProvider is IRateProvider {
      * - ETH/USD = 3500, decimals = 0 → 3500 → $3,500
      * - Small value = 1234, decimals = 2 → 1234 * 100 = 123,400
      */
-    function _scalePrice(
-        uint256 value,
-        int8 ftsoDecimals,
-        uint8 toDecimals
-    ) internal pure returns (uint256) {
+    function _scalePrice(uint256 value, int8 ftsoDecimals, uint8 toDecimals) internal pure returns (uint256) {
         // First, convert FTSO value to a standard base
         uint256 baseValue;
 
@@ -149,11 +145,7 @@ contract FTSOv2RateProvider is IRateProvider {
      * @return feedDecimals FTSOv2 decimal modifier
      * @return timestamp Last update time
      */
-    function getCurrentFeedData()
-        external
-        view
-        returns (uint256 value, int8 feedDecimals, uint64 timestamp)
-    {
+    function getCurrentFeedData() external view returns (uint256 value, int8 feedDecimals, uint64 timestamp) {
         TestFtsoV2Interface ftsoV2 = ContractRegistry.getTestFtsoV2();
         (value, feedDecimals, timestamp) = ftsoV2.getFeedById(feedId);
     }

@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.16;
 
-import {FtsoChronicleAdapterLibrary} from "@flarenetwork/ftso-adapters/contracts/coston2/ChronicleAdapter.sol";
-import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import { FtsoChronicleAdapterLibrary } from "@flarenetwork/ftso-adapters/contracts/coston2/ChronicleAdapter.sol";
+import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 interface IChronicle {
     /// @notice Returns the oracle's identifier.
@@ -29,10 +29,7 @@ interface IChronicle {
     /// @return isValid True if value exists, false otherwise.
     /// @return value The oracle's current value if it exists, zero otherwise.
     /// @return age The value's age if value exists, zero otherwise.
-    function tryReadWithAge()
-        external
-        view
-        returns (bool isValid, uint value, uint age);
+    function tryReadWithAge() external view returns (bool isValid, uint value, uint age);
 }
 
 /**
@@ -88,12 +85,7 @@ contract DynamicNftMinter is IChronicle, ERC721 {
     function tryRead() public view override returns (bool, uint256) {
         return FtsoChronicleAdapterLibrary.tryRead(_latestDataPoint);
     }
-    function tryReadWithAge()
-        public
-        view
-        override
-        returns (bool, uint256, uint256)
-    {
+    function tryReadWithAge() public view override returns (bool, uint256, uint256) {
         return FtsoChronicleAdapterLibrary.tryReadWithAge(_latestDataPoint);
     }
 

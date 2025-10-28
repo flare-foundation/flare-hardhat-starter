@@ -8,7 +8,7 @@ const DESCRIPTION = "FTSOv2 FLR/USD adapted for API3";
 const MAX_AGE_SECONDS = 3600;
 const STRIKE_PRICE_USD = 0.025;
 const ROUND_DURATION_SECONDS = 300;
-const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function deployContracts(): Promise<{ guesser: PriceGuesserInstance }> {
     const strikePriceWei = BigInt(STRIKE_PRICE_USD * 1e18);
@@ -68,7 +68,7 @@ async function interactWithMarket(guesser: PriceGuesserInstance) {
 
     console.log("\nStep 4: Settling the prediction market...");
     const settleTx = await guesser.settle({ from: deployer });
-    const settledEvent = settleTx.logs.find(e => e.event === "MarketSettled");
+    const settledEvent = settleTx.logs.find((e) => e.event === "MarketSettled");
     const finalPrice = BigInt(settledEvent.args.finalPrice.toString());
     const outcome = Number(settledEvent.args.outcome);
     const finalPriceFormatted = Number(finalPrice / 10n ** 14n) / 10000;
@@ -117,7 +117,7 @@ async function main() {
 
 void main()
     .then(() => process.exit(0))
-    .catch(error => {
+    .catch((error) => {
         console.error(error);
         process.exit(1);
     });

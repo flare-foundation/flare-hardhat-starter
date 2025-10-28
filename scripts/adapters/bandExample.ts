@@ -5,7 +5,7 @@ import { PriceTriggeredSafeInstance } from "../../typechain-types";
 const PriceTriggeredSafe: PriceTriggeredSafeInstance = artifacts.require("PriceTriggeredSafe");
 
 // --- Helper Functions ---
-const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
  * Fetches the prices stored in the contract and logs them to the console.
@@ -130,7 +130,7 @@ void main()
     .then(() => {
         process.exit(0);
     })
-    .catch(error => {
+    .catch((error) => {
         console.error(error);
         process.exit(1);
     });

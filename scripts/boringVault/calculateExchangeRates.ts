@@ -91,8 +91,9 @@ async function displayExchangeRates(accountant: any, assets: AssetInfo[], vaultD
             const expectedAssets = (shareAmount * rateInQuote) / ONE_SHARE;
             const formattedAssets = ethers.formatUnits(expectedAssets, asset.decimals);
             console.log(`  10 shares → ${formattedAssets} ${asset.symbol}\n`);
-        } catch (err) {
+        } catch (error) {
             console.log(`  ⚠️  Rate not configured for ${asset.symbol}\n`);
+            console.log("Error: ", error);
         }
     }
 }
@@ -130,8 +131,9 @@ async function demonstrateSlippage(accountant: any, asset: AssetInfo, vaultDecim
         console.log(`Expected shares: ${ethers.formatUnits(expectedShares, vaultDecimals)}`);
         console.log(`Minimum shares (0.5% slippage): ${ethers.formatUnits(minimumShares, vaultDecimals)}`);
         console.log(`\nThe transaction will revert if you receive less than the minimum.`);
-    } catch (err) {
-        console.log(`⚠️  Rate not configured yet. Run: npm run configure:assets`);
+    } catch (error) {
+        console.log(`⚠️  Rate not configured yet. Run: npm run configure:assets\n`);
+        console.log("Error: ", error);
     }
 }
 

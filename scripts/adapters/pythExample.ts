@@ -104,7 +104,7 @@ void main()
     .then(() => {
         process.exit(0);
     })
-    .catch(error => {
+    .catch((error) => {
         console.error(error);
         process.exit(1);
     });

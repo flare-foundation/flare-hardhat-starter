@@ -47,7 +47,7 @@ async function retrieveDataAndProofBase(url: string, abiEncodedRequest: string, 
     await sleep(10000);
     let proof = await postRequestToDALayer(url, request, true);
     console.log("Waiting for the DA Layer to generate the proof...");
-    while (proof.response_hex == undefined) {
+    while (proof.response_hex === undefined) {
         await sleep(10000);
         proof = await postRequestToDALayer(url, request, false);
     }

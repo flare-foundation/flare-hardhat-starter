@@ -68,7 +68,7 @@ async function interactWithMinter(minter: DynamicNftMinterInstance) {
     const mintTx = await minter.mint({ from: user, value: mintFee.toString() });
 
     // Step 4: Decode the event to find out which tier was minted.
-    const mintedEvent = mintTx.logs.find(e => e.event === "NftMinted");
+    const mintedEvent = mintTx.logs.find((e) => e.event === "NftMinted");
     if (!mintedEvent) {
         throw new Error("NftMinted event not found in transaction logs.");
     }
@@ -99,7 +99,7 @@ void main()
     .then(() => {
         process.exit(0);
     })
-    .catch(error => {
+    .catch((error) => {
         console.error(error);
         process.exit(1);
     });

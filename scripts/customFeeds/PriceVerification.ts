@@ -50,7 +50,7 @@ async function prepareAttestationRequest() {
         abiSignature: abiSig,
     };
     const url = `${verifierUrlBase}Web2Json/prepareRequest`;
-    const apiKey = VERIFIER_API_KEY_TESTNET!;
+    const apiKey = VERIFIER_API_KEY_TESTNET;
     return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, sourceIdBase, requestBody);
 }
 
@@ -72,7 +72,7 @@ async function deployAndVerifyContract(): Promise<PriceVerifierCustomFeedInstanc
     const feedNameHash = web3.utils.keccak256(feedIdString);
     // Construct the final feed ID: 0x21 (custom feed category) + first 20 bytes of the hash.
     const finalFeedIdHex = `0x21${feedNameHash.substring(2, 42)}`;
-    
+
     console.log(`\nDeploying PriceVerifierCustomFeed with Feed ID: ${finalFeedIdHex}`);
     const customFeedArgs: any[] = [finalFeedIdHex, priceSymbol, priceDecimals];
     const customFeed: PriceVerifierCustomFeedInstance = await PriceVerifierCustomFeed.new(...customFeedArgs);
@@ -82,12 +82,12 @@ async function deployAndVerifyContract(): Promise<PriceVerifierCustomFeedInstanc
         await run("verify:verify", {
             address: customFeed.address,
             constructorArguments: customFeedArgs,
-                contract: "contracts/customFeeds/PriceVerifierCustomFeed.sol:PriceVerifierCustomFeed",
-            });
-            console.log("✅ Contract verification successful.");
-        } catch (error) {
-            console.log("Contract verification failed:", error);
-        }
+            contract: "contracts/customFeeds/PriceVerifierCustomFeed.sol:PriceVerifierCustomFeed",
+        });
+        console.log("✅ Contract verification successful.");
+    } catch (error) {
+        console.log("Contract verification failed:", error);
+    }
     return customFeed;
 }
 
@@ -109,13 +109,11 @@ async function interactWithContract(customFeed: PriceVerifierCustomFeedInstance,
 
     const tx = await customFeed.verifyPrice(fullProof);
     console.log(`✅ Proof for ${priceSymbol} submitted successfully. Tx: ${tx.tx}`);
-    
+
     // Read the price back from the contract to confirm it was stored.
     const { _value, _decimals } = await customFeed.getFeedDataView();
     const formattedPrice = Number(_value) / 10 ** Number(_decimals);
-    console.log(
-        `✅ Latest verified price for ${priceSymbol}/USD: $${formattedPrice}`
-    );
+    console.log(`✅ Latest verified price for ${priceSymbol}/USD: $${formattedPrice}`);
 }
 
 async function main() {

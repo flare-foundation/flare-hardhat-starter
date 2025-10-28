@@ -25,12 +25,12 @@ const headers = JSON.stringify({ "Content-Type": "application/json" });
 const body = "{}";
 
 const postProcessJq = `{
-  latitude: (.coord.lat | if . != null then .*pow(10;6) else 0 end | floor),
-  longitude: (.coord.lon | if . != null then .*pow(10;6) else 0 end | floor),
+  latitude: (.coord.lat | if . !== null then .*pow(10;6) else 0 end | floor),
+  longitude: (.coord.lon | if . !== null then .*pow(10;6) else 0 end | floor),
   description: .weather[0].description,
-  temperature: (.main.temp | if . != null then .*pow(10;6) else 0 end | floor),
-  minTemp: (.main.temp_min | if . != null then .*pow(10;6) else 0 end | floor),
-  windSpeed: (.wind.speed | if . != null then . *pow(10;6) else 0 end | floor),
+  temperature: (.main.temp | if . !== null then .*pow(10;6) else 0 end | floor),
+  minTemp: (.main.temp_min | if . !== null then .*pow(10;6) else 0 end | floor),
+  windSpeed: (.wind.speed | if . !== null then . *pow(10;6) else 0 end | floor),
   windDeg: .wind.deg
   }`;
 

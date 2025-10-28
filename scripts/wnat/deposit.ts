@@ -29,7 +29,7 @@ async function main() {
 
     // Deposit 0.1 ETH
     const depositAmount = ethers.parseEther("0.1").toString();
-    const tx = await IWNatInstance.deposit({ value: depositAmount });
+    await IWNatInstance.deposit({ value: depositAmount });
     const finalBalance = await IWNatInstance.balanceOf(account);
 
     // console.log("Deposited native token to WNAT", tx);
@@ -37,7 +37,7 @@ async function main() {
     console.log("Final WNAT balance:", web3.utils.fromWei(finalBalance, "ether"), "WNAT");
 }
 
-main().catch(error => {
+main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });

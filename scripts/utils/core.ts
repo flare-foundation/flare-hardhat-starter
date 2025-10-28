@@ -13,13 +13,13 @@ export function toUtf8HexString(data: string) {
 }
 
 export function sleep(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 // Function to parse events by name from raw logs
 export function parseEvents(rawLogs: any[], eventName: string, contractAbi: any) {
     // Get the event ABI
-    const eventAbi = contractAbi.find(e => e.name === eventName);
+    const eventAbi = contractAbi.find((e) => e.name === eventName);
     if (!eventAbi) {
         console.log(`Event ${eventName} not found in ABI`);
         return [];
@@ -31,8 +31,8 @@ export function parseEvents(rawLogs: any[], eventName: string, contractAbi: any)
     return (
         rawLogs
             // Filter the logs to only include the event
-            .filter(log => log.topics[0] === eventSignatureHash)
-            .map(log => {
+            .filter((log) => log.topics[0] === eventSignatureHash)
+            .map((log) => {
                 try {
                     // Decode the log data using the event ABI
                     const decoded = web3.eth.abi.decodeLog(

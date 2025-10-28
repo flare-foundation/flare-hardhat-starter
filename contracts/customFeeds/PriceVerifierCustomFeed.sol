@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
-import {IWeb2Json} from "@flarenetwork/flare-periphery-contracts/coston2/IWeb2Json.sol";
-import {IICustomFeed} from "@flarenetwork/flare-periphery-contracts/coston2/customFeeds/interfaces/IICustomFeed.sol";
+import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import { IWeb2Json } from "@flarenetwork/flare-periphery-contracts/coston2/IWeb2Json.sol";
+import { IICustomFeed } from "@flarenetwork/flare-periphery-contracts/coston2/customFeeds/interfaces/IICustomFeed.sol";
 
 struct PriceData {
     uint256 price;
@@ -38,19 +38,11 @@ contract PriceVerifierCustomFeed is IICustomFeed {
     error UnknownSymbolForCoinGeckoId(); // Kept for direct call if needed, but mapping is primary
     error CoinGeckoIdNotMapped(string symbol);
     error DateStringParsingFailed();
-    error InvalidCoinGeckoIdInUrl(
-        string url,
-        string extractedId,
-        string expectedId
-    );
+    error InvalidCoinGeckoIdInUrl(string url, string extractedId, string expectedId);
     error InvalidProof();
 
     // --- Constructor ---
-    constructor(
-        bytes21 _feedId,
-        string memory _expectedSymbol,
-        int8 _decimals
-    ) {
+    constructor(bytes21 _feedId, string memory _expectedSymbol, int8 _decimals) {
         if (_feedId == bytes21(0)) revert InvalidFeedId();
         if (bytes(_expectedSymbol).length == 0) revert InvalidSymbol();
         if (_decimals < 0) revert InvalidSymbol();
@@ -66,11 +58,7 @@ contract PriceVerifierCustomFeed is IICustomFeed {
 
         // Ensure the expected symbol has a mapping at deployment time
         require(
-            bytes(
-                symbolToCoinGeckoId[
-                    keccak256(abi.encodePacked(_expectedSymbol))
-                ]
-            ).length > 0,
+            bytes(symbolToCoinGeckoId[keccak256(abi.encodePacked(_expectedSymbol))]).length > 0,
             "Initial symbol not mapped"
         );
     }
@@ -81,17 +69,11 @@ contract PriceVerifierCustomFeed is IICustomFeed {
      * @param _symbol The trading symbol (e.g., "LTC").
      * @param _coinGeckoId The corresponding CoinGecko ID (e.g., "litecoin").
      */
-    function setCoinGeckoIdMapping(
-        string calldata _symbol,
-        string calldata _coinGeckoId
-    ) external {
+    function setCoinGeckoIdMapping(string calldata _symbol, string calldata _coinGeckoId) external {
         _setCoinGeckoIdInternal(_symbol, _coinGeckoId);
     }
 
-    function _setCoinGeckoIdInternal(
-        string memory _symbol,
-        string memory _coinGeckoId
-    ) internal {
+    function _setCoinGeckoIdInternal(string memory _symbol, string memory _coinGeckoId) internal {
         require(bytes(_symbol).length > 0, "Symbol cannot be empty");
         require(bytes(_coinGeckoId).length > 0, "CoinGecko ID cannot be empty");
         bytes32 symbolHash = keccak256(abi.encodePacked(_symbol));
@@ -107,42 +89,25 @@ contract PriceVerifierCustomFeed is IICustomFeed {
      */
     function verifyPrice(IWeb2Json.Proof calldata _proof) external {
         // 1. CoinGecko ID Verification (from URL)
-        string memory extractedCoinGeckoId = _extractCoinGeckoIdFromUrl(
-            _proof.data.requestBody.url
-        );
+        string memory extractedCoinGeckoId = _extractCoinGeckoIdFromUrl(_proof.data.requestBody.url);
 
-        string memory expectedCoinGeckoId = symbolToCoinGeckoId[
-            keccak256(abi.encodePacked(expectedSymbol))
-        ];
+        string memory expectedCoinGeckoId = symbolToCoinGeckoId[keccak256(abi.encodePacked(expectedSymbol))];
 
         if (bytes(expectedCoinGeckoId).length == 0) {
             revert CoinGeckoIdNotMapped(expectedSymbol);
         }
 
-        if (
-            keccak256(abi.encodePacked(extractedCoinGeckoId)) !=
-            keccak256(abi.encodePacked(expectedCoinGeckoId))
-        ) {
-            revert InvalidCoinGeckoIdInUrl(
-                _proof.data.requestBody.url,
-                extractedCoinGeckoId,
-                expectedCoinGeckoId
-            );
+        if (keccak256(abi.encodePacked(extractedCoinGeckoId)) != keccak256(abi.encodePacked(expectedCoinGeckoId))) {
+            revert InvalidCoinGeckoIdInUrl(_proof.data.requestBody.url, extractedCoinGeckoId, expectedCoinGeckoId);
         }
 
         // 2. FDC Verification (Web2Json)
         // Aligned with the Web2Json.sol example's pattern
-        require(
-            ContractRegistry.getFdcVerification().verifyWeb2Json(_proof),
-            "FDC: Invalid Web2Json proof"
-        );
+        require(ContractRegistry.getFdcVerification().verifyWeb2Json(_proof), "FDC: Invalid Web2Json proof");
 
         // 3. Decode Price Data
         // Path changed to _proof.data.responseBody.abiEncodedData
-        PriceData memory newPriceData = abi.decode(
-            _proof.data.responseBody.abiEncodedData,
-            (PriceData)
-        );
+        PriceData memory newPriceData = abi.decode(_proof.data.responseBody.abiEncodedData, (PriceData));
 
         // 4. Store verified data
         latestVerifiedPrice = newPriceData.price;
@@ -168,21 +133,12 @@ contract PriceVerifierCustomFeed is IICustomFeed {
         return 0;
     }
 
-    function getFeedDataView()
-        external
-        view
-        returns (uint256 _value, int8 _decimals)
-    {
+    function getFeedDataView() external view returns (uint256 _value, int8 _decimals) {
         _value = latestVerifiedPrice;
         _decimals = decimals_;
     }
 
-    function getCurrentFeed()
-        external
-        payable
-        override
-        returns (uint256 _value, int8 _decimals, uint64 _timestamp)
-    {
+    function getCurrentFeed() external payable override returns (uint256 _value, int8 _decimals, uint64 _timestamp) {
         _value = latestVerifiedPrice;
         _decimals = decimals_;
         _timestamp = 0;
@@ -201,11 +157,7 @@ contract PriceVerifierCustomFeed is IICustomFeed {
      * @param end The ending index (exclusive).
      * @return The sliced bytes.
      */
-    function slice(
-        bytes memory data,
-        uint256 start,
-        uint256 end
-    ) internal pure returns (bytes memory) {
+    function slice(bytes memory data, uint256 start, uint256 end) internal pure returns (bytes memory) {
         require(end >= start, "Slice: end before start");
         require(data.length >= end, "Slice: end out of bounds");
         bytes memory result = new bytes(end - start);
@@ -221,9 +173,7 @@ contract PriceVerifierCustomFeed is IICustomFeed {
      * @param _url The full URL string from the proof.
      * @return The extracted CoinGecko ID.
      */
-    function _extractCoinGeckoIdFromUrl(
-        string memory _url
-    ) internal pure returns (string memory) {
+    function _extractCoinGeckoIdFromUrl(string memory _url) internal pure returns (string memory) {
         bytes memory urlBytes = bytes(_url);
         bytes memory prefix = bytes("/coins/");
         bytes memory suffix = bytes("/history");
@@ -249,10 +199,7 @@ contract PriceVerifierCustomFeed is IICustomFeed {
      * @param marker The bytes marker to find.
      * @return The starting index of the marker, or type(uint256).max if not found.
      */
-    function _indexOf(
-        bytes memory data,
-        bytes memory marker
-    ) internal pure returns (uint256) {
+    function _indexOf(bytes memory data, bytes memory marker) internal pure returns (uint256) {
         uint256 dataLen = data.length;
         uint256 markerLen = marker.length;
         if (markerLen == 0 || dataLen < markerLen) return type(uint256).max;
@@ -277,11 +224,7 @@ contract PriceVerifierCustomFeed is IICustomFeed {
      * @param from The index to start searching from.
      * @return The starting index of the marker, or type(uint256).max if not found.
      */
-    function _indexOfFrom(
-        bytes memory data,
-        bytes memory marker,
-        uint256 from
-    ) internal pure returns (uint256) {
+    function _indexOfFrom(bytes memory data, bytes memory marker, uint256 from) internal pure returns (uint256) {
         uint256 dataLen = data.length;
         uint256 markerLen = marker.length;
         if (markerLen == 0 || dataLen < markerLen) return type(uint256).max;

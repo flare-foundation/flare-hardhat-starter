@@ -63,7 +63,7 @@ async function getProof(roundId: number) {
     return await proofAndData.json();
 }
 
-async function parseEvents(receipt: any) {
+function parseEvents(receipt: any) {
     console.log("\nParsing events...", receipt.rawLogs);
 
     logEvents(receipt.rawLogs, "RedemptionTicketCreated", AssetManager.abi);
@@ -88,10 +88,10 @@ async function main() {
     console.log("Transaction successful:", tx);
 
     // Parse execute minting log events
-    await parseEvents(tx.receipt);
+    parseEvents(tx.receipt);
 }
 
-main().catch(error => {
+main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });

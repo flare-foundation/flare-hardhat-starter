@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.13;
 
-import {FtsoPythAdapterLibrary} from "@flarenetwork/ftso-adapters/contracts/coston2/PythAdapter.sol";
-import {IPyth, PythStructs} from "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
+import { FtsoPythAdapterLibrary } from "@flarenetwork/ftso-adapters/contracts/coston2/PythAdapter.sol";
+import { IPyth, PythStructs } from "@pythnetwork/pyth-sdk-solidity/IPyth.sol";
 
 /**
  * @title PythNftMinter
@@ -22,11 +22,7 @@ contract PythNftMinter is IPyth {
     uint256 private _nextTokenId;
     error InsufficientFee();
 
-    constructor(
-        bytes21 _ftsoFeedId,
-        bytes32 _pythPriceId,
-        string memory _description
-    ) {
+    constructor(bytes21 _ftsoFeedId, bytes32 _pythPriceId, string memory _description) {
         // Initialize the adapter configuration state.
         ftsoFeedId = _ftsoFeedId;
         pythPriceId = _pythPriceId;
@@ -39,28 +35,12 @@ contract PythNftMinter is IPyth {
         FtsoPythAdapterLibrary.refresh(_latestPrice, ftsoFeedId, pythPriceId);
     }
 
-    function getPriceNoOlderThan(
-        bytes32 _id,
-        uint _age
-    ) public view override returns (PythStructs.Price memory) {
-        return
-            FtsoPythAdapterLibrary.getPriceNoOlderThan(
-                _latestPrice,
-                pythPriceId,
-                _id,
-                _age
-            );
+    function getPriceNoOlderThan(bytes32 _id, uint _age) public view override returns (PythStructs.Price memory) {
+        return FtsoPythAdapterLibrary.getPriceNoOlderThan(_latestPrice, pythPriceId, _id, _age);
     }
 
-    function getPriceUnsafe(
-        bytes32 _id
-    ) public view override returns (PythStructs.Price memory) {
-        return
-            FtsoPythAdapterLibrary.getPriceUnsafe(
-                _latestPrice,
-                pythPriceId,
-                _id
-            );
+    function getPriceUnsafe(bytes32 _id) public view override returns (PythStructs.Price memory) {
+        return FtsoPythAdapterLibrary.getPriceUnsafe(_latestPrice, pythPriceId, _id);
     }
 
     // --- Core Minter Functions ---
@@ -68,8 +48,7 @@ contract PythNftMinter is IPyth {
         // Call this contract's own public getPriceNoOlderThan function.
         PythStructs.Price memory price = getPriceNoOlderThan(pythPriceId, 60);
 
-        uint assetPrice18Decimals = (uint(uint64(price.price)) * (10 ** 18)) /
-            (10 ** uint(uint32(-1 * price.expo)));
+        uint assetPrice18Decimals = (uint(uint64(price.price)) * (10 ** 18)) / (10 ** uint(uint32(-1 * price.expo)));
         uint oneDollarInWei = ((10 ** 18) * (10 ** 18)) / assetPrice18Decimals;
 
         if (msg.value < oneDollarInWei) revert InsufficientFee();
@@ -85,15 +64,10 @@ contract PythNftMinter is IPyth {
     }
 
     // --- Unsupported IPyth Functions (Required for interface compliance) ---
-    function getEmaPriceUnsafe(
-        bytes32
-    ) external view override returns (PythStructs.Price memory) {
+    function getEmaPriceUnsafe(bytes32) external view override returns (PythStructs.Price memory) {
         revert("UNSUPPORTED");
     }
-    function getEmaPriceNoOlderThan(
-        bytes32,
-        uint
-    ) external view override returns (PythStructs.Price memory) {
+    function getEmaPriceNoOlderThan(bytes32, uint) external view override returns (PythStructs.Price memory) {
         revert("UNSUPPORTED");
     }
     function updatePriceFeeds(bytes[] calldata) external payable override {
@@ -106,14 +80,10 @@ contract PythNftMinter is IPyth {
     ) external payable override {
         revert("UNSUPPORTED");
     }
-    function getUpdateFee(
-        bytes[] calldata
-    ) external view override returns (uint) {
+    function getUpdateFee(bytes[] calldata) external view override returns (uint) {
         revert("UNSUPPORTED");
     }
-    function getTwapUpdateFee(
-        bytes[] calldata
-    ) external view override returns (uint) {
+    function getTwapUpdateFee(bytes[] calldata) external view override returns (uint) {
         revert("UNSUPPORTED");
     }
     function parsePriceFeedUpdates(
@@ -132,12 +102,7 @@ contract PythNftMinter is IPyth {
         bool,
         bool,
         bool
-    )
-        external
-        payable
-        override
-        returns (PythStructs.PriceFeed[] memory, uint64[] memory)
-    {
+    ) external payable override returns (PythStructs.PriceFeed[] memory, uint64[] memory) {
         revert("UNSUPPORTED");
     }
     function parseTwapPriceFeedUpdates(

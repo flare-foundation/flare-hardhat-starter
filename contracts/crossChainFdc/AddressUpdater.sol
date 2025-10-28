@@ -37,10 +37,7 @@ contract AddressUpdater is IIAddressUpdater, GovernedOld {
         address[] memory _contractAddresses,
         IIAddressUpdatable[] memory _contractsToUpdate
     ) external onlyGovernance {
-        _addOrUpdateContractNamesAndAddresses(
-            _contractNames,
-            _contractAddresses
-        );
+        _addOrUpdateContractNamesAndAddresses(_contractNames, _contractAddresses);
         _updateContractAddresses(_contractsToUpdate);
     }
 
@@ -51,9 +48,7 @@ contract AddressUpdater is IIAddressUpdater, GovernedOld {
      * @param _contractsToUpdate Contracts to be updated, which must implement the
      * `IIAddressUpdatable` interface.
      */
-    function updateContractAddresses(
-        IIAddressUpdatable[] memory _contractsToUpdate
-    ) external onlyImmediateGovernance {
+    function updateContractAddresses(IIAddressUpdatable[] memory _contractsToUpdate) external onlyImmediateGovernance {
         _updateContractAddresses(_contractsToUpdate);
     }
 
@@ -68,10 +63,7 @@ contract AddressUpdater is IIAddressUpdater, GovernedOld {
         string[] memory _contractNames,
         address[] memory _contractAddresses
     ) external onlyGovernance {
-        _addOrUpdateContractNamesAndAddresses(
-            _contractNames,
-            _contractAddresses
-        );
+        _addOrUpdateContractNamesAndAddresses(_contractNames, _contractAddresses);
     }
 
     /**
@@ -80,16 +72,11 @@ contract AddressUpdater is IIAddressUpdater, GovernedOld {
      * Can only be called by governance.
      * @param _contractNames Contract names.
      */
-    function removeContracts(
-        string[] memory _contractNames
-    ) external onlyGovernance {
+    function removeContracts(string[] memory _contractNames) external onlyGovernance {
         for (uint256 i = 0; i < _contractNames.length; i++) {
             string memory contractName = _contractNames[i];
             bytes32 nameHash = _keccak256AbiEncode(contractName);
-            require(
-                contractAddresses[nameHash] != address(0),
-                ERR_ADDRESS_ZERO
-            );
+            require(contractAddresses[nameHash] != address(0), ERR_ADDRESS_ZERO);
             delete contractAddresses[nameHash];
             uint256 index = contractNames.length;
             while (index > 0) {
@@ -110,46 +97,35 @@ contract AddressUpdater is IIAddressUpdater, GovernedOld {
         external
         view
         override
-        returns (
-            string[] memory _contractNames,
-            address[] memory _contractAddresses
-        )
+        returns (string[] memory _contractNames, address[] memory _contractAddresses)
     {
         _contractNames = contractNames;
         uint256 len = _contractNames.length;
         _contractAddresses = new address[](len);
         while (len > 0) {
             len--;
-            _contractAddresses[len] = contractAddresses[
-                _keccak256AbiEncode(_contractNames[len])
-            ];
+            _contractAddresses[len] = contractAddresses[_keccak256AbiEncode(_contractNames[len])];
         }
     }
 
     /**
      * @inheritdoc IIAddressUpdater
      */
-    function getContractAddress(
-        string calldata _name
-    ) external view override returns (address) {
+    function getContractAddress(string calldata _name) external view override returns (address) {
         return contractAddresses[_keccak256AbiEncode(_name)];
     }
 
     /**
      * @inheritdoc IIAddressUpdater
      */
-    function getContractAddressByHash(
-        bytes32 _nameHash
-    ) external view override returns (address) {
+    function getContractAddressByHash(bytes32 _nameHash) external view override returns (address) {
         return contractAddresses[_nameHash];
     }
 
     /**
      * @inheritdoc IIAddressUpdater
      */
-    function getContractAddresses(
-        string[] calldata _names
-    ) external view override returns (address[] memory) {
+    function getContractAddresses(string[] calldata _names) external view override returns (address[] memory) {
         address[] memory addresses = new address[](_names.length);
         for (uint256 i = 0; i < _names.length; i++) {
             addresses[i] = contractAddresses[_keccak256AbiEncode(_names[i])];
@@ -198,9 +174,7 @@ contract AddressUpdater is IIAddressUpdater, GovernedOld {
      * Updates contract addresses on all contracts implementing IIAddressUpdatable interface
      * @param _contractsToUpdate            contracts to be updated
      */
-    function _updateContractAddresses(
-        IIAddressUpdatable[] memory _contractsToUpdate
-    ) internal {
+    function _updateContractAddresses(IIAddressUpdatable[] memory _contractsToUpdate) internal {
         uint256 len = contractNames.length;
         bytes32[] memory nameHashes = new bytes32[](len);
         address[] memory addresses = new address[](len);
@@ -211,19 +185,14 @@ contract AddressUpdater is IIAddressUpdater, GovernedOld {
         }
 
         for (uint256 i = 0; i < _contractsToUpdate.length; i++) {
-            _contractsToUpdate[i].updateContractAddresses(
-                nameHashes,
-                addresses
-            );
+            _contractsToUpdate[i].updateContractAddresses(nameHashes, addresses);
         }
     }
 
     /**
      * Returns hash from string value.
      */
-    function _keccak256AbiEncode(
-        string memory _value
-    ) internal pure returns (bytes32) {
+    function _keccak256AbiEncode(string memory _value) internal pure returns (bytes32) {
         return keccak256(abi.encode(_value));
     }
 }

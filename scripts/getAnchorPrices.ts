@@ -14,7 +14,7 @@ interface PriceDataResult {
     verifications: VerificationResult[];
 }
 
-async function verifyFeedDataOnChain(ftsoV2Contract: Contract | any, feedDataWithProof: any): Promise<boolean> {
+async function verifyFeedDataOnChain(ftsoV2Contract: Contract | undefined, feedDataWithProof: any): Promise<boolean> {
     try {
         if (!feedDataWithProof || !feedDataWithProof.body || !feedDataWithProof.proof) {
             console.error(`Invalid feed data structure for verification:`, feedDataWithProof);
@@ -85,10 +85,10 @@ async function fetchFeedIds(apiUrlFeedNames: string): Promise<string[]> {
     return data.map((item: any) => item.feed_id);
 }
 
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function processPriceFeeds(
-    ftsoV2Contract: Contract | any,
+    ftsoV2Contract: Contract | undefined,
     apiUrlGetProofs: string,
     feedIds: string[]
 ): Promise<PriceDataResult> {
@@ -158,7 +158,7 @@ async function main() {
 
 main()
     .then(() => process.exit(0))
-    .catch(error => {
+    .catch((error) => {
         console.error(error);
         process.exit(1);
     });

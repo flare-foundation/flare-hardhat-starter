@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
-import {IFdcVerification} from "@flarenetwork/flare-periphery-contracts/coston2/IFdcVerification.sol";
-import {IPayment} from "@flarenetwork/flare-periphery-contracts/coston2/IPayment.sol";
+import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import { IFdcVerification } from "@flarenetwork/flare-periphery-contracts/coston2/IFdcVerification.sol";
+import { IPayment } from "@flarenetwork/flare-periphery-contracts/coston2/IPayment.sol";
 
 struct Payment {
     uint64 blockNumber;
@@ -41,9 +41,7 @@ contract PaymentRegistry is IPaymentRegistry {
         verifiedPayments.push(provedPayment);
     }
 
-    function isPaymentProofValid(
-        IPayment.Proof calldata transaction
-    ) public view returns (bool) {
+    function isPaymentProofValid(IPayment.Proof calldata transaction) public view returns (bool) {
         // Use the library to get the verifier contract and verify that this transaction was proved by state connector
         IFdcVerification fdc = ContractRegistry.getFdcVerification();
         // return true;

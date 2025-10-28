@@ -62,7 +62,7 @@ async function main() {
     console.log("Swap and redeem transaction: ", swapResult);
 }
 
-main().catch(error => {
+main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });

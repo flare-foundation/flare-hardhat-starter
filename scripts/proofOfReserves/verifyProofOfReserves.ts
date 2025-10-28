@@ -175,7 +175,7 @@ async function retrieveDataAndProofs(data: Map<string, string>, roundIds: Map<st
 
         let proof = await postRequestToDALayer(url, request, true);
         console.log("Waiting for the DA Layer to generate the proof...");
-        while (proof.response_hex == undefined) {
+        while (proof.response_hex === undefined) {
             await sleep(10000);
             proof = await postRequestToDALayer(url, request, false);
         }
@@ -216,7 +216,7 @@ async function prepareDataAndProofs(data: Map<string, any>) {
     };
     const transactionProofs: any[] = [];
     for (const [source, proof] of data.entries()) {
-        if (source == "web2json") {
+        if (source === "web2json") {
             continue;
         }
         const decodedProof = web3.eth.abi.decodeParameter(

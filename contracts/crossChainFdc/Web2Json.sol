@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {FdcVerification} from "./FdcVerification.sol";
-import {IWeb2Json} from "@flarenetwork/flare-periphery-contracts/coston2/IWeb2Json.sol";
+import { FdcVerification } from "./FdcVerification.sol";
+import { IWeb2Json } from "@flarenetwork/flare-periphery-contracts/coston2/IWeb2Json.sol";
 
 struct StarWarsCharacter {
     string name;
@@ -21,10 +21,7 @@ struct DataTransportObject {
 
 interface IStarWarsCharacterListV3 {
     function addCharacter(IWeb2Json.Proof calldata data) external;
-    function getAllCharacters()
-        external
-        view
-        returns (StarWarsCharacter[] memory);
+    function getAllCharacters() external view returns (StarWarsCharacter[] memory);
 }
 
 contract StarWarsCharacterListV3 {
@@ -38,15 +35,10 @@ contract StarWarsCharacterListV3 {
     }
 
     function addCharacter(IWeb2Json.Proof calldata data) public payable {
-        bool isWeb2JsonProofValid = fdcVerification.verifyWeb2Json{
-            value: msg.value
-        }(data);
+        bool isWeb2JsonProofValid = fdcVerification.verifyWeb2Json{ value: msg.value }(data);
         require(isWeb2JsonProofValid, "Invalid proof");
 
-        DataTransportObject memory dto = abi.decode(
-            data.data.responseBody.abiEncodedData,
-            (DataTransportObject)
-        );
+        DataTransportObject memory dto = abi.decode(data.data.responseBody.abiEncodedData, (DataTransportObject));
 
         require(characters[dto.apiUid].apiUid == 0, "Character already exists");
 
@@ -61,14 +53,8 @@ contract StarWarsCharacterListV3 {
         characterIds.push(dto.apiUid);
     }
 
-    function getAllCharacters()
-        public
-        view
-        returns (StarWarsCharacter[] memory)
-    {
-        StarWarsCharacter[] memory result = new StarWarsCharacter[](
-            characterIds.length
-        );
+    function getAllCharacters() public view returns (StarWarsCharacter[] memory) {
+        StarWarsCharacter[] memory result = new StarWarsCharacter[](characterIds.length);
         for (uint256 i = 0; i < characterIds.length; i++) {
             result[i] = characters[characterIds[i]];
         }

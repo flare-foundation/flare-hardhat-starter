@@ -9,8 +9,8 @@ pragma solidity ^0.8.25;
 //
 // ====================================================================================================================
 
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
-import {IJsonApi} from "@flarenetwork/flare-periphery-contracts/coston2/IJsonApi.sol";
+import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import { IJsonApi } from "@flarenetwork/flare-periphery-contracts/coston2/IJsonApi.sol";
 
 struct StarWarsCharacter {
     string name;
@@ -29,10 +29,7 @@ struct DataTransportObject {
 
 interface IStarWarsCharacterList {
     function addCharacter(IJsonApi.Proof calldata data) external;
-    function getAllCharacters()
-        external
-        view
-        returns (StarWarsCharacter[] memory);
+    function getAllCharacters() external view returns (StarWarsCharacter[] memory);
 }
 
 contract StarWarsCharacterList {
@@ -42,10 +39,7 @@ contract StarWarsCharacterList {
     function addCharacter(IJsonApi.Proof calldata data) public {
         require(isJsonApiProofValid(data), "Invalid proof");
 
-        DataTransportObject memory dto = abi.decode(
-            data.data.responseBody.abi_encoded_data,
-            (DataTransportObject)
-        );
+        DataTransportObject memory dto = abi.decode(data.data.responseBody.abi_encoded_data, (DataTransportObject));
 
         require(characters[dto.apiUid].apiUid == 0, "Character already exists");
 
@@ -60,14 +54,8 @@ contract StarWarsCharacterList {
         characterIds.push(dto.apiUid);
     }
 
-    function getAllCharacters()
-        public
-        view
-        returns (StarWarsCharacter[] memory)
-    {
-        StarWarsCharacter[] memory result = new StarWarsCharacter[](
-            characterIds.length
-        );
+    function getAllCharacters() public view returns (StarWarsCharacter[] memory) {
+        StarWarsCharacter[] memory result = new StarWarsCharacter[](characterIds.length);
         for (uint256 i = 0; i < characterIds.length; i++) {
             result[i] = characters[characterIds[i]];
         }
@@ -76,13 +64,8 @@ contract StarWarsCharacterList {
 
     function abiSignatureHack(DataTransportObject calldata dto) public pure {}
 
-    function isJsonApiProofValid(
-        IJsonApi.Proof calldata _proof
-    ) private view returns (bool) {
+    function isJsonApiProofValid(IJsonApi.Proof calldata _proof) private view returns (bool) {
         // Inline the check for now until we have an official contract deployed
-        return
-            ContractRegistry.auxiliaryGetIJsonApiVerification().verifyJsonApi(
-                _proof
-            );
+        return ContractRegistry.auxiliaryGetIJsonApiVerification().verifyJsonApi(_proof);
     }
 }

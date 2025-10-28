@@ -6,8 +6,7 @@ import { Client, Wallet, xrpToDrops, TxResponse, Payment } from "xrpl";
 
 const AGENT_ADDRESS = "r4KgCNzn9ZuNjpf17DEHZnyyiqpuj599Wm"; // Agent underlying chain address
 const AMOUNT_XRP = "10.025"; // XRP amount to send
-const PAYMENT_REFERENCE =
-  "4642505266410001000000000000000000000000000000000000000000f655fb";
+const PAYMENT_REFERENCE = "4642505266410001000000000000000000000000000000000000000000f655fb";
 
 async function send20XrpWithReference() {
     const client = new Client("wss://s.altnet.rippletest.net:51233"); // Testnet
@@ -25,10 +24,10 @@ async function send20XrpWithReference() {
         Memos: [
             {
                 Memo: {
-                    MemoData: PAYMENT_REFERENCE
-                }
-            }
-        ]
+                    MemoData: PAYMENT_REFERENCE,
+                },
+            },
+        ],
     };
 
     console.log(payment);

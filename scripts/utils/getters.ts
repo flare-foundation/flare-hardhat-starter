@@ -232,13 +232,19 @@ export async function getAssetManagerController() {
 }
 
 export async function getAssetManagerFXRP() {
-    assert(["coston2", "coston", "songbird", "flare"].includes(hre.network.name), `Contract not deployed on ${hre.network.name}`);
+    assert(
+        ["coston2", "coston", "songbird", "flare"].includes(hre.network.name),
+        `Contract not deployed on ${hre.network.name}`
+    );
     const address: string = await getContractAddressByName("AssetManagerFXRP");
     return await IAssetManager.at(address);
 }
 
 export async function getJsonApiVerification() {
-    assert(["coston2", "coston", "songbird", "flare"].includes(hre.network.name), `Contract not deployed on ${hre.network.name}`);
+    assert(
+        ["coston2", "coston", "songbird", "flare"].includes(hre.network.name),
+        `Contract not deployed on ${hre.network.name}`
+    );
     const address: string = await getContractAddressByName("JsonApiVerification");
     return await IJsonApiVerification.at(address);
 }

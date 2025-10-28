@@ -1,17 +1,14 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {ContractRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
-import {IAssetManager} from "@flarenetwork/flare-periphery-contracts/coston2/IAssetManager.sol";
-import {AssetManagerSettings} from "@flarenetwork/flare-periphery-contracts/coston2/data/AssetManagerSettings.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {RedemptionRequestInfo} from "@flarenetwork/flare-periphery-contracts/coston2/data/RedemptionRequestInfo.sol";
+import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import { IAssetManager } from "@flarenetwork/flare-periphery-contracts/coston2/IAssetManager.sol";
+import { AssetManagerSettings } from "@flarenetwork/flare-periphery-contracts/coston2/data/AssetManagerSettings.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { RedemptionRequestInfo } from "@flarenetwork/flare-periphery-contracts/coston2/data/RedemptionRequestInfo.sol";
 
 contract FAssetsRedeem {
-    function redeem(
-        uint256 _lots,
-        string memory _redeemerUnderlyingAddressString
-    ) public returns (uint256) {
+    function redeem(uint256 _lots, string memory _redeemerUnderlyingAddressString) public returns (uint256) {
         // Calculate the amount of FXRP needed for redemption
         IAssetManager assetManager = ContractRegistry.getAssetManagerFXRP();
         AssetManagerSettings.Data memory settings = assetManager.getSettings();
@@ -21,11 +18,7 @@ contract FAssetsRedeem {
         // Transfer FXRP from caller to AssetManager
         fAssetToken.transferFrom(msg.sender, address(this), amountToRedeem);
 
-        uint256 redeemedAmountUBA = assetManager.redeem(
-            _lots,
-            _redeemerUnderlyingAddressString,
-            payable(address(0))
-        );
+        uint256 redeemedAmountUBA = assetManager.redeem(_lots, _redeemerUnderlyingAddressString, payable(address(0)));
 
         return redeemedAmountUBA;
     }
@@ -35,11 +28,7 @@ contract FAssetsRedeem {
         return address(assetManager.fAsset());
     }
 
-    function getSettings()
-        public
-        view
-        returns (uint256 lotSizeAMG, uint256 assetDecimals)
-    {
+    function getSettings() public view returns (uint256 lotSizeAMG, uint256 assetDecimals) {
         IAssetManager assetManager = ContractRegistry.getAssetManagerFXRP();
         AssetManagerSettings.Data memory settings = assetManager.getSettings();
         lotSizeAMG = settings.lotSizeAMG;
@@ -48,7 +37,9 @@ contract FAssetsRedeem {
         return (lotSizeAMG, assetDecimals);
     }
 
-    function getRedemptionRequestInfo(uint256 _redemptionTicketId) public view returns(RedemptionRequestInfo.Data memory) {
+    function getRedemptionRequestInfo(
+        uint256 _redemptionTicketId
+    ) public view returns (RedemptionRequestInfo.Data memory) {
         IAssetManager assetManager = ContractRegistry.getAssetManagerFXRP();
 
         return assetManager.redemptionRequestInfo(_redemptionTicketId);

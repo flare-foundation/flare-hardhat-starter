@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.25;
 
-import {IRateProvider} from "../interfaces/IRateProvider.sol";
-import {IFtsoRegistry} from "@flarenetwork/flare-periphery-contracts/coston2/IFtsoRegistry.sol";
+import { IRateProvider } from "../interfaces/IRateProvider.sol";
+import { IFtsoRegistry } from "@flarenetwork/flare-periphery-contracts/coston2/IFtsoRegistry.sol";
 
 /**
  * @title SimpleFTSORateProvider
@@ -20,19 +20,14 @@ contract SimpleFTSORateProvider is IRateProvider {
     string public symbol;
     uint8 public immutable rateDecimals;
 
-    constructor(
-        address _ftsoRegistry,
-        string memory _symbol,
-        uint8 _rateDecimals
-    ) {
+    constructor(address _ftsoRegistry, string memory _symbol, uint8 _rateDecimals) {
         ftsoRegistry = IFtsoRegistry(_ftsoRegistry);
         symbol = _symbol;
         rateDecimals = _rateDecimals;
     }
 
     function getRate() external view override returns (uint256) {
-        (uint256 price, , uint256 ftsoDecimals) = ftsoRegistry
-            .getCurrentPriceWithDecimals(symbol);
+        (uint256 price, , uint256 ftsoDecimals) = ftsoRegistry.getCurrentPriceWithDecimals(symbol);
 
         // Scale to desired decimals
         if (ftsoDecimals == rateDecimals) {

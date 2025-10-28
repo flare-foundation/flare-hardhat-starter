@@ -1,4 +1,4 @@
-import hre, { artifacts, web3, run } from "hardhat";
+import { artifacts, web3, run } from "hardhat";
 import { InflationCustomFeedInstance } from "../../typechain-types";
 import {
     prepareAttestationRequestBase,
@@ -41,7 +41,7 @@ async function prepareAttestationRequest() {
         abiSignature: abiSig,
     };
     const url = `${verifierUrlBase}Web2Json/prepareRequest`;
-    const apiKey = VERIFIER_API_KEY_TESTNET!;
+    const apiKey = VERIFIER_API_KEY_TESTNET;
     return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, sourceIdBase, requestBody);
 }
 
@@ -61,8 +61,10 @@ async function deployAndVerifyContract(): Promise<InflationCustomFeedInstance> {
     const feedIdString = `INFLATION/${inflationDatasetIdentifier}`;
     const feedNameHash = web3.utils.keccak256(feedIdString);
     const finalFeedIdHex = `0x21${feedNameHash.substring(2, 42)}`;
-    
-    console.log(`\nDeploying InflationCustomFeed for '${inflationDatasetIdentifier}' with Feed ID: ${finalFeedIdHex}...`);
+
+    console.log(
+        `\nDeploying InflationCustomFeed for '${inflationDatasetIdentifier}' with Feed ID: ${finalFeedIdHex}...`
+    );
     const customFeedArgs: any[] = [finalFeedIdHex, inflationDatasetIdentifier];
     const customFeed: InflationCustomFeedInstance = await InflationCustomFeed.new(...customFeedArgs);
     console.log(`✅ InflationCustomFeed deployed to: ${customFeed.address}`);

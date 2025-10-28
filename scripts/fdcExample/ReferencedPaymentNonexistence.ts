@@ -1,4 +1,3 @@
-import { run, web3 } from "hardhat";
 // import { AddressRegistryInstance } from "../../typechain-types";
 import {
     prepareAttestationRequestBase,
@@ -59,8 +58,10 @@ async function retrieveDataAndProof(abiEncodedRequest: string, roundId: number) 
     return await retrieveDataAndProofBaseWithRetry(url, abiEncodedRequest, roundId);
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function deployAndVerifyContract() {}
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function interactWithContract() {}
 
 async function main() {
@@ -79,6 +80,7 @@ async function main() {
     const abiEncodedRequest = data.abiEncodedRequest;
     const roundId = await submitAttestationRequest(abiEncodedRequest);
 
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const proof = await retrieveDataAndProof(abiEncodedRequest, roundId);
 
     // const addressRegistry: AddressRegistryInstance =

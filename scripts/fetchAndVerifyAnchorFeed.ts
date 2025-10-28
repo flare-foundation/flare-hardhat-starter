@@ -30,7 +30,7 @@ function decodeFeedId(idHex: string): { category: string; label: string } {
     const bytes = Buffer.from(hex, "hex");
     if (bytes.length !== 21) return { category: "Unknown", label: idHex };
     const categoryByte = bytes[0];
-    let end = bytes.findIndex(b => b === 0x00, 1);
+    let end = bytes.findIndex((b) => b === 0x00, 1);
     if (end === -1) end = bytes.length;
     const label = bytes.slice(1, end).toString("ascii");
     const category = categoryByte === 0x01 ? "Crypto" : `0x${categoryByte.toString(16).padStart(2, "0")}`;
@@ -171,7 +171,7 @@ async function main() {
     }
 }
 
-main().catch(e => {
+main().catch((e) => {
     console.error(e);
     process.exit(1);
 });

@@ -44,7 +44,7 @@ export async function prepareAttestationRequestBase(
         },
         body: JSON.stringify(request),
     });
-    if (response.status != 200) {
+    if (response.status !== 200) {
         throw new Error(`Response status is not OK, status ${response.status} ${response.statusText}\n`);
     }
     console.log("Response status is OK\n");
@@ -97,7 +97,7 @@ export async function postRequestToDALayer(url: string, request: any, watchStatu
         },
         body: JSON.stringify(request),
     });
-    if (watchStatus && response.status != 200) {
+    if (watchStatus && response.status !== 200) {
         throw new Error(`Response status is not OK, status ${response.status} ${response.statusText}\n`);
     } else if (watchStatus) {
         console.log("Response status is OK\n");
@@ -125,7 +125,7 @@ export async function retrieveDataAndProofBase(url: string, abiEncodedRequest: s
     await sleep(10000);
     let proof = await postRequestToDALayer(url, request, true);
     console.log("Waiting for the DA Layer to generate the proof...");
-    while (proof.response_hex == undefined) {
+    while (proof.response_hex === undefined) {
         await sleep(10000);
         proof = await postRequestToDALayer(url, request, false);
     }

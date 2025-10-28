@@ -28,7 +28,7 @@ async function main() {
 
     // Withdraw 0.1 ETH
     const withdrawAmount = ethers.parseEther("0.1").toString();
-    const tx = await IWNatInstance.withdraw(withdrawAmount);
+    await IWNatInstance.withdraw(withdrawAmount);
     const finalBalance = await IWNatInstance.balanceOf(account);
 
     // console.log("Withdrew from WNAT to native token", tx);
@@ -36,7 +36,7 @@ async function main() {
     console.log("Final WNAT balance:", web3.utils.fromWei(finalBalance, "ether"), "WNAT");
 }
 
-main().catch(error => {
+main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });

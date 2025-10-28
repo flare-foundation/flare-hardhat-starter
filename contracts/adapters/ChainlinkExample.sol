@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.0 <0.9.0;
 
-import {FtsoChainlinkAdapterLibrary} from "@flarenetwork/ftso-adapters/contracts/coston2/ChainlinkAdapter.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import { FtsoChainlinkAdapterLibrary } from "@flarenetwork/ftso-adapters/contracts/coston2/ChainlinkAdapter.sol";
+import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract AssetVault is ERC20 {
     // --- Adapter State ---
@@ -50,24 +50,12 @@ contract AssetVault is ERC20 {
     // --- Public Adapter Functions ---
     function refresh() external {
         // Call the library's logic, passing this contract's state to be updated.
-        FtsoChainlinkAdapterLibrary.refresh(
-            _latestPriceData,
-            ftsoFeedId,
-            chainlinkDecimals
-        );
+        FtsoChainlinkAdapterLibrary.refresh(_latestPriceData, ftsoFeedId, chainlinkDecimals);
     }
 
-    function latestRoundData()
-        public
-        view
-        returns (uint80, int256, uint256, uint256, uint80)
-    {
+    function latestRoundData() public view returns (uint80, int256, uint256, uint256, uint80) {
         // Call the library's logic, passing this contract's state to be read.
-        return
-            FtsoChainlinkAdapterLibrary.latestRoundData(
-                _latestPriceData,
-                maxAgeSeconds
-            );
+        return FtsoChainlinkAdapterLibrary.latestRoundData(_latestPriceData, maxAgeSeconds);
     }
 
     function decimals() public view virtual override(ERC20) returns (uint8) {
@@ -97,8 +85,7 @@ contract AssetVault is ERC20 {
         uint256 totalDebt = balanceOf(msg.sender) + _amount;
 
         // Calculate the maximum borrowable amount based on LTV.
-        uint256 maxBorrowableUsd = (userCollateralValue * LOAN_TO_VALUE_RATIO) /
-            100;
+        uint256 maxBorrowableUsd = (userCollateralValue * LOAN_TO_VALUE_RATIO) / 100;
 
         if (totalDebt > maxBorrowableUsd) revert InsufficientCollateral();
 
@@ -145,9 +132,7 @@ contract AssetVault is ERC20 {
      * @param _user The address of the user.
      * @return The total value in USD, scaled by 18 decimals.
      */
-    function getCollateralValueInUsd(
-        address _user
-    ) public view returns (uint256) {
+    function getCollateralValueInUsd(address _user) public view returns (uint256) {
         uint256 userCollateral = collateral[_user];
         if (userCollateral == 0) return 0;
 
