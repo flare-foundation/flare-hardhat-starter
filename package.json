@@ -27,7 +27,10 @@
     "test": ""
   },
   "devDependencies": {
+    "@eslint/compat": "^1.4.0",
     "@eslint/js": "^9.24.0",
+    "@flarenetwork/eslint-config-flare": "^0.0.1",
+    "@flarenetwork/prettier-config-flare": "^0.0.1",
     "@nomicfoundation/hardhat-chai-matchers": "^2.0.0",
     "@nomicfoundation/hardhat-ethers": "^3.0.0",
     "@nomicfoundation/hardhat-ignition": "^0.15.0",
@@ -46,12 +49,12 @@
     "@types/node": ">=18.0.0",
     "chai": "^4.2.0",
     "dotenv": "^16.4.7",
-    "eslint": "^9.17.0",
-    "eslint-config-prettier": "^9.0.0",
+    "eslint": "^9.38.0",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.31.0",
     "eslint-plugin-prettier": "^5.0.0",
     "hardhat-gas-reporter": "^1.0.8",
-    "prettier": "^3.0.0",
+    "prettier": "^3.6.2",
     "prettier-plugin-solidity": "^1.4.2",
     "solidity-coverage": "^0.8.0",
     "ts-node": ">=8.0.0",
@@ -73,5 +76,6 @@
     "solady": "^0.1.26",
     "solhint": "^4.5.2"
   },
+  "prettier": "@flarenetwork/prettier-config-flare",
   "packageManager": "yarn@1.22.22"
 }
