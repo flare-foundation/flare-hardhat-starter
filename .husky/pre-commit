@@ -1,0 +1,4 @@
+# .husky/pre-commit
+
+yarn format:fix
+yarn lint:fix
