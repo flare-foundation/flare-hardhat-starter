@@ -20,6 +20,7 @@ contract FassetsAgentInfo {
      * @dev Get agent name by management address
      * @param _managementAddress The management address of the agent
      * @return The agent's name
+    // solhint-disable-next-line ordering
      */
     function getAgentName(address _managementAddress) external view returns (string memory) {
         return getAgentOwnerRegistry().getAgentName(_managementAddress);

@@ -37,10 +37,6 @@ contract SwapAndRedeem {
         token = IERC20(_swapPath[0]);
     }
 
-    function getAssetManager() public view returns (IAssetManager) {
-        return ContractRegistry.getAssetManagerFXRP();
-    }
-
     // Swap WCFLR for FXRP and redeem FAssets
     // @param _lots: number of lots to redeem
     // @param _redeemerUnderlyingAddressString: redeemer underlying address string (XRP address)
@@ -49,6 +45,7 @@ contract SwapAndRedeem {
     // @return amountsSent: amounts sent to the router
     // @return amountsRecv: amounts received from the router
     // @return _redeemedAmountUBA: amount of FAssets redeemed
+    // solhint-disable-next-line ordering
     function swapAndRedeem(
         uint256 _lots,
         string memory _redeemerUnderlyingAddressString
@@ -88,6 +85,10 @@ contract SwapAndRedeem {
         _redeemedAmountUBA = _redeem(_lots, _redeemerUnderlyingAddressString);
 
         return (_amountOut, _deadline, _amountsSent, _amountsRecv, _redeemedAmountUBA);
+    }
+
+    function getAssetManager() public view returns (IAssetManager) {
+        return ContractRegistry.getAssetManagerFXRP();
     }
 
     // Calculate the amount needed to swap to FXRP and redeem

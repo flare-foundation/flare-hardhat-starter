@@ -13,14 +13,14 @@ import { IICustomFeed } from "@flarenetwork/flare-periphery-contracts/coston2/cu
 contract InflationCustomFeed is IICustomFeed {
     // --- State Variables ---
 
-    bytes21 public feedIdentifier;
-    string public name; // e.g., "US_INFLATION_CPI_ANNUAL"
-    int8 public constant DECIMALS = 4;
-
     struct InflationData {
         uint256 inflationRate;
         uint256 observationYear;
     }
+
+    bytes21 public feedIdentifier;
+    string public name; // e.g., "US_INFLATION_CPI_ANNUAL"
+    int8 public constant DECIMALS = 4;
 
     InflationData public latestInflationData;
     uint64 public latestVerifiedTimestamp;
@@ -39,8 +39,10 @@ contract InflationCustomFeed is IICustomFeed {
     error InvalidName();
 
     /**
-     * @param _feedId The unique identifier for this feed (bytes21, typically 0x21 + first 20 bytes of a string hash like "INFLATION/US_INFLATION_CPI_ANNUAL").
-     * @param _name A descriptive name for the feed, corresponding to the dataset identifier from the script (e.g., "US_INFLATION_CPI_ANNUAL").
+     * @param _feedId The unique identifier for this feed (bytes21, typically 0x21 + first 20 bytes
+     *        of a string hash like "INFLATION/US_INFLATION_CPI_ANNUAL").
+     * @param _name A descriptive name for the feed, corresponding to the dataset identifier from
+     *        the script (e.g., "US_INFLATION_CPI_ANNUAL").
      */
     constructor(bytes21 _feedId, string memory _name) {
         if (_feedId == bytes21(0)) revert InvalidFeedId();
@@ -91,6 +93,7 @@ contract InflationCustomFeed is IICustomFeed {
     /**
      * @notice Gets the latest verified inflation rate, its decimals, and the on-chain verification timestamp.
      * @inheritdoc IICustomFeed
+    // solhint-disable-next-line ordering
      */
     function getCurrentFeed() external payable override returns (uint256 _value, int8 _decimals, uint64 _timestamp) {
         _value = latestInflationData.inflationRate;

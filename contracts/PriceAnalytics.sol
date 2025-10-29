@@ -15,17 +15,18 @@ contract PriceAnalytics {
         }
     }
 
+    // solhint-disable-next-line ordering
     function provableCalculateVariance(
         FtsoV2Interface.FeedDataWithProof[] calldata priceFeeds
     ) public view returns (int256[] memory prices, int256 mean, int256 variance) {
-        FtsoV2Interface FTSOv2 = ContractRegistry.getFtsoV2();
+        FtsoV2Interface ftsoV2 = ContractRegistry.getFtsoV2();
         prices = new int256[](priceFeeds.length);
 
         // Check prices length
         require(prices.length > 1, "Need at least 2 prices");
         // Check correctness of prices
         for (uint256 i = 0; i < prices.length; i++) {
-            require(FTSOv2.verifyFeedData(priceFeeds[i]), "Price feed data is not correct");
+            require(ftsoV2.verifyFeedData(priceFeeds[i]), "Price feed data is not correct");
             if (i > 0) {
                 require(
                     priceFeeds[i].body.votingRoundId - 1 > priceFeeds[i - 1].body.votingRoundId,

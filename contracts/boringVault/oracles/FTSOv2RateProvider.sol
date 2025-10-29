@@ -144,6 +144,7 @@ contract FTSOv2RateProvider is IRateProvider {
      * @return value Current price value
      * @return feedDecimals FTSOv2 decimal modifier
      * @return timestamp Last update time
+    // solhint-disable-next-line ordering
      */
     function getCurrentFeedData() external view returns (uint256 value, int8 feedDecimals, uint64 timestamp) {
         TestFtsoV2Interface ftsoV2 = ContractRegistry.getTestFtsoV2();

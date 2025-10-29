@@ -21,17 +21,17 @@ contract AssetVault is ERC20 {
     // e.g., 50 means a user can borrow up to 50% of their collateral's value.
     uint256 public constant LOAN_TO_VALUE_RATIO = 50;
 
-    // --- Errors ---
-    error InsufficientCollateral();
-    error NothingToWithdraw();
-    error LoanNotRepaid();
-    error AmountIsZero();
-
     // --- Events ---
     event CollateralDeposited(address indexed user, uint256 amount);
     event CollateralWithdrawn(address indexed user, uint256 amount);
     event LoanBorrowed(address indexed user, uint256 amount);
     event LoanRepaid(address indexed user, uint256 amount);
+
+    // --- Errors ---
+    error InsufficientCollateral();
+    error NothingToWithdraw();
+    error LoanNotRepaid();
+    error AmountIsZero();
 
     constructor(
         bytes21 _ftsoFeedId,
@@ -66,6 +66,7 @@ contract AssetVault is ERC20 {
 
     /**
      * @notice Deposits the sent native tokens as collateral for the sender.
+    // solhint-disable-next-line ordering
      */
     function deposit() external payable {
         if (msg.value == 0) revert AmountIsZero();

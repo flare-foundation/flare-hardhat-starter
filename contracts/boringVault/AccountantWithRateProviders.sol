@@ -63,18 +63,6 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
      */
     mapping(ERC20 => RateProviderData) public rateProviderData;
 
-    //============================== ERRORS ===============================
-
-    error AccountantWithRateProviders__UpperBoundTooSmall();
-    error AccountantWithRateProviders__LowerBoundTooLarge();
-    error AccountantWithRateProviders__PlatformFeeTooLarge();
-    error AccountantWithRateProviders__PerformanceFeeTooLarge();
-    error AccountantWithRateProviders__Paused();
-    error AccountantWithRateProviders__ZeroFeesOwed();
-    error AccountantWithRateProviders__OnlyCallableByBoringVault();
-    error AccountantWithRateProviders__UpdateDelayTooLarge();
-    error AccountantWithRateProviders__ExchangeRateAboveHighwaterMark();
-
     //============================== EVENTS ===============================
 
     event Paused();
@@ -90,10 +78,23 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
     event FeesClaimed(address indexed feeAsset, uint256 amount);
     event HighwaterMarkReset();
 
+    //============================== ERRORS ===============================
+
+    error AccountantWithRateProviders__UpperBoundTooSmall();
+    error AccountantWithRateProviders__LowerBoundTooLarge();
+    error AccountantWithRateProviders__PlatformFeeTooLarge();
+    error AccountantWithRateProviders__PerformanceFeeTooLarge();
+    error AccountantWithRateProviders__Paused();
+    error AccountantWithRateProviders__ZeroFeesOwed();
+    error AccountantWithRateProviders__OnlyCallableByBoringVault();
+    error AccountantWithRateProviders__UpdateDelayTooLarge();
+    error AccountantWithRateProviders__ExchangeRateAboveHighwaterMark();
+
     //============================== IMMUTABLES ===============================
 
     /**
      * @notice The base asset rates are provided in.
+    // solhint-disable-next-line ordering
      */
     ERC20 public immutable base;
 
@@ -111,7 +112,7 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
     /**
      * @notice One share of the BoringVault.
      */
-    uint256 internal immutable ONE_SHARE;
+    uint256 internal immutable oneShare;
 
     constructor(
         address _owner,
@@ -129,7 +130,7 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
         base = ERC20(_base);
         decimals = ERC20(_base).decimals();
         vault = BoringVault(payable(_vault));
-        ONE_SHARE = 10 ** vault.decimals();
+        oneShare = 10 ** vault.decimals();
         accountantState = AccountantState({
             payoutAddress: payoutAddress,
             highwaterMark: startingExchangeRate,
@@ -270,7 +271,7 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
         emit HighwaterMarkReset();
     }
 
-    // ========================================= UPDATE EXCHANGE RATE/FEES FUNCTIONS =========================================
+    // ================================ UPDATE EXCHANGE RATE/FEES FUNCTIONS ================================
 
     /**
      * @notice Updates this contract exchangeRate.
@@ -287,8 +288,8 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
             uint256 currentTotalShares
         ) = _beforeUpdateExchangeRate(newExchangeRate);
         if (shouldPause) {
-            // Instead of reverting, pause the contract. This way the exchange rate updater is able to update the exchange rate
-            // to a better value, and pause it.
+            // Instead of reverting, pause the contract. This way the exchange rate updater
+            // is able to update the exchange rate to a better value, and pause it.
             state.isPaused = true;
         } else {
             _calculateFeesOwed(state, newExchangeRate, currentExchangeRate, currentTotalShares, currentTime);
@@ -515,8 +516,8 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
         if (platformFee > 0) {
             uint256 timeDelta = currentTime - lastUpdateTimestamp;
             uint256 minimumAssets = newExchangeRate > currentExchangeRate
-                ? FixedPointMathLib.mulDiv(shareSupplyToUse, currentExchangeRate, ONE_SHARE)
-                : FixedPointMathLib.mulDiv(shareSupplyToUse, newExchangeRate, ONE_SHARE);
+                ? FixedPointMathLib.mulDiv(shareSupplyToUse, currentExchangeRate, oneShare)
+                : FixedPointMathLib.mulDiv(shareSupplyToUse, newExchangeRate, oneShare);
             uint256 platformFeesAnnual = FixedPointMathLib.mulDiv(minimumAssets, platformFee, 1e4);
             platformFeesOwedInBase = FixedPointMathLib.mulDiv(platformFeesAnnual, timeDelta, 365 days);
         }
@@ -532,7 +533,7 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
         uint16 performanceFee
     ) internal view returns (uint256 performanceFeesOwedInBase, uint256 yieldEarned) {
         uint256 changeInExchangeRate = newExchangeRate - datum;
-        yieldEarned = FixedPointMathLib.mulDiv(changeInExchangeRate, shareSupplyToUse, ONE_SHARE);
+        yieldEarned = FixedPointMathLib.mulDiv(changeInExchangeRate, shareSupplyToUse, oneShare);
         if (performanceFee > 0) {
             performanceFeesOwedInBase = FixedPointMathLib.mulDiv(yieldEarned, performanceFee, 1e4);
         }

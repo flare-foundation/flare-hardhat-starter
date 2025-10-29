@@ -40,6 +40,7 @@ contract TestERC20 is ERC20, Ownable {
      * @dev Mints tokens to a specific address (owner only)
      * @param to Address to mint tokens to
      * @param amount Amount of tokens to mint
+    // solhint-disable-next-line ordering
      */
     function mint(address to, uint256 amount) external onlyOwner {
         _mint(to, amount);

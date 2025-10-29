@@ -77,6 +77,7 @@ contract MetalPriceVerifierCustomFeed is IICustomFeed {
     function read() public view returns (uint256 value) {
         value = latestVerifiedPrice;
     }
+    // solhint-disable-next-line ordering
 
     function feedId() external view override returns (bytes21 _feedId) {
         _feedId = feedIdentifier;

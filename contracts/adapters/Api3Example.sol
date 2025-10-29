@@ -18,17 +18,18 @@ contract PriceGuesser {
     FtsoApi3AdapterLibrary.DataPoint private _latestDataPoint;
 
     // --- Prediction Market State ---
+    enum Outcome {
+        Unsettled,
+        Above,
+        Below
+    }
+
     uint256 public immutable strikePrice;
     uint256 public immutable expiryTimestamp;
     uint256 public totalBetsAbove;
     uint256 public totalBetsBelow;
     mapping(address => uint256) public betsAbove;
     mapping(address => uint256) public betsBelow;
-    enum Outcome {
-        Unsettled,
-        Above,
-        Below
-    }
     Outcome public outcome;
     mapping(address => bool) public hasClaimed;
 

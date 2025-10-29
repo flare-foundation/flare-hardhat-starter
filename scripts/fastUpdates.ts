@@ -8,7 +8,11 @@ import {
 } from "@flarenetwork/flare-periphery-contract-artifacts";
 
 // Helper type for network namespaces
-type FlareNetworkNamespace = typeof flare | typeof songbird | typeof coston2 | typeof coston;
+interface FlareNetworkNamespace {
+    interfaceAbis: Record<string, unknown[]>;
+    nameToAbi: (name: string) => unknown[] | undefined;
+    interfaceToAbi: (name: string) => unknown[] | undefined;
+}
 
 // Define a mapping for network namespaces
 const networkNamespaces: Record<string, FlareNetworkNamespace> = {
@@ -125,7 +129,8 @@ async function runFastUpdatesListener() {
         const wsProvider = new hre.ethers.WebSocketProvider(wsUrl);
         const fastUpdaterWs = new hre.ethers.Contract(fastUpdaterAddress, fastUpdaterAbi, wsProvider);
 
-        fastUpdaterWs.on("FastUpdateFeedsSubmitted", (votingRoundId, signingPolicyAddress, event) => {
+        // Await event listener setup to ensure it's properly attached
+        await fastUpdaterWs.on("FastUpdateFeedsSubmitted", (votingRoundId, signingPolicyAddress, event) => {
             console.log(`\nNew Update Submitted:`);
             console.log(`Voting Round ID: ${votingRoundId.toString()}`);
             console.log(`Signing Policy Address: ${signingPolicyAddress}`);
@@ -136,7 +141,10 @@ async function runFastUpdatesListener() {
         const cleanup = () => {
             console.log("\nClosing WebSocket connection...");
             if (wsProvider && typeof wsProvider.destroy === "function") {
-                wsProvider.destroy();
+                // Handle the promise properly - can't await in signal handler, so use catch
+                wsProvider.destroy().catch((err: unknown) => {
+                    console.error("Error during WebSocket cleanup:", err);
+                });
             }
             process.exit(0);
         };

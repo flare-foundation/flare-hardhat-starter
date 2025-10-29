@@ -86,6 +86,7 @@ contract PriceVerifierCustomFeed is IICustomFeed {
      * @notice Verifies the price data proof and stores the price.
      * @dev Uses Web2Json FDC verification. Checks if the symbol in the URL matches expectedSymbol.
      * @param _proof The IWeb2Json.Proof data structure.
+    // solhint-disable-next-line ordering
      */
     function verifyPrice(IWeb2Json.Proof calldata _proof) external {
         // 1. CoinGecko ID Verification (from URL)
