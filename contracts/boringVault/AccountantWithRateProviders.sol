@@ -78,23 +78,10 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
     event FeesClaimed(address indexed feeAsset, uint256 amount);
     event HighwaterMarkReset();
 
-    //============================== ERRORS ===============================
-
-    error AccountantWithRateProviders__UpperBoundTooSmall();
-    error AccountantWithRateProviders__LowerBoundTooLarge();
-    error AccountantWithRateProviders__PlatformFeeTooLarge();
-    error AccountantWithRateProviders__PerformanceFeeTooLarge();
-    error AccountantWithRateProviders__Paused();
-    error AccountantWithRateProviders__ZeroFeesOwed();
-    error AccountantWithRateProviders__OnlyCallableByBoringVault();
-    error AccountantWithRateProviders__UpdateDelayTooLarge();
-    error AccountantWithRateProviders__ExchangeRateAboveHighwaterMark();
-
     //============================== IMMUTABLES ===============================
 
     /**
      * @notice The base asset rates are provided in.
-    // solhint-disable-next-line ordering
      */
     ERC20 public immutable base;
 
@@ -113,6 +100,18 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
      * @notice One share of the BoringVault.
      */
     uint256 internal immutable oneShare;
+
+    //============================== ERRORS ===============================
+
+    error AccountantWithRateProviders__UpperBoundTooSmall();
+    error AccountantWithRateProviders__LowerBoundTooLarge();
+    error AccountantWithRateProviders__PlatformFeeTooLarge();
+    error AccountantWithRateProviders__PerformanceFeeTooLarge();
+    error AccountantWithRateProviders__Paused();
+    error AccountantWithRateProviders__ZeroFeesOwed();
+    error AccountantWithRateProviders__OnlyCallableByBoringVault();
+    error AccountantWithRateProviders__UpdateDelayTooLarge();
+    error AccountantWithRateProviders__ExchangeRateAboveHighwaterMark();
 
     constructor(
         address _owner,
@@ -489,7 +488,11 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
     /**
      * @notice Set the exchange rate.
      */
-    function _setExchangeRate(uint96 newExchangeRate, AccountantState storage state) internal virtual returns (uint96) {
+    function _setExchangeRate(uint96 newExchangeRate, AccountantState storage state)
+        internal
+        virtual
+        returns (uint96)
+    {
         state.exchangeRate = newExchangeRate;
         return newExchangeRate;
     }

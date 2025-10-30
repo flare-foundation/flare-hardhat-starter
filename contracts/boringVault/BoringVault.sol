@@ -52,17 +52,11 @@ contract BoringVault is ERC20, Ownable, ERC721Holder, ERC1155Holder {
         return _symbol;
     }
 
-    /// @dev Returns the number of decimals for the token.
-    function decimals() public pure override returns (uint8) {
-        return 18;
-    }
-
     //============================== MANAGE ===============================
 
     /**
      * @notice Allows manager to make an arbitrary function call from this contract.
      * @dev Callable by MANAGER_ROLE.
-    // solhint-disable-next-line ordering
      */
     function manage(
         address target,
@@ -95,7 +89,10 @@ contract BoringVault is ERC20, Ownable, ERC721Holder, ERC1155Holder {
      * @dev If assetAmount is zero, no assets are transferred in.
      * @dev Callable by MINTER_ROLE.
      */
-    function enter(address from, ERC20 asset, uint256 assetAmount, address to, uint256 shareAmount) external onlyOwner {
+    function enter(address from, ERC20 asset, uint256 assetAmount, address to, uint256 shareAmount)
+        external
+        onlyOwner
+    {
         // Transfer assets in
         if (assetAmount > 0) SafeTransferLib.safeTransferFrom(address(asset), from, address(this), assetAmount);
 
@@ -147,6 +144,11 @@ contract BoringVault is ERC20, Ownable, ERC721Holder, ERC1155Holder {
     function transferFrom(address from, address to, uint256 amount) public override returns (bool) {
         _callBeforeTransfer(from, to);
         return super.transferFrom(from, to, amount);
+    }
+
+    /// @dev Returns the number of decimals for the token.
+    function decimals() public pure override returns (uint8) {
+        return 18;
     }
 
     //============================== RECEIVE ===============================
