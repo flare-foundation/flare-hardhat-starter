@@ -76,21 +76,6 @@ contract DynamicNftMinter is IChronicle, ERC721 {
         FtsoChronicleAdapterLibrary.refresh(_latestDataPoint, ftsoFeedId);
     }
 
-    // --- IChronicle Interface Implementation ---
-    function read() public view override returns (uint256) {
-        return FtsoChronicleAdapterLibrary.read(_latestDataPoint);
-    }
-    function readWithAge() public view override returns (uint256, uint256) {
-        return FtsoChronicleAdapterLibrary.readWithAge(_latestDataPoint);
-    }
-    function tryRead() public view override returns (bool, uint256) {
-        return FtsoChronicleAdapterLibrary.tryRead(_latestDataPoint);
-    }
-    function tryReadWithAge() public view override returns (bool, uint256, uint256) {
-        return FtsoChronicleAdapterLibrary.tryReadWithAge(_latestDataPoint);
-    }
-
-    // solhint-disable-next-line ordering
     // --- Core Minter Functions ---
     function mint() external payable {
         require(msg.value >= MINT_FEE, "Insufficient mint fee");
@@ -113,5 +98,19 @@ contract DynamicNftMinter is IChronicle, ERC721 {
         tokenTiers[newTokenId] = mintedTier;
 
         emit NftMinted(msg.sender, newTokenId, mintedTier);
+    }
+
+    // --- IChronicle Interface Implementation ---
+    function read() public view override returns (uint256) {
+        return FtsoChronicleAdapterLibrary.read(_latestDataPoint);
+    }
+    function readWithAge() public view override returns (uint256, uint256) {
+        return FtsoChronicleAdapterLibrary.readWithAge(_latestDataPoint);
+    }
+    function tryRead() public view override returns (bool, uint256) {
+        return FtsoChronicleAdapterLibrary.tryRead(_latestDataPoint);
+    }
+    function tryReadWithAge() public view override returns (bool, uint256, uint256) {
+        return FtsoChronicleAdapterLibrary.tryReadWithAge(_latestDataPoint);
     }
 }

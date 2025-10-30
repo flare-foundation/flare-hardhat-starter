@@ -42,15 +42,8 @@ contract BoringVault is ERC20, Ownable, ERC721Holder, ERC1155Holder {
         _symbol = __symbol;
     }
 
-    /// @dev Returns the name of the token.
-    function name() public view override returns (string memory) {
-        return _name;
-    }
-
-    /// @dev Returns the symbol of the token.
-    function symbol() public view override returns (string memory) {
-        return _symbol;
-    }
+    //============================== RECEIVE ===============================
+    receive() external payable {}
 
     //============================== MANAGE ===============================
 
@@ -89,10 +82,7 @@ contract BoringVault is ERC20, Ownable, ERC721Holder, ERC1155Holder {
      * @dev If assetAmount is zero, no assets are transferred in.
      * @dev Callable by MINTER_ROLE.
      */
-    function enter(address from, ERC20 asset, uint256 assetAmount, address to, uint256 shareAmount)
-        external
-        onlyOwner
-    {
+    function enter(address from, ERC20 asset, uint256 assetAmount, address to, uint256 shareAmount) external onlyOwner {
         // Transfer assets in
         if (assetAmount > 0) SafeTransferLib.safeTransferFrom(address(asset), from, address(this), assetAmount);
 
@@ -129,12 +119,7 @@ contract BoringVault is ERC20, Ownable, ERC721Holder, ERC1155Holder {
         hook = IBeforeTransferHook(_hook);
     }
 
-    /**
-     * @notice Call `beforeTransferHook` passing in `from` `to`, and `msg.sender`.
-     */
-    function _callBeforeTransfer(address from, address to) internal view {
-        if (address(hook) != address(0)) hook.beforeTransfer(from, to, msg.sender);
-    }
+    //============================== PUBLIC FUNCTIONS ===============================
 
     function transfer(address to, uint256 amount) public override returns (bool) {
         _callBeforeTransfer(msg.sender, to);
@@ -146,12 +131,27 @@ contract BoringVault is ERC20, Ownable, ERC721Holder, ERC1155Holder {
         return super.transferFrom(from, to, amount);
     }
 
+    /// @dev Returns the name of the token.
+    function name() public view override returns (string memory) {
+        return _name;
+    }
+
+    /// @dev Returns the symbol of the token.
+    function symbol() public view override returns (string memory) {
+        return _symbol;
+    }
+
     /// @dev Returns the number of decimals for the token.
     function decimals() public pure override returns (uint8) {
         return 18;
     }
 
-    //============================== RECEIVE ===============================
+    //============================== INTERNAL FUNCTIONS ===============================
 
-    receive() external payable {}
+    /**
+     * @notice Call `beforeTransferHook` passing in `from` `to`, and `msg.sender`.
+     */
+    function _callBeforeTransfer(address from, address to) internal view {
+        if (address(hook) != address(0)) hook.beforeTransfer(from, to, msg.sender);
+    }
 }

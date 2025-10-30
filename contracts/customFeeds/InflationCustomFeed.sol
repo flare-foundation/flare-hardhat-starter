@@ -83,17 +83,8 @@ contract InflationCustomFeed is IICustomFeed {
     // --- Custom Feed Interface (IICustomFeed) Implementation ---
 
     /**
-     * @notice Returns the feed identifier.
-     * @inheritdoc IICustomFeed
-     */
-    function feedId() external view override returns (bytes21 _feedId) {
-        _feedId = feedIdentifier;
-    }
-
-    /**
      * @notice Gets the latest verified inflation rate, its decimals, and the on-chain verification timestamp.
      * @inheritdoc IICustomFeed
-    // solhint-disable-next-line ordering
      */
     function getCurrentFeed() external payable override returns (uint256 _value, int8 _decimals, uint64 _timestamp) {
         _value = latestInflationData.inflationRate;
@@ -102,22 +93,14 @@ contract InflationCustomFeed is IICustomFeed {
     }
 
     /**
-     * @notice Calculates the fee for calling getCurrentFeed. Returns 0 for this feed.
+     * @notice Returns the feed identifier.
      * @inheritdoc IICustomFeed
      */
-    function calculateFee() external pure override returns (uint256 _fee) {
-        return 0;
+    function feedId() external view override returns (bytes21 _feedId) {
+        _feedId = feedIdentifier;
     }
 
     // --- Additional View Functions ---
-
-    /**
-     * @notice Returns the number of decimals for the inflation rate value.
-     * @dev This indicates that the stored `inflationRate` should be divided by 10^DECIMALS to get the actual rate.
-     */
-    function decimals() public pure returns (int8) {
-        return DECIMALS;
-    }
 
     /**
      * @notice Provides a combined view of the latest inflation rate and its decimals.
@@ -135,10 +118,26 @@ contract InflationCustomFeed is IICustomFeed {
     }
 
     /**
+     * @notice Calculates the fee for calling getCurrentFeed. Returns 0 for this feed.
+     * @inheritdoc IICustomFeed
+     */
+    function calculateFee() external pure override returns (uint256 _fee) {
+        return 0;
+    }
+
+    /**
      * @notice Returns the latest verified inflation rate.
      * @dev The value is scaled by 10^DECIMALS.
      */
     function read() public view returns (uint256 value) {
         return latestInflationData.inflationRate;
+    }
+
+    /**
+     * @notice Returns the number of decimals for the inflation rate value.
+     * @dev This indicates that the stored `inflationRate` should be divided by 10^DECIMALS to get the actual rate.
+     */
+    function decimals() public pure returns (int8) {
+        return DECIMALS;
     }
 }

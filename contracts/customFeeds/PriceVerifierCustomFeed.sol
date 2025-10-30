@@ -73,20 +73,11 @@ contract PriceVerifierCustomFeed is IICustomFeed {
         _setCoinGeckoIdInternal(_symbol, _coinGeckoId);
     }
 
-    function _setCoinGeckoIdInternal(string memory _symbol, string memory _coinGeckoId) internal {
-        require(bytes(_symbol).length > 0, "Symbol cannot be empty");
-        require(bytes(_coinGeckoId).length > 0, "CoinGecko ID cannot be empty");
-        bytes32 symbolHash = keccak256(abi.encodePacked(_symbol));
-        symbolToCoinGeckoId[symbolHash] = _coinGeckoId;
-        emit CoinGeckoIdMappingSet(symbolHash, _coinGeckoId);
-    }
-
     // --- FDC Verification & Price Logic ---
     /**
      * @notice Verifies the price data proof and stores the price.
      * @dev Uses Web2Json FDC verification. Checks if the symbol in the URL matches expectedSymbol.
      * @param _proof The IWeb2Json.Proof data structure.
-    // solhint-disable-next-line ordering
      */
     function verifyPrice(IWeb2Json.Proof calldata _proof) external {
         // 1. CoinGecko ID Verification (from URL)
@@ -122,22 +113,6 @@ contract PriceVerifierCustomFeed is IICustomFeed {
     }
 
     // --- Custom Feed Logic ---
-    function read() public view returns (uint256 value) {
-        value = latestVerifiedPrice;
-    }
-
-    function feedId() external view override returns (bytes21 _feedId) {
-        _feedId = feedIdentifier;
-    }
-
-    function calculateFee() external pure override returns (uint256 _fee) {
-        return 0;
-    }
-
-    function getFeedDataView() external view returns (uint256 _value, int8 _decimals) {
-        _value = latestVerifiedPrice;
-        _decimals = decimals_;
-    }
 
     function getCurrentFeed() external payable override returns (uint256 _value, int8 _decimals, uint64 _timestamp) {
         _value = latestVerifiedPrice;
@@ -145,8 +120,34 @@ contract PriceVerifierCustomFeed is IICustomFeed {
         _timestamp = 0;
     }
 
+    function feedId() external view override returns (bytes21 _feedId) {
+        _feedId = feedIdentifier;
+    }
+
+    function getFeedDataView() external view returns (uint256 _value, int8 _decimals) {
+        _value = latestVerifiedPrice;
+        _decimals = decimals_;
+    }
+
     function decimals() external view returns (int8) {
         return decimals_;
+    }
+
+    function calculateFee() external pure override returns (uint256 _fee) {
+        return 0;
+    }
+
+    function read() public view returns (uint256 value) {
+        value = latestVerifiedPrice;
+    }
+    // --- Internal Helper Functions ---
+
+    function _setCoinGeckoIdInternal(string memory _symbol, string memory _coinGeckoId) internal {
+        require(bytes(_symbol).length > 0, "Symbol cannot be empty");
+        require(bytes(_coinGeckoId).length > 0, "CoinGecko ID cannot be empty");
+        bytes32 symbolHash = keccak256(abi.encodePacked(_symbol));
+        symbolToCoinGeckoId[symbolHash] = _coinGeckoId;
+        emit CoinGeckoIdMappingSet(symbolHash, _coinGeckoId);
     }
 
     // --- Internal Helper Functions To Parse URL---

@@ -105,6 +105,17 @@ contract FTSOv2RateProvider is IRateProvider {
         rate = _scalePrice(value, decimals, rateDecimals);
     }
 
+    /**
+     * @notice Get current feed data with metadata
+     * @return value Current price value
+     * @return feedDecimals FTSOv2 decimal modifier
+     * @return timestamp Last update time
+     */
+    function getCurrentFeedData() external view returns (uint256 value, int8 feedDecimals, uint64 timestamp) {
+        TestFtsoV2Interface ftsoV2 = ContractRegistry.getTestFtsoV2();
+        (value, feedDecimals, timestamp) = ftsoV2.getFeedById(feedId);
+    }
+
     // ========================================= INTERNAL =========================================
 
     /**
@@ -135,19 +146,5 @@ contract FTSOv2RateProvider is IRateProvider {
 
         // Then scale to target decimals
         return baseValue * (10 ** toDecimals);
-    }
-
-    // ========================================= VIEW FUNCTIONS =========================================
-
-    /**
-     * @notice Get current feed data with metadata
-     * @return value Current price value
-     * @return feedDecimals FTSOv2 decimal modifier
-     * @return timestamp Last update time
-    // solhint-disable-next-line ordering
-     */
-    function getCurrentFeedData() external view returns (uint256 value, int8 feedDecimals, uint64 timestamp) {
-        TestFtsoV2Interface ftsoV2 = ContractRegistry.getTestFtsoV2();
-        (value, feedDecimals, timestamp) = ftsoV2.getFeedById(feedId);
     }
 }

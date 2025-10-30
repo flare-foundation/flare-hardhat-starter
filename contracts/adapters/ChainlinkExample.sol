@@ -53,20 +53,10 @@ contract AssetVault is ERC20 {
         FtsoChainlinkAdapterLibrary.refresh(_latestPriceData, ftsoFeedId, chainlinkDecimals);
     }
 
-    function latestRoundData() public view returns (uint80, int256, uint256, uint256, uint80) {
-        // Call the library's logic, passing this contract's state to be read.
-        return FtsoChainlinkAdapterLibrary.latestRoundData(_latestPriceData, maxAgeSeconds);
-    }
-
-    function decimals() public view virtual override(ERC20) returns (uint8) {
-        return ERC20.decimals();
-    }
-
     // --- Core Functions ---
 
     /**
      * @notice Deposits the sent native tokens as collateral for the sender.
-    // solhint-disable-next-line ordering
      */
     function deposit() external payable {
         if (msg.value == 0) revert AmountIsZero();
@@ -141,5 +131,14 @@ contract AssetVault is ERC20 {
         (, int256 price, , , ) = latestRoundData();
 
         return (userCollateral * uint256(price)) / (10 ** chainlinkDecimals);
+    }
+
+    function decimals() public view virtual override(ERC20) returns (uint8) {
+        return ERC20.decimals();
+    }
+
+    function latestRoundData() public view returns (uint80, int256, uint256, uint256, uint80) {
+        // Call the library's logic, passing this contract's state to be read.
+        return FtsoChainlinkAdapterLibrary.latestRoundData(_latestPriceData, maxAgeSeconds);
     }
 }
