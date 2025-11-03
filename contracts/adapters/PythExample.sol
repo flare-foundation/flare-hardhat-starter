@@ -79,16 +79,16 @@ contract PythNftMinter is IPyth {
     ) external payable override returns (PythStructs.PriceFeed[] memory) {
         revert("UNSUPPORTED");
     }
-    function getEmaPriceUnsafe(bytes32) external view override returns (PythStructs.Price memory) {
+    function getEmaPriceUnsafe(bytes32) external pure override returns (PythStructs.Price memory) {
         revert("UNSUPPORTED");
     }
-    function getEmaPriceNoOlderThan(bytes32, uint256) external view override returns (PythStructs.Price memory) {
+    function getEmaPriceNoOlderThan(bytes32, uint256) external pure override returns (PythStructs.Price memory) {
         revert("UNSUPPORTED");
     }
-    function getUpdateFee(bytes[] calldata) external view override returns (uint256) {
+    function getUpdateFee(bytes[] calldata) external pure override returns (uint256) {
         revert("UNSUPPORTED");
     }
-    function getTwapUpdateFee(bytes[] calldata) external view override returns (uint256) {
+    function getTwapUpdateFee(bytes[] calldata) external pure override returns (uint256) {
         revert("UNSUPPORTED");
     }
 
