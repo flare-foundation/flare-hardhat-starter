@@ -16,7 +16,7 @@
     "ordering": "warn",
     "imports-on-top": "error",
     "mark-callable-contracts": "on",
-    "max-line-length": [ "error", 119 ],
+    "max-line-length": [ "error", 120 ],
     "reason-string": "off",
     "max-states-count": [ "error", 20 ],
     "multiple-sends": "error",
