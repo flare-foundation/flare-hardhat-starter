@@ -12,24 +12,24 @@ interface IChronicle {
     /// @notice Returns the oracle's current value.
     /// @dev Reverts if no value set.
     /// @return value The oracle's current value.
-    function read() external view returns (uint value);
+    function read() external view returns (uint256 value);
 
     /// @notice Returns the oracle's current value and its age.
     /// @dev Reverts if no value set.
     /// @return value The oracle's current value.
     /// @return age The value's age.
-    function readWithAge() external view returns (uint value, uint age);
+    function readWithAge() external view returns (uint256 value, uint256 age);
 
     /// @notice Returns the oracle's current value.
     /// @return isValid True if value exists, false otherwise.
     /// @return value The oracle's current value if it exists, zero otherwise.
-    function tryRead() external view returns (bool isValid, uint value);
+    function tryRead() external view returns (bool isValid, uint256 value);
 
     /// @notice Returns the oracle's current value and its age.
     /// @return isValid True if value exists, false otherwise.
     /// @return value The oracle's current value if it exists, zero otherwise.
     /// @return age The value's age if value exists, zero otherwise.
-    function tryReadWithAge() external view returns (bool isValid, uint value, uint age);
+    function tryReadWithAge() external view returns (bool isValid, uint256 value, uint256 age);
 }
 
 /**
@@ -38,13 +38,6 @@ interface IChronicle {
  * @dev This contract implements the IChronicle interface and uses the FtsoChronicleAdapterLibrary.
  */
 contract DynamicNftMinter is IChronicle, ERC721 {
-    // --- Adapter State ---
-    bytes21 public immutable ftsoFeedId;
-    bytes32 public immutable wat; // Chronicle's name for the feed identifier.
-
-    // The contract is now responsible for storing the cached price data.
-    FtsoChronicleAdapterLibrary.DataPoint private _latestDataPoint;
-
     // --- Minter-Specific State ---
     enum Tier {
         None,
@@ -52,6 +45,14 @@ contract DynamicNftMinter is IChronicle, ERC721 {
         Silver,
         Gold
     }
+
+    // --- Adapter State ---
+    bytes21 public immutable ftsoFeedId;
+    bytes32 public immutable wat; // Chronicle's name for the feed identifier.
+
+    // The contract is now responsible for storing the cached price data.
+    FtsoChronicleAdapterLibrary.DataPoint private _latestDataPoint;
+
     uint256 private _nextTokenId;
     uint256 public constant MINT_FEE = 0.1 ether;
     mapping(uint256 => Tier) public tokenTiers; // Stores the tier for each minted NFT.
@@ -73,20 +74,6 @@ contract DynamicNftMinter is IChronicle, ERC721 {
     // --- Public Adapter Functions ---
     function refresh() external {
         FtsoChronicleAdapterLibrary.refresh(_latestDataPoint, ftsoFeedId);
-    }
-
-    // --- IChronicle Interface Implementation ---
-    function read() public view override returns (uint256) {
-        return FtsoChronicleAdapterLibrary.read(_latestDataPoint);
-    }
-    function readWithAge() public view override returns (uint256, uint256) {
-        return FtsoChronicleAdapterLibrary.readWithAge(_latestDataPoint);
-    }
-    function tryRead() public view override returns (bool, uint256) {
-        return FtsoChronicleAdapterLibrary.tryRead(_latestDataPoint);
-    }
-    function tryReadWithAge() public view override returns (bool, uint256, uint256) {
-        return FtsoChronicleAdapterLibrary.tryReadWithAge(_latestDataPoint);
     }
 
     // --- Core Minter Functions ---
@@ -111,5 +98,19 @@ contract DynamicNftMinter is IChronicle, ERC721 {
         tokenTiers[newTokenId] = mintedTier;
 
         emit NftMinted(msg.sender, newTokenId, mintedTier);
+    }
+
+    // --- IChronicle Interface Implementation ---
+    function read() public view override returns (uint256) {
+        return FtsoChronicleAdapterLibrary.read(_latestDataPoint);
+    }
+    function readWithAge() public view override returns (uint256, uint256) {
+        return FtsoChronicleAdapterLibrary.readWithAge(_latestDataPoint);
+    }
+    function tryRead() public view override returns (bool, uint256) {
+        return FtsoChronicleAdapterLibrary.tryRead(_latestDataPoint);
+    }
+    function tryReadWithAge() public view override returns (bool, uint256, uint256) {
+        return FtsoChronicleAdapterLibrary.tryReadWithAge(_latestDataPoint);
     }
 }

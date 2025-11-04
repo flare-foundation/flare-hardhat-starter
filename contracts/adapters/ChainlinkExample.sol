@@ -21,17 +21,17 @@ contract AssetVault is ERC20 {
     // e.g., 50 means a user can borrow up to 50% of their collateral's value.
     uint256 public constant LOAN_TO_VALUE_RATIO = 50;
 
-    // --- Errors ---
-    error InsufficientCollateral();
-    error NothingToWithdraw();
-    error LoanNotRepaid();
-    error AmountIsZero();
-
     // --- Events ---
     event CollateralDeposited(address indexed user, uint256 amount);
     event CollateralWithdrawn(address indexed user, uint256 amount);
     event LoanBorrowed(address indexed user, uint256 amount);
     event LoanRepaid(address indexed user, uint256 amount);
+
+    // --- Errors ---
+    error InsufficientCollateral();
+    error NothingToWithdraw();
+    error LoanNotRepaid();
+    error AmountIsZero();
 
     constructor(
         bytes21 _ftsoFeedId,
@@ -51,15 +51,6 @@ contract AssetVault is ERC20 {
     function refresh() external {
         // Call the library's logic, passing this contract's state to be updated.
         FtsoChainlinkAdapterLibrary.refresh(_latestPriceData, ftsoFeedId, chainlinkDecimals);
-    }
-
-    function latestRoundData() public view returns (uint80, int256, uint256, uint256, uint80) {
-        // Call the library's logic, passing this contract's state to be read.
-        return FtsoChainlinkAdapterLibrary.latestRoundData(_latestPriceData, maxAgeSeconds);
-    }
-
-    function decimals() public view virtual override(ERC20) returns (uint8) {
-        return ERC20.decimals();
     }
 
     // --- Core Functions ---
@@ -140,5 +131,14 @@ contract AssetVault is ERC20 {
         (, int256 price, , , ) = latestRoundData();
 
         return (userCollateral * uint256(price)) / (10 ** chainlinkDecimals);
+    }
+
+    function decimals() public view virtual override(ERC20) returns (uint8) {
+        return ERC20.decimals();
+    }
+
+    function latestRoundData() public view returns (uint80, int256, uint256, uint256, uint80) {
+        // Call the library's logic, passing this contract's state to be read.
+        return FtsoChainlinkAdapterLibrary.latestRoundData(_latestPriceData, maxAgeSeconds);
     }
 }

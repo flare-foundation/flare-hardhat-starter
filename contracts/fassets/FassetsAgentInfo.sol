@@ -11,11 +11,6 @@ import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston
  * @dev A contract to interact with IAgentOwnerRegistry and get agent information
  */
 contract FassetsAgentInfo {
-    function getAgentOwnerRegistry() internal view returns (IAgentOwnerRegistry) {
-        IAssetManager assetManager = ContractRegistry.getAssetManagerFXRP();
-        return IAgentOwnerRegistry(assetManager.getSettings().agentOwnerRegistry);
-    }
-
     /**
      * @dev Get agent name by management address
      * @param _managementAddress The management address of the agent
@@ -70,5 +65,10 @@ contract FassetsAgentInfo {
         string memory termsOfUseUrl = agentOwnerRegistry.getAgentTermsOfUseUrl(_managementAddress);
 
         return (name, description, iconUrl, termsOfUseUrl);
+    }
+
+    function getAgentOwnerRegistry() internal view returns (IAgentOwnerRegistry) {
+        IAssetManager assetManager = ContractRegistry.getAssetManagerFXRP();
+        return IAgentOwnerRegistry(assetManager.getSettings().agentOwnerRegistry);
     }
 }

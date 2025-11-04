@@ -74,16 +74,14 @@ contract MetalPriceVerifierCustomFeed is IICustomFeed {
     }
 
     // --- Custom Feed Logic ---
-    function read() public view returns (uint256 value) {
-        value = latestVerifiedPrice;
+    function getCurrentFeed() external payable override returns (uint256 _value, int8 _decimals, uint64 _timestamp) {
+        _value = latestVerifiedPrice;
+        _decimals = decimals_;
+        _timestamp = latestVerifiedTimestamp;
     }
 
     function feedId() external view override returns (bytes21 _feedId) {
         _feedId = feedIdentifier;
-    }
-
-    function calculateFee() external pure override returns (uint256 _fee) {
-        return 0;
     }
 
     function getFeedDataView() external view returns (uint256 _value, int8 _decimals) {
@@ -91,14 +89,16 @@ contract MetalPriceVerifierCustomFeed is IICustomFeed {
         _decimals = decimals_;
     }
 
-    function getCurrentFeed() external payable override returns (uint256 _value, int8 _decimals, uint64 _timestamp) {
-        _value = latestVerifiedPrice;
-        _decimals = decimals_;
-        _timestamp = latestVerifiedTimestamp;
-    }
-
     function decimals() external view returns (int8) {
         return decimals_;
+    }
+
+    function calculateFee() external pure override returns (uint256 _fee) {
+        return 0;
+    }
+
+    function read() public view returns (uint256 value) {
+        value = latestVerifiedPrice;
     }
 
     // --- Internal Helper Functions ---

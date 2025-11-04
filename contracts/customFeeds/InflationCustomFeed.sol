@@ -13,14 +13,14 @@ import { IICustomFeed } from "@flarenetwork/flare-periphery-contracts/coston2/cu
 contract InflationCustomFeed is IICustomFeed {
     // --- State Variables ---
 
-    bytes21 public feedIdentifier;
-    string public name; // e.g., "US_INFLATION_CPI_ANNUAL"
-    int8 public constant DECIMALS = 4;
-
     struct InflationData {
         uint256 inflationRate;
         uint256 observationYear;
     }
+
+    bytes21 public feedIdentifier;
+    string public name; // e.g., "US_INFLATION_CPI_ANNUAL"
+    int8 public constant DECIMALS = 4;
 
     InflationData public latestInflationData;
     uint64 public latestVerifiedTimestamp;
@@ -39,8 +39,10 @@ contract InflationCustomFeed is IICustomFeed {
     error InvalidName();
 
     /**
-     * @param _feedId The unique identifier for this feed (bytes21, typically 0x21 + first 20 bytes of a string hash like "INFLATION/US_INFLATION_CPI_ANNUAL").
-     * @param _name A descriptive name for the feed, corresponding to the dataset identifier from the script (e.g., "US_INFLATION_CPI_ANNUAL").
+     * @param _feedId The unique identifier for this feed (bytes21, typically 0x21 + first 20 bytes
+     *        of a string hash like "INFLATION/US_INFLATION_CPI_ANNUAL").
+     * @param _name A descriptive name for the feed, corresponding to the dataset identifier from
+     *        the script (e.g., "US_INFLATION_CPI_ANNUAL").
      */
     constructor(bytes21 _feedId, string memory _name) {
         if (_feedId == bytes21(0)) revert InvalidFeedId();
@@ -81,14 +83,6 @@ contract InflationCustomFeed is IICustomFeed {
     // --- Custom Feed Interface (IICustomFeed) Implementation ---
 
     /**
-     * @notice Returns the feed identifier.
-     * @inheritdoc IICustomFeed
-     */
-    function feedId() external view override returns (bytes21 _feedId) {
-        _feedId = feedIdentifier;
-    }
-
-    /**
      * @notice Gets the latest verified inflation rate, its decimals, and the on-chain verification timestamp.
      * @inheritdoc IICustomFeed
      */
@@ -99,22 +93,14 @@ contract InflationCustomFeed is IICustomFeed {
     }
 
     /**
-     * @notice Calculates the fee for calling getCurrentFeed. Returns 0 for this feed.
+     * @notice Returns the feed identifier.
      * @inheritdoc IICustomFeed
      */
-    function calculateFee() external pure override returns (uint256 _fee) {
-        return 0;
+    function feedId() external view override returns (bytes21 _feedId) {
+        _feedId = feedIdentifier;
     }
 
     // --- Additional View Functions ---
-
-    /**
-     * @notice Returns the number of decimals for the inflation rate value.
-     * @dev This indicates that the stored `inflationRate` should be divided by 10^DECIMALS to get the actual rate.
-     */
-    function decimals() public pure returns (int8) {
-        return DECIMALS;
-    }
 
     /**
      * @notice Provides a combined view of the latest inflation rate and its decimals.
@@ -132,10 +118,26 @@ contract InflationCustomFeed is IICustomFeed {
     }
 
     /**
+     * @notice Calculates the fee for calling getCurrentFeed. Returns 0 for this feed.
+     * @inheritdoc IICustomFeed
+     */
+    function calculateFee() external pure override returns (uint256 _fee) {
+        return 0;
+    }
+
+    /**
      * @notice Returns the latest verified inflation rate.
      * @dev The value is scaled by 10^DECIMALS.
      */
     function read() public view returns (uint256 value) {
         return latestInflationData.inflationRate;
+    }
+
+    /**
+     * @notice Returns the number of decimals for the inflation rate value.
+     * @dev This indicates that the stored `inflationRate` should be divided by 10^DECIMALS to get the actual rate.
+     */
+    function decimals() public pure returns (int8) {
+        return DECIMALS;
     }
 }

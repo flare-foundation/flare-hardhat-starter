@@ -73,7 +73,7 @@ contract PriceTriggeredSafe {
         // Use the library to get all prices in a single call.
         IStdReference.ReferenceData[] memory prices = FtsoBandAdapterLibrary.getReferenceDataBulk(bases, quotes);
 
-        for (uint i = 0; i < prices.length; i++) {
+        for (uint256 i = 0; i < prices.length; i++) {
             string memory base = bases[i];
             uint256 lastPrice = lastCheckedPrices[base];
             uint256 currentPrice = prices[i].rate;

@@ -26,7 +26,8 @@ contract SimpleFtsoExample {
     }
 
     /**
-     * @dev Get the current price of an asset from FTSO system. The returned price is converted to wei (18 decimal places of precission)
+     * @dev Get the current price of an asset from FTSO system. The returned price is converted
+     *      to wei (18 decimal places of precission)
      */
     function getTokenPriceInUSDWei(
         string memory feedName
@@ -46,7 +47,7 @@ contract SimpleFtsoExample {
         string memory token2,
         uint256 numerator,
         uint256 denominator
-    ) public view returns (uint256 _price1, uint256 _price2, bool _is_higher) {
+    ) public view returns (uint256 _price1, uint256 _price2, bool _isHigher) {
         // WARNING: This is a test contract, do not use it in production
         TestFtsoV2Interface ftsoV2 = ContractRegistry.getTestFtsoV2();
         IFtsoFeedIdConverter feedConverter = ContractRegistry.getFtsoFeedIdConverter();
@@ -58,6 +59,6 @@ contract SimpleFtsoExample {
         _price1 = prices[0];
         _price2 = prices[1];
 
-        _is_higher = _price1 * denominator > _price2 * numerator;
+        _isHigher = _price1 * denominator > _price2 * numerator;
     }
 }

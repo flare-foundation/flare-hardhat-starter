@@ -30,13 +30,6 @@ contract TestERC20 is ERC20, Ownable {
     }
 
     /**
-     * @dev Returns the number of decimals used to get its user representation
-     */
-    function decimals() public view virtual override returns (uint8) {
-        return _decimals;
-    }
-
-    /**
      * @dev Mints tokens to a specific address (owner only)
      * @param to Address to mint tokens to
      * @param amount Amount of tokens to mint
@@ -60,5 +53,12 @@ contract TestERC20 is ERC20, Ownable {
      */
     function burn(uint256 amount) external {
         _burn(msg.sender, amount);
+    }
+
+    /**
+     * @dev Returns the number of decimals used to get its user representation
+     */
+    function decimals() public view virtual override returns (uint8) {
+        return _decimals;
     }
 }

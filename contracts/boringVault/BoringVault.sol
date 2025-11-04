@@ -4,7 +4,6 @@ pragma solidity ^0.8.25;
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { ERC721Holder } from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import { ERC1155Holder } from "@openzeppelin/contracts/token/ERC1155/utils/ERC1155Holder.sol";
-import { FixedPointMathLib } from "solady/src/utils/FixedPointMathLib.sol";
 import { SafeTransferLib } from "solady/src/utils/SafeTransferLib.sol";
 import { ERC20 } from "solady/src/tokens/ERC20.sol";
 import { IBeforeTransferHook } from "./interfaces/IBeforeTransferHook.sol";
@@ -43,20 +42,8 @@ contract BoringVault is ERC20, Ownable, ERC721Holder, ERC1155Holder {
         _symbol = __symbol;
     }
 
-    /// @dev Returns the name of the token.
-    function name() public view override returns (string memory) {
-        return _name;
-    }
-
-    /// @dev Returns the symbol of the token.
-    function symbol() public view override returns (string memory) {
-        return _symbol;
-    }
-
-    /// @dev Returns the number of decimals for the token.
-    function decimals() public pure override returns (uint8) {
-        return 18;
-    }
+    //============================== RECEIVE ===============================
+    receive() external payable {}
 
     //============================== MANAGE ===============================
 
@@ -132,12 +119,7 @@ contract BoringVault is ERC20, Ownable, ERC721Holder, ERC1155Holder {
         hook = IBeforeTransferHook(_hook);
     }
 
-    /**
-     * @notice Call `beforeTransferHook` passing in `from` `to`, and `msg.sender`.
-     */
-    function _callBeforeTransfer(address from, address to) internal view {
-        if (address(hook) != address(0)) hook.beforeTransfer(from, to, msg.sender);
-    }
+    //============================== PUBLIC FUNCTIONS ===============================
 
     function transfer(address to, uint256 amount) public override returns (bool) {
         _callBeforeTransfer(msg.sender, to);
@@ -149,7 +131,27 @@ contract BoringVault is ERC20, Ownable, ERC721Holder, ERC1155Holder {
         return super.transferFrom(from, to, amount);
     }
 
-    //============================== RECEIVE ===============================
+    /// @dev Returns the name of the token.
+    function name() public view override returns (string memory) {
+        return _name;
+    }
 
-    receive() external payable {}
+    /// @dev Returns the symbol of the token.
+    function symbol() public view override returns (string memory) {
+        return _symbol;
+    }
+
+    /// @dev Returns the number of decimals for the token.
+    function decimals() public pure override returns (uint8) {
+        return 18;
+    }
+
+    //============================== INTERNAL FUNCTIONS ===============================
+
+    /**
+     * @notice Call `beforeTransferHook` passing in `from` `to`, and `msg.sender`.
+     */
+    function _callBeforeTransfer(address from, address to) internal view {
+        if (address(hook) != address(0)) hook.beforeTransfer(from, to, msg.sender);
+    }
 }

@@ -63,33 +63,6 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
      */
     mapping(ERC20 => RateProviderData) public rateProviderData;
 
-    //============================== ERRORS ===============================
-
-    error AccountantWithRateProviders__UpperBoundTooSmall();
-    error AccountantWithRateProviders__LowerBoundTooLarge();
-    error AccountantWithRateProviders__PlatformFeeTooLarge();
-    error AccountantWithRateProviders__PerformanceFeeTooLarge();
-    error AccountantWithRateProviders__Paused();
-    error AccountantWithRateProviders__ZeroFeesOwed();
-    error AccountantWithRateProviders__OnlyCallableByBoringVault();
-    error AccountantWithRateProviders__UpdateDelayTooLarge();
-    error AccountantWithRateProviders__ExchangeRateAboveHighwaterMark();
-
-    //============================== EVENTS ===============================
-
-    event Paused();
-    event Unpaused();
-    event DelayInSecondsUpdated(uint24 oldDelay, uint24 newDelay);
-    event UpperBoundUpdated(uint16 oldBound, uint16 newBound);
-    event LowerBoundUpdated(uint16 oldBound, uint16 newBound);
-    event PlatformFeeUpdated(uint16 oldFee, uint16 newFee);
-    event PerformanceFeeUpdated(uint16 oldFee, uint16 newFee);
-    event PayoutAddressUpdated(address oldPayout, address newPayout);
-    event RateProviderUpdated(address asset, bool isPegged, address rateProvider);
-    event ExchangeRateUpdated(uint96 oldRate, uint96 newRate, uint64 currentTime);
-    event FeesClaimed(address indexed feeAsset, uint256 amount);
-    event HighwaterMarkReset();
-
     //============================== IMMUTABLES ===============================
 
     /**
@@ -111,7 +84,34 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
     /**
      * @notice One share of the BoringVault.
      */
-    uint256 internal immutable ONE_SHARE;
+    uint256 internal immutable oneShare;
+
+    //============================== EVENTS ===============================
+
+    event Paused();
+    event Unpaused();
+    event DelayInSecondsUpdated(uint24 oldDelay, uint24 newDelay);
+    event UpperBoundUpdated(uint16 oldBound, uint16 newBound);
+    event LowerBoundUpdated(uint16 oldBound, uint16 newBound);
+    event PlatformFeeUpdated(uint16 oldFee, uint16 newFee);
+    event PerformanceFeeUpdated(uint16 oldFee, uint16 newFee);
+    event PayoutAddressUpdated(address oldPayout, address newPayout);
+    event RateProviderUpdated(address asset, bool isPegged, address rateProvider);
+    event ExchangeRateUpdated(uint96 oldRate, uint96 newRate, uint64 currentTime);
+    event FeesClaimed(address indexed feeAsset, uint256 amount);
+    event HighwaterMarkReset();
+
+    //============================== ERRORS ===============================
+
+    error AccountantWithRateProviders__UpperBoundTooSmall();
+    error AccountantWithRateProviders__LowerBoundTooLarge();
+    error AccountantWithRateProviders__PlatformFeeTooLarge();
+    error AccountantWithRateProviders__PerformanceFeeTooLarge();
+    error AccountantWithRateProviders__Paused();
+    error AccountantWithRateProviders__ZeroFeesOwed();
+    error AccountantWithRateProviders__OnlyCallableByBoringVault();
+    error AccountantWithRateProviders__UpdateDelayTooLarge();
+    error AccountantWithRateProviders__ExchangeRateAboveHighwaterMark();
 
     constructor(
         address _owner,
@@ -129,7 +129,7 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
         base = ERC20(_base);
         decimals = ERC20(_base).decimals();
         vault = BoringVault(payable(_vault));
-        ONE_SHARE = 10 ** vault.decimals();
+        oneShare = 10 ** vault.decimals();
         accountantState = AccountantState({
             payoutAddress: payoutAddress,
             highwaterMark: startingExchangeRate,
@@ -146,11 +146,10 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
         });
     }
 
-    // ========================================= ADMIN FUNCTIONS =========================================
+    // ============================== ADMIN FUNCTIONS ==============================
     /**
-     * @notice Pause this contract, which prevents future calls to `updateExchangeRate`, and any safe rate
-     *         calls will revert.
-     * @dev Callable by MULTISIG_ROLE.
+     * @notice Pause this contract, which prevents future calls to `updateExchangeRate`.
+     * @dev Callable by OWNER_ROLE.
      */
     function pause() external onlyOwner {
         accountantState.isPaused = true;
@@ -158,8 +157,8 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
     }
 
     /**
-     * @notice Unpause this contract, which allows future calls to `updateExchangeRate`, and any safe rate
-     *         calls will stop reverting.
+     * @notice Unpause this contract, which allows future calls to `updateExchangeRate`.
+     * @dev Any safe rate calls will stop reverting.
      * @dev Callable by MULTISIG_ROLE.
      */
     function unpause() external onlyOwner {
@@ -174,29 +173,35 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
      * @dev Callable by OWNER_ROLE.
      */
     function updateDelay(uint24 minimumUpdateDelayInSeconds) external onlyOwner {
-        if (minimumUpdateDelayInSeconds > 14 days) revert AccountantWithRateProviders__UpdateDelayTooLarge();
+        if (minimumUpdateDelayInSeconds > 14 days) {
+            revert AccountantWithRateProviders__UpdateDelayTooLarge();
+        }
         uint24 oldDelay = accountantState.minimumUpdateDelayInSeconds;
         accountantState.minimumUpdateDelayInSeconds = minimumUpdateDelayInSeconds;
         emit DelayInSecondsUpdated(oldDelay, minimumUpdateDelayInSeconds);
     }
 
     /**
-     * @notice Update the allowed upper bound change of exchange rate between `updateExchangeRateCalls`.
+     * @notice Update the allowed upper bound change of exchange rate.
      * @dev Callable by OWNER_ROLE.
      */
     function updateUpper(uint16 allowedExchangeRateChangeUpper) external onlyOwner {
-        if (allowedExchangeRateChangeUpper < 1e4) revert AccountantWithRateProviders__UpperBoundTooSmall();
+        if (allowedExchangeRateChangeUpper < 1e4) {
+            revert AccountantWithRateProviders__UpperBoundTooSmall();
+        }
         uint16 oldBound = accountantState.allowedExchangeRateChangeUpper;
         accountantState.allowedExchangeRateChangeUpper = allowedExchangeRateChangeUpper;
         emit UpperBoundUpdated(oldBound, allowedExchangeRateChangeUpper);
     }
 
     /**
-     * @notice Update the allowed lower bound change of exchange rate between `updateExchangeRateCalls`.
+     * @notice Update the allowed lower bound change of exchange rate.
      * @dev Callable by OWNER_ROLE.
      */
     function updateLower(uint16 allowedExchangeRateChangeLower) external onlyOwner {
-        if (allowedExchangeRateChangeLower > 1e4) revert AccountantWithRateProviders__LowerBoundTooLarge();
+        if (allowedExchangeRateChangeLower > 1e4) {
+            revert AccountantWithRateProviders__LowerBoundTooLarge();
+        }
         uint16 oldBound = accountantState.allowedExchangeRateChangeLower;
         accountantState.allowedExchangeRateChangeLower = allowedExchangeRateChangeLower;
         emit LowerBoundUpdated(oldBound, allowedExchangeRateChangeLower);
@@ -270,11 +275,11 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
         emit HighwaterMarkReset();
     }
 
-    // ========================================= UPDATE EXCHANGE RATE/FEES FUNCTIONS =========================================
+    // =================== UPDATE EXCHANGE RATE/FEES FUNCTIONS ===================
 
     /**
      * @notice Updates this contract exchangeRate.
-     * @dev If new exchange rate is outside of accepted bounds, or if not enough time has passed, this
+     * @dev If new exchange rate is outside of accepted bounds, or if not enough time,
      *      will pause the contract, and this function will NOT calculate fees owed.
      * @dev Callable by UPDATE_EXCHANGE_RATE_ROLE.
      */
@@ -287,8 +292,8 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
             uint256 currentTotalShares
         ) = _beforeUpdateExchangeRate(newExchangeRate);
         if (shouldPause) {
-            // Instead of reverting, pause the contract. This way the exchange rate updater is able to update the exchange rate
-            // to a better value, and pause it.
+            // Instead of reverting, pause the contract. This way the exchange rate
+            // updater is able to update the exchange rate to a better value.
             state.isPaused = true;
         } else {
             _calculateFeesOwed(state, newExchangeRate, currentExchangeRate, currentTotalShares, currentTime);
@@ -308,7 +313,9 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
      *      decimals is greater than the feeAsset's decimals.
      */
     function claimFees(ERC20 feeAsset) external {
-        if (msg.sender != address(vault)) revert AccountantWithRateProviders__OnlyCallableByBoringVault();
+        if (msg.sender != address(vault)) {
+            revert AccountantWithRateProviders__OnlyCallableByBoringVault();
+        }
 
         AccountantState storage state = accountantState;
         if (state.isPaused) revert AccountantWithRateProviders__Paused();
@@ -345,14 +352,7 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
         emit FeesClaimed(address(feeAsset), feesOwedInFeeAsset);
     }
 
-    // ========================================= VIEW FUNCTIONS =========================================
-
-    /**
-     * @notice Get this BoringVault's current rate in the base.
-     */
-    function getRate() public view returns (uint256 rate) {
-        rate = accountantState.exchangeRate;
-    }
+    // ========================= VIEW FUNCTIONS =========================
 
     /**
      * @notice Get this BoringVault's current rate in the base.
@@ -361,33 +361,6 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
     function getRateSafe() external view returns (uint256 rate) {
         if (accountantState.isPaused) revert AccountantWithRateProviders__Paused();
         rate = getRate();
-    }
-
-    /**
-     * @notice Get this BoringVault's current rate in the provided quote.
-     * @dev `quote` must have its RateProviderData set, else this will revert.
-     * @dev This function will lose precision if the exchange rate
-     *      decimals is greater than the quote's decimals.
-     */
-    function getRateInQuote(ERC20 quote) public view returns (uint256 rateInQuote) {
-        if (address(quote) == address(base)) {
-            rateInQuote = accountantState.exchangeRate;
-        } else {
-            RateProviderData memory data = rateProviderData[quote];
-            uint8 quoteDecimals = ERC20(quote).decimals();
-            uint256 exchangeRateInQuoteDecimals = _changeDecimals(
-                accountantState.exchangeRate,
-                decimals,
-                quoteDecimals
-            );
-            if (data.isPeggedToBase) {
-                rateInQuote = exchangeRateInQuoteDecimals;
-            } else {
-                uint256 quoteRate = data.rateProvider.getRate();
-                uint256 oneQuote = 10 ** quoteDecimals;
-                rateInQuote = FixedPointMathLib.mulDiv(oneQuote, exchangeRateInQuoteDecimals, quoteRate);
-            }
-        }
     }
 
     /**
@@ -443,99 +416,47 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
         }
     }
 
-    // ========================================= INTERNAL HELPER FUNCTIONS =========================================
     /**
-     * @notice Used to change the decimals of precision used for an amount.
+     * @notice Get this BoringVault's current rate in the base.
      */
-    function _changeDecimals(uint256 amount, uint8 fromDecimals, uint8 toDecimals) internal pure returns (uint256) {
-        if (fromDecimals == toDecimals) {
-            return amount;
-        } else if (fromDecimals < toDecimals) {
-            return amount * 10 ** (toDecimals - fromDecimals);
+    function getRate() public view returns (uint256 rate) {
+        rate = accountantState.exchangeRate;
+    }
+
+    /**
+     * @notice Get this BoringVault's current rate in the provided quote.
+     * @dev `quote` must have its RateProviderData set, else this will revert.
+     * @dev This function will lose precision if the exchange rate
+     *      decimals is greater than the quote's decimals.
+     */
+    function getRateInQuote(ERC20 quote) public view returns (uint256 rateInQuote) {
+        if (address(quote) == address(base)) {
+            rateInQuote = accountantState.exchangeRate;
         } else {
-            return amount / 10 ** (fromDecimals - toDecimals);
+            RateProviderData memory data = rateProviderData[quote];
+            uint8 quoteDecimals = ERC20(quote).decimals();
+            uint256 exchangeRateInQuoteDecimals = _changeDecimals(
+                accountantState.exchangeRate,
+                decimals,
+                quoteDecimals
+            );
+            if (data.isPeggedToBase) {
+                rateInQuote = exchangeRateInQuoteDecimals;
+            } else {
+                uint256 quoteRate = data.rateProvider.getRate();
+                uint256 oneQuote = 10 ** quoteDecimals;
+                rateInQuote = FixedPointMathLib.mulDiv(oneQuote, exchangeRateInQuoteDecimals, quoteRate);
+            }
         }
     }
 
-    /**
-     * @notice Check if the new exchange rate is outside of the allowed bounds or if not enough time has passed.
-     */
-    function _beforeUpdateExchangeRate(
-        uint96 newExchangeRate
-    )
-        internal
-        view
-        returns (
-            bool shouldPause,
-            AccountantState storage state,
-            uint64 currentTime,
-            uint256 currentExchangeRate,
-            uint256 currentTotalShares
-        )
-    {
-        state = accountantState;
-        if (state.isPaused) revert AccountantWithRateProviders__Paused();
-        currentTime = uint64(block.timestamp);
-        currentExchangeRate = state.exchangeRate;
-        currentTotalShares = vault.totalSupply();
-        shouldPause =
-            currentTime < state.lastUpdateTimestamp + state.minimumUpdateDelayInSeconds ||
-            newExchangeRate >
-            FixedPointMathLib.mulDiv(currentExchangeRate, state.allowedExchangeRateChangeUpper, 1e4) ||
-            newExchangeRate < FixedPointMathLib.mulDiv(currentExchangeRate, state.allowedExchangeRateChangeLower, 1e4);
-    }
-
+    // ==================== INTERNAL HELPER FUNCTIONS ====================
     /**
      * @notice Set the exchange rate.
      */
     function _setExchangeRate(uint96 newExchangeRate, AccountantState storage state) internal virtual returns (uint96) {
         state.exchangeRate = newExchangeRate;
         return newExchangeRate;
-    }
-
-    /**
-     * @notice Calculate platform fees.
-     */
-    function _calculatePlatformFee(
-        uint128 totalSharesLastUpdate,
-        uint64 lastUpdateTimestamp,
-        uint16 platformFee,
-        uint96 newExchangeRate,
-        uint256 currentExchangeRate,
-        uint256 currentTotalShares,
-        uint64 currentTime
-    ) internal view returns (uint256 platformFeesOwedInBase, uint256 shareSupplyToUse) {
-        shareSupplyToUse = currentTotalShares;
-        // Use the minimum between current total supply and total supply for last update.
-        if (totalSharesLastUpdate < shareSupplyToUse) {
-            shareSupplyToUse = totalSharesLastUpdate;
-        }
-
-        // Determine platform fees owned.
-        if (platformFee > 0) {
-            uint256 timeDelta = currentTime - lastUpdateTimestamp;
-            uint256 minimumAssets = newExchangeRate > currentExchangeRate
-                ? FixedPointMathLib.mulDiv(shareSupplyToUse, currentExchangeRate, ONE_SHARE)
-                : FixedPointMathLib.mulDiv(shareSupplyToUse, newExchangeRate, ONE_SHARE);
-            uint256 platformFeesAnnual = FixedPointMathLib.mulDiv(minimumAssets, platformFee, 1e4);
-            platformFeesOwedInBase = FixedPointMathLib.mulDiv(platformFeesAnnual, timeDelta, 365 days);
-        }
-    }
-
-    /**
-     * @notice Calculate performance fees.
-     */
-    function _calculatePerformanceFee(
-        uint96 newExchangeRate,
-        uint256 shareSupplyToUse,
-        uint96 datum,
-        uint16 performanceFee
-    ) internal view returns (uint256 performanceFeesOwedInBase, uint256 yieldEarned) {
-        uint256 changeInExchangeRate = newExchangeRate - datum;
-        yieldEarned = FixedPointMathLib.mulDiv(changeInExchangeRate, shareSupplyToUse, ONE_SHARE);
-        if (performanceFee > 0) {
-            performanceFeesOwedInBase = FixedPointMathLib.mulDiv(yieldEarned, performanceFee, 1e4);
-        }
     }
 
     /**
@@ -574,11 +495,97 @@ contract AccountantWithRateProviders is Ownable, IRateProvider, IPausable {
             newFeesOwedInBase += performanceFeesOwedInBase;
 
             // Always update the highwater mark if the new exchange rate is higher.
-            // This way if we are not initially taking performance fees, we can start taking them
-            // without back charging them on past performance.
+            // This way if not initially taking performance fees, can start taking
+            // them without back charging them on past performance.
             state.highwaterMark = newExchangeRate;
         }
 
         state.feesOwedInBase += uint128(newFeesOwedInBase);
+    }
+
+    /**
+     * @notice Check if the new exchange rate is outside bounds or time insufficient.
+     */
+    function _beforeUpdateExchangeRate(
+        uint96 newExchangeRate
+    )
+        internal
+        view
+        returns (
+            bool shouldPause,
+            AccountantState storage state,
+            uint64 currentTime,
+            uint256 currentExchangeRate,
+            uint256 currentTotalShares
+        )
+    {
+        state = accountantState;
+        if (state.isPaused) revert AccountantWithRateProviders__Paused();
+        currentTime = uint64(block.timestamp);
+        currentExchangeRate = state.exchangeRate;
+        currentTotalShares = vault.totalSupply();
+        shouldPause =
+            currentTime < state.lastUpdateTimestamp + state.minimumUpdateDelayInSeconds ||
+            newExchangeRate >
+            FixedPointMathLib.mulDiv(currentExchangeRate, state.allowedExchangeRateChangeUpper, 1e4) ||
+            newExchangeRate < FixedPointMathLib.mulDiv(currentExchangeRate, state.allowedExchangeRateChangeLower, 1e4);
+    }
+
+    /**
+     * @notice Calculate platform fees.
+     */
+    function _calculatePlatformFee(
+        uint128 totalSharesLastUpdate,
+        uint64 lastUpdateTimestamp,
+        uint16 platformFee,
+        uint96 newExchangeRate,
+        uint256 currentExchangeRate,
+        uint256 currentTotalShares,
+        uint64 currentTime
+    ) internal view returns (uint256 platformFeesOwedInBase, uint256 shareSupplyToUse) {
+        shareSupplyToUse = currentTotalShares;
+        // Use the minimum between current total supply and total supply for last update.
+        if (totalSharesLastUpdate < shareSupplyToUse) {
+            shareSupplyToUse = totalSharesLastUpdate;
+        }
+
+        // Determine platform fees owned.
+        if (platformFee > 0) {
+            uint256 timeDelta = currentTime - lastUpdateTimestamp;
+            uint256 minimumAssets = newExchangeRate > currentExchangeRate
+                ? FixedPointMathLib.mulDiv(shareSupplyToUse, currentExchangeRate, oneShare)
+                : FixedPointMathLib.mulDiv(shareSupplyToUse, newExchangeRate, oneShare);
+            uint256 platformFeesAnnual = FixedPointMathLib.mulDiv(minimumAssets, platformFee, 1e4);
+            platformFeesOwedInBase = FixedPointMathLib.mulDiv(platformFeesAnnual, timeDelta, 365 days);
+        }
+    }
+
+    /**
+     * @notice Calculate performance fees.
+     */
+    function _calculatePerformanceFee(
+        uint96 newExchangeRate,
+        uint256 shareSupplyToUse,
+        uint96 datum,
+        uint16 performanceFee
+    ) internal view returns (uint256 performanceFeesOwedInBase, uint256 yieldEarned) {
+        uint256 changeInExchangeRate = newExchangeRate - datum;
+        yieldEarned = FixedPointMathLib.mulDiv(changeInExchangeRate, shareSupplyToUse, oneShare);
+        if (performanceFee > 0) {
+            performanceFeesOwedInBase = FixedPointMathLib.mulDiv(yieldEarned, performanceFee, 1e4);
+        }
+    }
+
+    /**
+     * @notice Used to change the decimals of precision used for an amount.
+     */
+    function _changeDecimals(uint256 amount, uint8 fromDecimals, uint8 toDecimals) internal pure returns (uint256) {
+        if (fromDecimals == toDecimals) {
+            return amount;
+        } else if (fromDecimals < toDecimals) {
+            return amount * 10 ** (toDecimals - fromDecimals);
+        } else {
+            return amount / 10 ** (fromDecimals - toDecimals);
+        }
     }
 }

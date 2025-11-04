@@ -70,7 +70,8 @@ contract TellerWithMultiAssetSupport is Ownable, IBeforeTransferHook, Reentrancy
     bool public isPaused;
 
     /**
-     * @dev Maps deposit nonce to keccak256(address receiver, address depositAsset, uint256 depositAmount, uint256 shareAmount, uint256 timestamp, uint256 shareLockPeriod).
+     * @dev Maps deposit nonce to keccak256(address receiver, address depositAsset,
+     *      uint256 depositAmount, uint256 shareAmount, uint256 timestamp, uint256 shareLockPeriod).
      */
     mapping(uint256 => bytes32) public publicDepositHistory;
 
@@ -94,23 +95,27 @@ contract TellerWithMultiAssetSupport is Ownable, IBeforeTransferHook, Reentrancy
      */
     mapping(address => bool) public operatorDenyList;
 
-    //============================== ERRORS ===============================
+    //============================== IMMUTABLES ===============================
 
-    error TellerWithMultiAssetSupport__ShareLockPeriodTooLong();
-    error TellerWithMultiAssetSupport__SharesAreLocked();
-    error TellerWithMultiAssetSupport__SharesAreUnLocked();
-    error TellerWithMultiAssetSupport__BadDepositHash();
-    error TellerWithMultiAssetSupport__AssetNotSupported();
-    error TellerWithMultiAssetSupport__ZeroAssets();
-    error TellerWithMultiAssetSupport__MinimumMintNotMet();
-    error TellerWithMultiAssetSupport__MinimumAssetsNotMet();
-    error TellerWithMultiAssetSupport__PermitFailedAndAllowanceTooLow();
-    error TellerWithMultiAssetSupport__ZeroShares();
-    error TellerWithMultiAssetSupport__DualDeposit();
-    error TellerWithMultiAssetSupport__Paused();
-    error TellerWithMultiAssetSupport__TransferDenied(address from, address to, address operator);
-    error TellerWithMultiAssetSupport__SharePremiumTooLarge();
-    error TellerWithMultiAssetSupport__CannotDepositNative();
+    /**
+     * @notice The BoringVault this contract is working with.
+     */
+    BoringVault public immutable vault;
+
+    /**
+     * @notice The AccountantWithRateProviders this contract is working with.
+     */
+    AccountantWithRateProviders public immutable accountant;
+
+    /**
+     * @notice One share of the BoringVault.
+     */
+    uint256 internal immutable oneShare;
+
+    /**
+     * @notice The native wrapper contract.
+     */
+    WETH public immutable nativeWrapper;
 
     //============================== EVENTS ===============================
 
@@ -136,6 +141,24 @@ contract TellerWithMultiAssetSupport is Ownable, IBeforeTransferHook, Reentrancy
     event AllowTo(address indexed user);
     event AllowOperator(address indexed user);
 
+    //============================== ERRORS ===============================
+
+    error TellerWithMultiAssetSupport__ShareLockPeriodTooLong();
+    error TellerWithMultiAssetSupport__SharesAreLocked();
+    error TellerWithMultiAssetSupport__SharesAreUnLocked();
+    error TellerWithMultiAssetSupport__BadDepositHash();
+    error TellerWithMultiAssetSupport__AssetNotSupported();
+    error TellerWithMultiAssetSupport__ZeroAssets();
+    error TellerWithMultiAssetSupport__MinimumMintNotMet();
+    error TellerWithMultiAssetSupport__MinimumAssetsNotMet();
+    error TellerWithMultiAssetSupport__PermitFailedAndAllowanceTooLow();
+    error TellerWithMultiAssetSupport__ZeroShares();
+    error TellerWithMultiAssetSupport__DualDeposit();
+    error TellerWithMultiAssetSupport__Paused();
+    error TellerWithMultiAssetSupport__TransferDenied(address from, address to, address operator);
+    error TellerWithMultiAssetSupport__SharePremiumTooLarge();
+    error TellerWithMultiAssetSupport__CannotDepositNative();
+
     // =============================== MODIFIERS ===============================
 
     /**
@@ -146,32 +169,10 @@ contract TellerWithMultiAssetSupport is Ownable, IBeforeTransferHook, Reentrancy
         _;
     }
 
-    //============================== IMMUTABLES ===============================
-
-    /**
-     * @notice The BoringVault this contract is working with.
-     */
-    BoringVault public immutable vault;
-
-    /**
-     * @notice The AccountantWithRateProviders this contract is working with.
-     */
-    AccountantWithRateProviders public immutable accountant;
-
-    /**
-     * @notice One share of the BoringVault.
-     */
-    uint256 internal immutable ONE_SHARE;
-
-    /**
-     * @notice The native wrapper contract.
-     */
-    WETH public immutable nativeWrapper;
-
     constructor(address _owner, address _vault, address _accountant, address _weth) {
         _initializeOwner(_owner);
         vault = BoringVault(payable(_vault));
-        ONE_SHARE = 10 ** vault.decimals();
+        oneShare = 10 ** vault.decimals();
         accountant = AccountantWithRateProviders(_accountant);
         nativeWrapper = WETH(payable(_weth));
     }
@@ -214,11 +215,13 @@ contract TellerWithMultiAssetSupport is Ownable, IBeforeTransferHook, Reentrancy
 
     /**
      * @notice Sets the share lock period.
-     * @dev This not only locks shares to the user address, but also serves as the pending deposit period, where deposits can be reverted.
-     * @dev If a new shorter share lock period is set, users with pending share locks could make a new deposit to receive 1 wei shares,
-     *      and have their shares unlock sooner than their original deposit allows. This state would allow for the user deposit to be refunded,
-     *      but only if they have not transferred their shares out of there wallet. This is an accepted limitation, and should be known when decreasing
-     *      the share lock period.
+     * @dev This not only locks shares to the user address, but also serves as the pending deposit
+     *      period, where deposits can be reverted.
+     * @dev If a new shorter share lock period is set, users with pending share locks could make
+     *      a new deposit to receive 1 wei shares, and have their shares unlock sooner than their
+     *      original deposit allows. This state would allow for the user deposit to be refunded,
+     *      but only if they have not transferred their shares out of there wallet. This is an
+     *      accepted limitation, and should be known when decreasing the share lock period.
      * @dev Callable by OWNER_ROLE.
      */
     function setShareLockPeriod(uint64 _shareLockPeriod) external onlyOwner {
@@ -304,20 +307,6 @@ contract TellerWithMultiAssetSupport is Ownable, IBeforeTransferHook, Reentrancy
     function allowOperator(address user) external onlyOwner {
         operatorDenyList[user] = false;
         emit AllowOperator(user);
-    }
-
-    // ========================================= BeforeTransferHook FUNCTIONS =========================================
-
-    /**
-     * @notice Implement beforeTransfer hook to check if shares are locked, or if `from`, `to`, or `operator` are on the deny list.
-     * @notice If share lock period is set to zero, then users will be able to mint and transfer in the same tx.
-     *         if this behavior is not desired then a share lock period of >=1 should be used.
-     */
-    function beforeTransfer(address from, address to, address operator) public view virtual {
-        if (fromDenyList[from] || toDenyList[to] || operatorDenyList[operator]) {
-            revert TellerWithMultiAssetSupport__TransferDenied(from, to, operator);
-        }
-        if (shareUnlockTime[from] > block.timestamp) revert TellerWithMultiAssetSupport__SharesAreLocked();
     }
 
     // ========================================= REVERT DEPOSIT FUNCTIONS =========================================
@@ -453,39 +442,25 @@ contract TellerWithMultiAssetSupport is Ownable, IBeforeTransferHook, Reentrancy
         if (!asset.allowWithdraws) revert TellerWithMultiAssetSupport__AssetNotSupported();
 
         if (shareAmount == 0) revert TellerWithMultiAssetSupport__ZeroShares();
-        assetsOut = FixedPointMathLib.mulDiv(shareAmount, accountant.getRateInQuoteSafe(withdrawAsset), ONE_SHARE);
+        assetsOut = FixedPointMathLib.mulDiv(shareAmount, accountant.getRateInQuoteSafe(withdrawAsset), oneShare);
         if (assetsOut < minimumAssets) revert TellerWithMultiAssetSupport__MinimumAssetsNotMet();
         vault.exit(to, withdrawAsset, assetsOut, msg.sender, shareAmount);
         emit BulkWithdraw(address(withdrawAsset), shareAmount);
     }
 
-    // ========================================= INTERNAL HELPER FUNCTIONS =========================================
+    // ========================================= BeforeTransferHook FUNCTIONS =========================================
 
     /**
-     * @notice Implements a common ERC20 deposit into BoringVault.
+     * @notice Implement beforeTransfer hook to check if shares are locked, or if `from`, `to`,
+     *         or `operator` are on the deny list.
+     * @notice If share lock period is set to zero, then users will be able to mint and transfer in the same tx.
+     *         if this behavior is not desired then a share lock period of >=1 should be used.
      */
-    function _erc20Deposit(
-        ERC20 depositAsset,
-        uint256 depositAmount,
-        uint256 minimumMint,
-        address from,
-        address to,
-        Asset memory asset
-    ) internal returns (uint256 shares) {
-        if (depositAmount == 0) revert TellerWithMultiAssetSupport__ZeroAssets();
-        shares = FixedPointMathLib.mulDiv(depositAmount, ONE_SHARE, accountant.getRateInQuoteSafe(depositAsset));
-        shares = asset.sharePremium > 0 ? FixedPointMathLib.mulDiv(shares, 1e4 - asset.sharePremium, 1e4) : shares;
-        if (shares < minimumMint) revert TellerWithMultiAssetSupport__MinimumMintNotMet();
-        vault.enter(from, depositAsset, depositAmount, to, shares);
-    }
-
-    /**
-     * @notice Handle pre-deposit checks.
-     */
-    function _beforeDeposit(ERC20 depositAsset) internal view returns (Asset memory asset) {
-        if (isPaused) revert TellerWithMultiAssetSupport__Paused();
-        asset = assetData[depositAsset];
-        if (!asset.allowDeposits) revert TellerWithMultiAssetSupport__AssetNotSupported();
+    function beforeTransfer(address from, address to, address operator) public view virtual {
+        if (fromDenyList[from] || toDenyList[to] || operatorDenyList[operator]) {
+            revert TellerWithMultiAssetSupport__TransferDenied(from, to, operator);
+        }
+        if (shareUnlockTime[from] > block.timestamp) revert TellerWithMultiAssetSupport__SharesAreLocked();
     }
 
     /**
@@ -534,5 +509,34 @@ contract TellerWithMultiAssetSupport is Ownable, IBeforeTransferHook, Reentrancy
                 revert TellerWithMultiAssetSupport__PermitFailedAndAllowanceTooLow();
             }
         }
+    }
+
+    // ========================================= INTERNAL HELPER FUNCTIONS =========================================
+
+    /**
+     * @notice Implements a common ERC20 deposit into BoringVault.
+     */
+    function _erc20Deposit(
+        ERC20 depositAsset,
+        uint256 depositAmount,
+        uint256 minimumMint,
+        address from,
+        address to,
+        Asset memory asset
+    ) internal returns (uint256 shares) {
+        if (depositAmount == 0) revert TellerWithMultiAssetSupport__ZeroAssets();
+        shares = FixedPointMathLib.mulDiv(depositAmount, oneShare, accountant.getRateInQuoteSafe(depositAsset));
+        shares = asset.sharePremium > 0 ? FixedPointMathLib.mulDiv(shares, 1e4 - asset.sharePremium, 1e4) : shares;
+        if (shares < minimumMint) revert TellerWithMultiAssetSupport__MinimumMintNotMet();
+        vault.enter(from, depositAsset, depositAmount, to, shares);
+    }
+
+    /**
+     * @notice Handle pre-deposit checks.
+     */
+    function _beforeDeposit(ERC20 depositAsset) internal view returns (Asset memory asset) {
+        if (isPaused) revert TellerWithMultiAssetSupport__Paused();
+        asset = assetData[depositAsset];
+        if (!asset.allowDeposits) revert TellerWithMultiAssetSupport__AssetNotSupported();
     }
 }

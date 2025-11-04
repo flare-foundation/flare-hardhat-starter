@@ -9,6 +9,13 @@ import { FtsoApi3AdapterLibrary } from "@flarenetwork/ftso-adapters/contracts/co
  * All bets are made in the native network token (e.g., C2FLR).
  */
 contract PriceGuesser {
+    // --- Prediction Market State ---
+    enum Outcome {
+        Unsettled,
+        Above,
+        Below
+    }
+
     // --- Adapter State ---
     bytes21 public immutable ftsoFeedId;
     string public descriptionText;
@@ -17,20 +24,19 @@ contract PriceGuesser {
     // The PriceGuesser is now responsible for storing the cached price data.
     FtsoApi3AdapterLibrary.DataPoint private _latestDataPoint;
 
-    // --- Prediction Market State ---
     uint256 public immutable strikePrice;
     uint256 public immutable expiryTimestamp;
     uint256 public totalBetsAbove;
     uint256 public totalBetsBelow;
     mapping(address => uint256) public betsAbove;
     mapping(address => uint256) public betsBelow;
-    enum Outcome {
-        Unsettled,
-        Above,
-        Below
-    }
     Outcome public outcome;
     mapping(address => bool) public hasClaimed;
+
+    // --- Events ---
+    event BetPlaced(address indexed user, bool isBetAbove, uint256 amount);
+    event MarketSettled(Outcome outcome, int256 finalPrice);
+    event WinningsClaimed(address indexed user, uint256 amount);
 
     // --- Errors ---
     error BettingIsClosed();
@@ -38,11 +44,6 @@ contract PriceGuesser {
     error RoundAlreadySettled();
     error NothingToClaim();
     error AmountIsZero();
-
-    // --- Events ---
-    event BetPlaced(address indexed user, bool isBetAbove, uint256 amount);
-    event MarketSettled(Outcome outcome, int256 finalPrice);
-    event WinningsClaimed(address indexed user, uint256 amount);
 
     constructor(
         bytes21 _ftsoFeedId,
@@ -66,13 +67,6 @@ contract PriceGuesser {
         // Call the library's logic, passing this contract's state to be updated.
         FtsoApi3AdapterLibrary.refresh(_latestDataPoint, ftsoFeedId);
     }
-
-    function read() public view returns (int224, uint32) {
-        // Call the library's logic, passing this contract's state to be read.
-        return FtsoApi3AdapterLibrary.read(_latestDataPoint, maxAgeSeconds);
-    }
-
-    // --- User Functions ---
 
     /**
      * @notice Places a bet that the asset price will be >= the strike price at expiry.
@@ -150,5 +144,13 @@ contract PriceGuesser {
         hasClaimed[msg.sender] = true;
         payable(msg.sender).transfer(winnings);
         emit WinningsClaimed(msg.sender, winnings);
+    }
+
+    /**
+     * @notice Reads the latest price from the oracle.
+     */
+    function read() public view returns (int224, uint32) {
+        // Call the library's logic, passing this contract's state to be read.
+        return FtsoApi3AdapterLibrary.read(_latestDataPoint, maxAgeSeconds);
     }
 }

@@ -35,41 +35,7 @@ contract PythNftMinter is IPyth {
         FtsoPythAdapterLibrary.refresh(_latestPrice, ftsoFeedId, pythPriceId);
     }
 
-    function getPriceNoOlderThan(bytes32 _id, uint _age) public view override returns (PythStructs.Price memory) {
-        return FtsoPythAdapterLibrary.getPriceNoOlderThan(_latestPrice, pythPriceId, _id, _age);
-    }
-
-    function getPriceUnsafe(bytes32 _id) public view override returns (PythStructs.Price memory) {
-        return FtsoPythAdapterLibrary.getPriceUnsafe(_latestPrice, pythPriceId, _id);
-    }
-
-    // --- Core Minter Functions ---
-    function mint() public payable {
-        // Call this contract's own public getPriceNoOlderThan function.
-        PythStructs.Price memory price = getPriceNoOlderThan(pythPriceId, 60);
-
-        uint assetPrice18Decimals = (uint(uint64(price.price)) * (10 ** 18)) / (10 ** uint(uint32(-1 * price.expo)));
-        uint oneDollarInWei = ((10 ** 18) * (10 ** 18)) / assetPrice18Decimals;
-
-        if (msg.value < oneDollarInWei) revert InsufficientFee();
-        _mint(msg.sender);
-    }
-
-    function _mint(address to) private {
-        _nextTokenId++; // Mocking minting logic
-    }
-
-    function getTokenCounter() public view returns (uint256) {
-        return _nextTokenId;
-    }
-
     // --- Unsupported IPyth Functions (Required for interface compliance) ---
-    function getEmaPriceUnsafe(bytes32) external view override returns (PythStructs.Price memory) {
-        revert("UNSUPPORTED");
-    }
-    function getEmaPriceNoOlderThan(bytes32, uint) external view override returns (PythStructs.Price memory) {
-        revert("UNSUPPORTED");
-    }
     function updatePriceFeeds(bytes[] calldata) external payable override {
         revert("UNSUPPORTED");
     }
@@ -78,12 +44,6 @@ contract PythNftMinter is IPyth {
         bytes32[] calldata,
         uint64[] calldata
     ) external payable override {
-        revert("UNSUPPORTED");
-    }
-    function getUpdateFee(bytes[] calldata) external view override returns (uint) {
-        revert("UNSUPPORTED");
-    }
-    function getTwapUpdateFee(bytes[] calldata) external view override returns (uint) {
         revert("UNSUPPORTED");
     }
     function parsePriceFeedUpdates(
@@ -118,5 +78,46 @@ contract PythNftMinter is IPyth {
         uint64
     ) external payable override returns (PythStructs.PriceFeed[] memory) {
         revert("UNSUPPORTED");
+    }
+    function getEmaPriceUnsafe(bytes32) external pure override returns (PythStructs.Price memory) {
+        revert("UNSUPPORTED");
+    }
+    function getEmaPriceNoOlderThan(bytes32, uint256) external pure override returns (PythStructs.Price memory) {
+        revert("UNSUPPORTED");
+    }
+    function getUpdateFee(bytes[] calldata) external pure override returns (uint256) {
+        revert("UNSUPPORTED");
+    }
+    function getTwapUpdateFee(bytes[] calldata) external pure override returns (uint256) {
+        revert("UNSUPPORTED");
+    }
+
+    // --- Core Minter Functions ---
+    function mint() public payable {
+        // Call this contract's own public getPriceNoOlderThan function.
+        PythStructs.Price memory price = getPriceNoOlderThan(pythPriceId, 60);
+
+        uint256 assetPrice18Decimals = (uint256(uint64(price.price)) * (10 ** 18)) /
+            (10 ** uint256(uint32(-1 * price.expo)));
+        uint256 oneDollarInWei = ((10 ** 18) * (10 ** 18)) / assetPrice18Decimals;
+
+        if (msg.value < oneDollarInWei) revert InsufficientFee();
+        _mint(msg.sender);
+    }
+
+    function getPriceNoOlderThan(bytes32 _id, uint256 _age) public view override returns (PythStructs.Price memory) {
+        return FtsoPythAdapterLibrary.getPriceNoOlderThan(_latestPrice, pythPriceId, _id, _age);
+    }
+
+    function getPriceUnsafe(bytes32 _id) public view override returns (PythStructs.Price memory) {
+        return FtsoPythAdapterLibrary.getPriceUnsafe(_latestPrice, pythPriceId, _id);
+    }
+
+    function getTokenCounter() public view returns (uint256) {
+        return _nextTokenId;
+    }
+
+    function _mint(address /* to */) private {
+        _nextTokenId++; // Mocking minting logic
     }
 }
