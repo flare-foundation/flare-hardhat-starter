@@ -1485,10 +1485,10 @@
   dependencies:
     ethers "^5.8.0"
 
-"@layerzerolabs/lz-definitions@^3.0.75":
-  version "3.0.144"
-  resolved "https://registry.yarnpkg.com/@layerzerolabs/lz-definitions/-/lz-definitions-3.0.144.tgz#d71cd2d78f90fd69ee2332c8a58906e86cbb6216"
-  integrity sha512-atTNDtVZdKxKCE9LVuhApoUebBNEZdJOznvdgU1FWkd0LQ0/qjVk/FoWNnS8YMQz+zPndeRxecc2FQHfBxgWbQ==
+"@layerzerolabs/lz-definitions@^3.0.145":
+  version "3.0.145"
+  resolved "https://registry.yarnpkg.com/@layerzerolabs/lz-definitions/-/lz-definitions-3.0.145.tgz#28a23d70b3bf83f6957702f81b3e254b376e692a"
+  integrity sha512-ScpX/JLl9aLcIDv3+PR8EQmn4F88itaOBkKgYKgKZ8R/UufJaosU+eVatbzq7b3yvx/JEZCQdbYSOK9BdeL+xQ==
   dependencies:
     tiny-invariant "^1.3.1"
 

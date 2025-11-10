@@ -13,12 +13,13 @@
 import { ethers } from "hardhat";
 import { formatUnits, parseUnits, zeroPadValue, AbiCoder } from "ethers";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
+import { EndpointId } from '@layerzerolabs/lz-definitions';
 
 // Configuration - using existing deployed contracts
 const CONFIG = {
     SEPOLIA_FXRP_OFT: process.env.SEPOLIA_FXRP_OFT || "0x81672c5d42F3573aD95A0bdfBE824FaaC547d4E6",
     COSTON2_COMPOSER: process.env.COSTON2_COMPOSER || "",
-    COSTON2_EID: 40125, // EndpointId.FLARE_V2_TESTNET
+    COSTON2_EID: EndpointId.FLARE_V2_TESTNET,
     EXECUTOR_GAS: 200_000,
     COMPOSE_GAS: 300_000,
     SEND_AMOUNT: "10", // 10 FXRP
@@ -33,7 +34,7 @@ type RedemptionParams = {
 };
 
 type SendParams = {
-    dstEid: number;
+    dstEid: EndpointId;
     to: string;
     amountLD: bigint;
     minAmountLD: bigint;
