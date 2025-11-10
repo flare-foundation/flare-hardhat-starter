@@ -20,8 +20,8 @@ const CONFIG = {
     SEPOLIA_FXRP_OFT: process.env.SEPOLIA_FXRP_OFT || "0x81672c5d42F3573aD95A0bdfBE824FaaC547d4E6",
     COSTON2_COMPOSER: process.env.COSTON2_COMPOSER || "",
     COSTON2_EID: EndpointId.FLARE_V2_TESTNET,
-    EXECUTOR_GAS: 200_000,
-    COMPOSE_GAS: 300_000,
+    EXECUTOR_GAS: 400_000,
+    COMPOSE_GAS: 400_000,
     SEND_AMOUNT: "10", // 10 FXRP
     XRP_ADDRESS: "rpHuw4bKSjonKRrKKVYUZYYVedg1jyPrmp", // Default XRP address we are auto-redeeming to
 } as const;
