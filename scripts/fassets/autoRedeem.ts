@@ -7,7 +7,7 @@
  * 3. Redeem the underlying asset (XRP) to a specified address
  *
  * Usage:
- * yarn hardhat run scripts/fassets/sendAndRedeem.ts --network sepolia
+ * yarn hardhat run scripts/fassets/autoRedeem.ts --network sepolia
  */
 
 import { ethers } from "hardhat";
