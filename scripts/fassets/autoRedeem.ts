@@ -13,7 +13,7 @@
 import { ethers } from "hardhat";
 import { formatUnits, parseUnits, zeroPadValue, AbiCoder } from "ethers";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
-import { EndpointId } from '@layerzerolabs/lz-definitions';
+import { EndpointId } from "@layerzerolabs/lz-definitions";
 
 // Configuration - using existing deployed contracts
 const CONFIG = {
