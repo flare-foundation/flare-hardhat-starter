@@ -14,6 +14,7 @@ Add to your `.env` file:
 ```bash
 PRIVATE_KEY=your_private_key_here
 XRPL_SECRET=your_xrpl_secret_here
+SEPOLIA_API_KEY=your_sepolia_api_key_here
 ```
 
 Fund your XRPL testnet account: https://faucet.altnet.rippletest.net/
@@ -40,3 +41,4 @@ Edit the `CONFIG` object in the script:
 - **If minting needed**: ~11 XRP (1 XRP trigger + 10 XRP collateral for 1 lot)
 - **Bridge payment**: 1 XRP
 - **Total**: ~12 XRP + fees
+-
