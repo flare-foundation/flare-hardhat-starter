@@ -31,6 +31,7 @@ type RedemptionParams = {
     underlyingAddress: string;
     redeemer: string;
     signerAddress: string;
+    executor: string;
 };
 
 type SendParams = {
@@ -77,7 +78,9 @@ function prepareRedemptionParams(signerAddress: string): RedemptionParams {
     console.log("XRP Address:", underlyingAddress);
     console.log("Redeemer:", redeemer);
 
-    return { amountToSend, underlyingAddress, redeemer, signerAddress };
+    const executor = "0x0000000000000000000000000000000000000000";
+
+    return { amountToSend, underlyingAddress, redeemer, signerAddress, executor };
 }
 
 /**
@@ -97,9 +100,10 @@ async function connectToOFT() {
  */
 function encodeComposeMessage(params: RedemptionParams): string {
     const abiCoder = AbiCoder.defaultAbiCoder();
+    // redeem(uint256 _lots, string memory _redeemerUnderlyingAddressString, executor address)
     const composeMsg = abiCoder.encode(
         ["uint256", "string", "address"],
-        [params.amountToSend, params.underlyingAddress, params.redeemer]
+        ["1", params.underlyingAddress, "0x0000000000000000000000000000000000000000"]
     );
 
     console.log("Compose message encoded");
@@ -138,6 +142,7 @@ function buildSendParams(params: RedemptionParams, composeMsg: string, options: 
  */
 async function checkBalance(oft: any, signerAddress: string, amountToSend: bigint): Promise<void> {
     const balance = await oft.balanceOf(signerAddress);
+    console.log("signer address", signerAddress);
     console.log("\n💰 Current FXRP balance:", formatUnits(balance, 6));
 
     if (balance < amountToSend) {
