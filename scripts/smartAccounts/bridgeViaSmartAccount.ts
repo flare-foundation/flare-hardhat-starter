@@ -8,8 +8,7 @@
  * 3. Send XRPL payment with encoded bridge instruction
  * 4. Monitor XRPL transaction confirmation
  * 5. Retrieve FDC attestation proof
- * 6. Submit proof to MasterAccountController
- * 7. Execute bridge to Sepolia via LayerZero
+ * 6. Execute bridge to Sepolia via LayerZero
  *
  * Features:
  * - Automatically checks if you have sufficient FXRP balance
@@ -559,7 +558,7 @@ async function sendMintPayments(
 
         // Wait a few seconds before sending second payment
         console.log("\nWaiting 5 seconds before sending collateral...");
-        await new Promise((resolve) => setTimeout(resolve, 5000));
+        await sleep(5000);
 
         // STEP 2: Send actual XRP collateral to agent's XRPL address
         console.log("\n=== Step 2: Send XRP Collateral to Agent ===");
@@ -650,36 +649,6 @@ async function waitForMintExecution(xrplAddress: string, expectedMinimumBalance:
     );
 }
 
-/**
- * Step 7: Submit proof to MasterAccountController and execute
- */
-async function executeWithProof(proof: any, xrplAddress: string): Promise<void> {
-    console.log("\n=== Step 7: Executing Transaction on Flare ===");
-
-    const masterController = new web3.eth.Contract(MASTER_ACCOUNT_CONTROLLER_ABI, CONFIG.MASTER_ACCOUNT_CONTROLLER);
-
-    console.log("Submitting proof to MasterAccountController...");
-    console.log("XRPL Address:", xrplAddress);
-
-    const accounts = await web3.eth.getAccounts();
-    const tx = await masterController.methods.executeTransaction(proof, xrplAddress).send({ from: accounts[0] });
-
-    console.log("Transaction sent:", tx.transactionHash);
-    console.log("✅ Transaction executed!");
-    console.log("Block:", tx.blockNumber);
-
-    // Parse InstructionExecuted event
-    const events = logEvents(tx.logs, "InstructionExecuted", MASTER_ACCOUNT_CONTROLLER_ABI);
-
-    if (events && events.length > 0) {
-        console.log("\n✅ Instruction Executed!");
-        console.log("- Personal Account:", events[0].decoded.personalAccount);
-    }
-
-    console.log("\n🎉 Success! Your transaction is now bridging to Sepolia via LayerZero!");
-    console.log("\nTrack your cross-chain transaction:");
-    console.log(`https://testnet.layerzeroscan.com/tx/${tx.transactionHash}`);
-}
 
 /**
  * Main execution flow
@@ -779,14 +748,12 @@ async function main() {
         // Step 4: Calculate voting round
         const votingRoundId = await calculateVotingRoundId(timestamp);
 
-        // Step 5: Retrieve proof
+        // Step 5: Retrieve proof (optional for diagnostics)
         const proof = await retrieveAttestationProof(votingRoundId, xrplTxHash);
 
-        // Step 6: Execute on Flare
-        await executeWithProof(proof, xrplWallet.address);
-
-        console.log("\n✅ Complete! Bridge initiated via Smart Account.");
-        console.log("Your FXRP will arrive on Sepolia in a few minutes.");
+        console.log("\n✅ XRPL payment submitted and verified by DA. FDC Proof:", proof);
+        console.log("An off-chain observer will submit the proof and execute on MasterAccountController.");
+        console.log("No direct submission from this script is required.");
     } catch (error: any) {
         console.error("\n❌ Error:", error.message);
         if (error.stack) {
