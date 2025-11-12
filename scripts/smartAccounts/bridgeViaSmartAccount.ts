@@ -498,6 +498,7 @@ async function sendMintPayments(
     agentVault: string,
     agentXrplAddress: string
 ): Promise<void> {
+    // todo(Anthony): get reserve collateral from CollateralReserved Event
     // Calculate total XRP needed: 1 for trigger + (lots * 10) for collateral
     const collateralXRP = lots * 10;
     const totalXRP = 1 + collateralXRP;
