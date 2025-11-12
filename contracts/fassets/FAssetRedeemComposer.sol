@@ -9,11 +9,21 @@ import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import { IAssetManager } from "@flarenetwork/flare-periphery-contracts/coston2/IAssetManager.sol";
 import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import { RedemptionRequestInfo } from "@flarenetwork/flare-periphery-contracts/coston2/data/RedemptionRequestInfo.sol";
 
 /// @title FAssetRedeemComposer
 /// @author Flare Network
 /// @notice Composer contract that automatically redeems FAssets when OFT tokens are received via LayerZero
-/// @dev This contract receives OFT tokens and immediately redeems them through the FAsset system
+/// @dev This contract follows the FAsset redemption standards documented at:
+///      https://dev.flare.network/fassets/developer-guides/fassets-redeem/
+///
+///      Redemption Process:
+///      1. Contract receives OFT tokens via LayerZero's lzCompose
+///      2. Approves FAsset tokens to AssetManager
+///      3. Calculates lots from redemption amount using AssetManager.lotSize()
+///      4. Calls AssetManager.redeem() with lots and underlying address
+///      5. AssetManager emits RedemptionRequested event(s) with requestId(s)
+///      6. Agents execute the redemption payment within the deadline
 contract FAssetRedeemComposer is IOAppComposer, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -24,9 +34,11 @@ contract FAssetRedeemComposer is IOAppComposer, Ownable, ReentrancyGuard {
     IERC20 public immutable fAssetToken;
 
     /// @notice Emitted when a redemption is successfully triggered
+    /// @dev This event follows the FAsset redemption standards. Monitor AssetManager's RedemptionRequested
+    ///      event in the same transaction to get the redemption requestId for tracking status.
     /// @param redeemer The address initiating the redemption
     /// @param underlyingAddress The underlying address to receive redeemed assets
-    /// @param amountRedeemed The amount of FAsset tokens redeemed
+    /// @param amountRedeemed The amount of FAsset tokens redeemed (valueUBA)
     /// @param lots The number of lots redeemed
     event RedemptionTriggered(
         address indexed redeemer,
@@ -81,7 +93,28 @@ contract FAssetRedeemComposer is IOAppComposer, Ownable, ReentrancyGuard {
         payable(owner()).transfer(address(this).balance);
     }
 
+    /// @notice Query the status of a redemption request
+    /// @dev This function wraps AssetManager.redemptionRequestInfo() for convenience.
+    ///      Users should get the requestId from the RedemptionRequested event emitted by AssetManager.
+    /// @param _redemptionRequestId The redemption request ID to query
+    /// @return Redemption request information including status, agent, amounts, and timing details
+    function getRedemptionInfo(uint256 _redemptionRequestId) external view returns (RedemptionRequestInfo.Data memory) {
+        IAssetManager assetManager = ContractRegistry.getAssetManagerFXRP();
+        return assetManager.redemptionRequestInfo(_redemptionRequestId);
+    }
+
     /// @notice Internal function to process the redemption
+    /// @dev Implements the redemption flow as specified in the FAsset documentation:
+    ///      1. Validates sufficient FAsset balance
+    ///      2. Retrieves lot size from AssetManager settings
+    ///      3. Calculates number of lots to redeem
+    ///      4. Approves FAsset token transfer to AssetManager
+    ///      5. Calls AssetManager.redeem() which:
+    ///         - Burns the FAsset tokens
+    ///         - Creates redemption request(s) and emits RedemptionRequested event(s)
+    ///         - Assigns agent(s) to fulfill the redemption
+    ///      6. Agents have until lastUnderlyingBlock/lastUnderlyingTimestamp to pay
+    ///      7. If agents fail to pay, redeemers can call redemptionPaymentDefault() for collateral
     /// @param composeMsg The decoded compose message containing redemption details
     function _processRedemption(bytes memory composeMsg) internal {
         // Decode the compose message
@@ -95,7 +128,7 @@ contract FAssetRedeemComposer is IOAppComposer, Ownable, ReentrancyGuard {
         uint256 balance = fAssetToken.balanceOf(address(this));
         if (balance < amountToRedeem) revert InsufficientBalance();
 
-        // Convert amount to lots
+        // Convert amount to lots using AssetManager settings
         IAssetManager assetManager = ContractRegistry.getAssetManagerFXRP();
         uint256 lotSizeUBA = assetManager.lotSize();
         uint256 lots = amountToRedeem / lotSizeUBA;
