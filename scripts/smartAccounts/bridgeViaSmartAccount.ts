@@ -39,18 +39,18 @@ import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
 import { Client, Wallet as XrplWallet, xrpToDrops, Payment } from "xrpl";
 import BN from "bn.js";
-import axios from "axios";
 import * as fs from "fs";
 import * as path from "path";
 
-import { getAssetManagerFXRP } from "../utils/getters";
+import { getAssetManagerFXRP, getFlareSystemsManager } from "../utils/getters";
 import { logEvents, sleep } from "../utils/core";
+import { prepareAttestationRequestBase, retrieveDataAndProofBaseWithRetry } from "../utils/fdc";
 import { IAssetManagerInstance, IERC20Instance } from "../../typechain-types";
 
 // Truffle contract artifacts
 const IERC20 = artifacts.require("IERC20");
 
-// Load ABIs from scripts/abi directory
+// TODO:(Anthony) import from periphery once these contracts are included
 const MASTER_ACCOUNT_CONTROLLER_ABI = JSON.parse(
     fs.readFileSync(path.join(__dirname, "../abi/MasterAccountController.json"), "utf-8")
 ).abi;
@@ -67,10 +67,9 @@ const CONFIG = {
     COSTON2_OFT_ADAPTER: "0xCd3d2127935Ae82Af54Fc31cCD9D3440dbF46639",
 
     // FDC Configuration
-    FDC_HUB: "0x48aC463d7975828989331F4De43341627b9c5f1D",
-    FDC_VERIFIER_API: "https://fdc-verifiers-testnet.flare.network/verifier/xrp",
-    FDC_DA_API: "https://ctn2-data-availability.flare.network/api/v1/fdc/proof-by-request-round",
-    FDC_API_KEY: "00000000-0000-0000-0000-000000000000",
+    FDC_VERIFIER_API: process.env.FDC_VERIFIER_API as string,
+    FDC_DA_API: process.env.FDC_DA_API as string,
+    FDC_API_KEY: process.env.FDC_API_KEY as string,
 
     // XRPL Configuration
     XRPL_RPC: "wss://s.altnet.rippletest.net:51233",
@@ -83,10 +82,6 @@ const CONFIG = {
     // FAssets Minting Configuration
     AUTO_MINT_IF_NEEDED: true, // Automatically mint FXRP via FAssets if balance insufficient
     MINT_LOTS: 1, // Number of lots to mint (1 lot = 10 FXRP)
-
-    // Timing constants
-    FDC_T0_TIMESTAMP: 1658430000,
-    VOTING_ROUND_DURATION: 90, // seconds
 } as const;
 
 type CustomInstruction = {
@@ -291,28 +286,18 @@ async function sendXrplPayment(
 /**
  * Step 4: Calculate voting round ID
  */
-function calculateVotingRoundId(timestamp: number): number {
-    const votingRoundId = Math.floor((timestamp - CONFIG.FDC_T0_TIMESTAMP) / CONFIG.VOTING_ROUND_DURATION);
+async function calculateVotingRoundId(timestamp: number): Promise<number> {
+    const fsm = await getFlareSystemsManager();
+    const firstTs = BigInt(await fsm.firstVotingRoundStartTs());
+    const epoch = BigInt(await fsm.votingEpochDurationSeconds());
+    const ts = BigInt(timestamp);
+    const roundId = Number((ts - firstTs) / epoch);
     console.log("\n=== Step 4: Calculating Voting Round ===");
     console.log("Transaction timestamp:", timestamp);
-    console.log("Voting round ID:", votingRoundId);
-    return votingRoundId;
-}
-
-/**
- * Step 5: Wait for voting round finalization
- */
-async function waitForRoundFinalization(votingRoundId: number): Promise<void> {
-    console.log("\n=== Step 5: Waiting for Round Finalization ===");
-    console.log("Waiting for voting round", votingRoundId, "to finalize...");
-    console.log("This typically takes 90-180 seconds.");
-
-    // Wait for at least one full round duration plus buffer
-    const waitTime = CONFIG.VOTING_ROUND_DURATION * 2;
-    console.log(`Waiting ${waitTime} seconds...`);
-
-    await sleep(waitTime * 1000);
-    console.log("✅ Round should be finalized");
+    console.log("On-chain first round ts:", firstTs.toString());
+    console.log("Epoch duration:", epoch.toString());
+    console.log("Voting round ID:", roundId);
+    return roundId;
 }
 
 /**
@@ -321,80 +306,48 @@ async function waitForRoundFinalization(votingRoundId: number): Promise<void> {
 async function retrieveAttestationProof(votingRoundId: number, xrplTxHash: string): Promise<any> {
     console.log("\n=== Step 6: Retrieving FDC Attestation Proof ===");
 
-    // First, encode the request using the FDC verifier
+    // Prepare request via Verifier using shared utils
     const verifierUrl = `${CONFIG.FDC_VERIFIER_API}/Payment/prepareRequest`;
-
-    // The XRPL transaction hash is already in hex format (64 chars = 32 bytes)
-    // Just add 0x prefix - no need to encode it as Buffer
-    const transactionIdHex = "0x" + xrplTxHash.toUpperCase().padStart(64, "0");
+    const apiKey = CONFIG.FDC_API_KEY || "";
 
     const requestBody = {
-        attestationType: "0x5061796d656e7400000000000000000000000000000000000000000000000000", // "Payment" in hex
-        sourceId: "0x7465737458525000000000000000000000000000000000000000000000000000", // "testXRP" in hex
-        requestBody: {
-            transactionId: transactionIdHex,
-            inUtxo: "0",
-            utxo: "0",
-        },
+        transactionId: xrplTxHash.toUpperCase(),
+        inUtxo: "0",
+        utxo: "0",
     };
 
     console.log("Encoding attestation request...");
-    console.log("Transaction ID:", transactionIdHex);
+    console.log("Transaction ID:", requestBody.transactionId);
     console.log("Verifier URL:", verifierUrl);
 
-    try {
-        const encodeResponse = await axios.post(verifierUrl, requestBody, {
-            headers: {
-                "X-API-KEY": CONFIG.FDC_API_KEY,
-                "Content-Type": "application/json",
-            },
-        });
+    const { abiEncodedRequest } = await prepareAttestationRequestBase(
+        verifierUrl,
+        apiKey,
+        "Payment",
+        "testXRP",
+        requestBody
+    );
 
-        const abiEncodedRequest = encodeResponse.data.abiEncodedRequest;
-        console.log("Encoded request:", abiEncodedRequest);
+    console.log("Encoded request:", abiEncodedRequest);
 
-        // Now retrieve the proof
-        console.log("Retrieving proof from Data Availability...");
+    // Retrieve the proof via DA using shared utils (handles finalization wait internally)
+    console.log("Retrieving proof from Data Availability...");
+    const proofRaw = await retrieveDataAndProofBaseWithRetry(CONFIG.FDC_DA_API, abiEncodedRequest, votingRoundId);
 
-        const proofResponse = await axios.post(
-            CONFIG.FDC_DA_API,
-            {
-                votingRoundId: votingRoundId.toString(),
-                requestBytes: abiEncodedRequest,
-            },
-            {
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            }
-        );
+    // Decode response into the struct expected by contracts
+    const IPaymentVerification = await artifacts.require("IPaymentVerification");
+    const responseType = IPaymentVerification._json.abi[0].inputs[0].components[1];
+    const decodedResponse = web3.eth.abi.decodeParameter(responseType, proofRaw.response_hex);
 
-        console.log("✅ Proof retrieved!");
+    const proof = {
+        merkleProof: proofRaw.proof,
+        data: decodedResponse,
+    };
 
-        const apiResponse = proofResponse.data;
-        console.log("API Response keys:", Object.keys(apiResponse));
-
-        // The API returns { response: { attestationType, sourceId, ... }, proof: [...] }
-        // The contract expects { merkleProof: [...], data: { attestationType, sourceId, ... } }
-        const proof = {
-            merkleProof: apiResponse.proof,
-            data: apiResponse.response,
-        };
-
-        console.log("Structured proof for contract:");
-        console.log("  merkleProof length:", proof.merkleProof.length);
-        console.log("  data fields:", Object.keys(proof.data));
-        return proof;
-    } catch (error: any) {
-        console.error("Error retrieving proof:");
-        if (error.response) {
-            console.error("Response status:", error.response.status);
-            console.error("Response data:", JSON.stringify(error.response.data, null, 2));
-        } else {
-            console.error(error.message);
-        }
-        throw error;
-    }
+    console.log("Structured proof for contract:");
+    console.log("  merkleProof length:", proof.merkleProof.length);
+    console.log("  data fields:", Object.keys(proof.data));
+    return proof;
 }
 
 /**
@@ -824,15 +777,12 @@ async function main() {
         const { hash: xrplTxHash, timestamp } = await sendXrplPayment(xrplWallet, encodedInstruction, operatorAddress);
 
         // Step 4: Calculate voting round
-        const votingRoundId = calculateVotingRoundId(timestamp);
+        const votingRoundId = await calculateVotingRoundId(timestamp);
 
-        // Step 5: Wait for finalization
-        await waitForRoundFinalization(votingRoundId);
-
-        // Step 6: Retrieve proof
+        // Step 5: Retrieve proof
         const proof = await retrieveAttestationProof(votingRoundId, xrplTxHash);
 
-        // Step 7: Execute on Flare
+        // Step 6: Execute on Flare
         await executeWithProof(proof, xrplWallet.address);
 
         console.log("\n✅ Complete! Bridge initiated via Smart Account.");
