@@ -7,7 +7,7 @@
  * 3. Redeem the underlying asset (XRP) to a specified address
  *
  * Usage:
- * yarn hardhat run scripts/fassets/autoRedeem.ts --network sepolia
+ * yarn hardhat run scripts/fassets/autoRedeem.ts --network coston2
  */
 
 import { ethers } from "hardhat";
@@ -103,7 +103,7 @@ function encodeComposeMessage(params: RedemptionParams): string {
     // redeem(uint256 _lots, string memory _redeemerUnderlyingAddressString, executor address)
     const composeMsg = abiCoder.encode(
         ["uint256", "string", "address"],
-        ["1", params.underlyingAddress, "0x0000000000000000000000000000000000000000"]
+        [params.amountToSend, params.underlyingAddress, params.redeemer]
     );
 
     console.log("Compose message encoded");
