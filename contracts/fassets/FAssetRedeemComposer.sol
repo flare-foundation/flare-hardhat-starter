@@ -24,6 +24,11 @@ import { RedemptionRequestInfo } from "@flarenetwork/flare-periphery-contracts/c
 ///      4. Calls AssetManager.redeem() with lots and underlying address
 ///      5. AssetManager emits RedemptionRequested event(s) with requestId(s)
 ///      6. Agents execute the redemption payment within the deadline
+///
+///      Tracking Redemptions:
+///      - This contract emits RedemptionTriggered with basic redemption info
+///      - Monitor AssetManager's RedemptionRequested event(s) in the same transaction for requestId(s)
+///      - Use getRedemptionInfo(requestId) to query redemption status
 contract FAssetRedeemComposer is IOAppComposer, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -98,12 +103,16 @@ contract FAssetRedeemComposer is IOAppComposer, Ownable, ReentrancyGuard {
     ///      Users should get the requestId from the RedemptionRequested event emitted by AssetManager.
     /// @param _redemptionRequestId The redemption request ID to query
     /// @return Redemption request information including status, agent, amounts, and timing details
-    function getRedemptionInfo(uint256 _redemptionRequestId) external view returns (RedemptionRequestInfo.Data memory) {
+    function getRedemptionInfo(uint256 _redemptionRequestId)
+        external
+        view
+        returns (RedemptionRequestInfo.Data memory)
+    {
         IAssetManager assetManager = ContractRegistry.getAssetManagerFXRP();
         return assetManager.redemptionRequestInfo(_redemptionRequestId);
     }
 
-    /// @notice Internal function to process the redemption
+    /// @notice Internal function to process the redemption following FAsset standards
     /// @dev Implements the redemption flow as specified in the FAsset documentation:
     ///      1. Validates sufficient FAsset balance
     ///      2. Retrieves lot size from AssetManager settings
@@ -128,16 +137,17 @@ contract FAssetRedeemComposer is IOAppComposer, Ownable, ReentrancyGuard {
         uint256 balance = fAssetToken.balanceOf(address(this));
         if (balance < amountToRedeem) revert InsufficientBalance();
 
-        // Convert amount to lots using AssetManager settings
+        // Convert amount to lots using AssetManager settings (FAsset standard)
         IAssetManager assetManager = ContractRegistry.getAssetManagerFXRP();
         uint256 lotSizeUBA = assetManager.lotSize();
         uint256 lots = amountToRedeem / lotSizeUBA;
         if (lots == 0) revert AmountTooSmall();
 
-        // Approve the AssetManager to spend our fAsset tokens
+        // Approve the AssetManager to spend our fAsset tokens (FAsset standard)
         fAssetToken.safeIncreaseAllowance(address(assetManager), amountToRedeem);
 
-        // Call redeem on the AssetManager
+        // Call redeem on the AssetManager (FAsset standard)
+        // This will emit RedemptionRequested event(s) with requestId(s) for tracking
         uint256 redeemedAmount = assetManager.redeem(lots, underlyingAddress, payable(redeemer));
 
         emit RedemptionTriggered(redeemer, underlyingAddress, redeemedAmount, lots);

@@ -7,7 +7,7 @@
  * 3. Redeem the underlying asset (XRP) to a specified address
  *
  * Usage:
- * yarn hardhat run scripts/fassets/autoRedeem.ts --network coston2
+ * yarn hardhat run scripts/fassets/autoRedeem.ts --network sepolia
  */
 
 import { ethers } from "hardhat";
@@ -17,7 +17,7 @@ import { EndpointId } from "@layerzerolabs/lz-definitions";
 
 // Configuration - using existing deployed contracts
 const CONFIG = {
-    SEPOLIA_FXRP_OFT: process.env.SEPOLIA_FXRP_OFT || "0x81672c5d42F3573aD95A0bdfBE824FaaC547d4E6",
+    SEPOLIA_FXRP_OFT: process.env.SEPOLIA_FXRP_OFT || "0x81672c5d42F3573aD95A0bdfBE824faaC547d4E6",
     COSTON2_COMPOSER: process.env.COSTON2_COMPOSER || "",
     COSTON2_EID: EndpointId.FLARE_V2_TESTNET,
     EXECUTOR_GAS: 400_000,
