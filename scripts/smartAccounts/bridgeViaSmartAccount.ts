@@ -3,23 +3,20 @@
  * yarn hardhat run scripts/smartAccounts/bridgeViaSmartAccount.ts --network coston2
  */
 
-import { web3 } from "hardhat";
+import { web3, artifacts } from "hardhat";
 import { formatUnits } from "ethers";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
-import { Client, Wallet as XrplWallet, xrpToDrops, Payment } from "xrpl";
+import { Client, Wallet as XrplWallet, xrpToDrops } from "xrpl";
+import { getAssetManagerFXRP } from "../utils/getters";
+import { logEvents, sleep } from "../utils/core";
+import { IAssetManagerInstance, IERC20Instance } from "../../typechain-types";
 import * as fs from "fs";
 import * as path from "path";
 
-import { getAssetManagerFXRP, getFlareSystemsManager } from "../utils/getters";
-import { logEvents, sleep } from "../utils/core";
-import { prepareAttestationRequestBase, retrieveDataAndProofBaseWithRetry } from "../utils/fdc";
-import { IAssetManagerInstance, IERC20Instance } from "../../typechain-types";
-
-// Truffle contract artifacts
 const IERC20 = artifacts.require("IERC20");
 
-// TODO:(Anthony) import from periphery once these contracts are included
+// ABIs
 const MASTER_ACCOUNT_CONTROLLER_ABI = JSON.parse(
     fs.readFileSync(path.join(__dirname, "../abi/MasterAccountController.json"), "utf-8")
 ).abi;
@@ -30,27 +27,22 @@ const FASSET_OFT_ADAPTER_ABI = JSON.parse(
 
 // Configuration
 const CONFIG = {
-    // Coston2 addresses
+    // Contract Addresses (Coston2)
     MASTER_ACCOUNT_CONTROLLER: "0xa7bc2aC84DB618fde9fa4892D1166fFf75D36FA6",
     COSTON2_FTESTXRP: "0x8b4abA9C4BD7DD961659b02129beE20c6286e17F",
     COSTON2_OFT_ADAPTER: "0xCd3d2127935Ae82Af54Fc31cCD9D3440dbF46639",
 
-    // FDC Configuration
-    FDC_VERIFIER_API: process.env.VERIFIER_URL_TESTNET,
-    FDC_DA_API: process.env.COSTON2_DA_LAYER_URL,
-    FDC_API_KEY: process.env.VERIFIER_API_KEY_TESTNET,
-
     // XRPL Configuration
     XRPL_RPC: "wss://s.altnet.rippletest.net:51233",
 
-    // LayerZero & Bridge Configuration
+    // Bridge Configuration (LayerZero)
     SEPOLIA_EID: EndpointId.SEPOLIA_V2_TESTNET,
     EXECUTOR_GAS: 400_000,
-    BRIDGE_AMOUNT: "10", // 10 FXRP = 1 lot
+    BRIDGE_AMOUNT: "10", // Amount in FXRP
 
-    // FAssets Minting Configuration
-    AUTO_MINT_IF_NEEDED: true, // Automatically mint FXRP via FAssets if balance insufficient
-    MINT_LOTS: 1, // Number of lots to mint (1 lot = 10 FXRP)
+    // Minting Configuration
+    AUTO_MINT_IF_NEEDED: true,
+    MINT_LOTS: 1,
 } as const;
 
 type CustomInstruction = {
@@ -59,35 +51,31 @@ type CustomInstruction = {
     data: string;
 };
 
-/**
- * Get accounts and XRPL wallet
- */
 async function getWallets() {
     const accounts = await web3.eth.getAccounts();
     const signerAddress = accounts[0];
-
     const xrplSecret = process.env.XRPL_SECRET;
-    if (!xrplSecret) {
-        throw new Error("XRPL_SECRET not set in .env");
-    }
-
+    if (!xrplSecret) throw new Error("XRPL_SECRET not set in .env");
     const xrplWallet = XrplWallet.fromSeed(xrplSecret);
 
-    console.log("Flare Account:", signerAddress);
-    console.log("XRPL Account:", xrplWallet.address);
-
+    console.log("Flare EOA:", signerAddress);
+    console.log("XRPL Wallet:", xrplWallet.address);
     return { signerAddress, xrplWallet };
 }
 
+function getMasterController() {
+    return new web3.eth.Contract(MASTER_ACCOUNT_CONTROLLER_ABI, CONFIG.MASTER_ACCOUNT_CONTROLLER);
+}
+
 /**
- * Step 1: Register custom instruction with MasterAccountController
+ * Step 1: Register the Bridge Instruction on Flare
  */
-async function registerCustomInstruction(recipientAddress: string, amountToBridge: bigint) {
-    console.log("\n=== Step 1: Registering Custom Instruction ===");
+async function registerBridgeInstruction(recipientAddress: string, amountToBridge: bigint) {
+    console.log("\n=== Step 1: Registering Bridge Instruction ===");
+    const oftAdapter = new web3.eth.Contract(FASSET_OFT_ADAPTER_ABI, CONFIG.COSTON2_OFT_ADAPTER);
 
-    // Build the send parameters for OFT Adapter
+    // 1. Quote LayerZero Fee
     const options = Options.newOptions().addExecutorLzReceiveOption(CONFIG.EXECUTOR_GAS, 0);
-
     const sendParam = {
         dstEid: CONFIG.SEPOLIA_EID,
         to: web3.utils.padLeft(recipientAddress, 64),
@@ -98,666 +86,221 @@ async function registerCustomInstruction(recipientAddress: string, amountToBridg
         oftCmd: "0x",
     };
 
-    // Get the OFT Adapter contract
-    const oftAdapter = new web3.eth.Contract(FASSET_OFT_ADAPTER_ABI, CONFIG.COSTON2_OFT_ADAPTER);
-
-    // Get the native fee for the bridge
     const quoteResult = await oftAdapter.methods.quoteSend(sendParam, false).call();
     const nativeFee = BigInt(quoteResult.nativeFee);
-    console.log("LayerZero Fee:", formatUnits(nativeFee, 18), "CFLR");
+    console.log(`LayerZero Fee: ${formatUnits(nativeFee, 18)} CFLR`);
 
-    // Encode the send call with fee
-    const feeStruct = {
-        nativeFee: nativeFee.toString(),
-        lzTokenFee: "0",
-    };
-
+    // 2. Create Calldata for OFTAdapter
+    const feeStruct = { nativeFee: nativeFee.toString(), lzTokenFee: "0" };
     const sendCallData = oftAdapter.methods.send(sendParam, feeStruct, recipientAddress).encodeABI();
 
-    // Create custom instruction
+    // 3. Register Instruction with Master Controller
     const customInstruction: CustomInstruction[] = [
         {
             targetContract: CONFIG.COSTON2_OFT_ADAPTER,
-            value: nativeFee, // Must include LayerZero fee
+            value: nativeFee,
             data: sendCallData,
         },
     ];
 
-    // Register with MasterAccountController
-    const masterController = new web3.eth.Contract(MASTER_ACCOUNT_CONTROLLER_ABI, CONFIG.MASTER_ACCOUNT_CONTROLLER);
-
-    console.log("Registering custom instruction...");
+    const masterController = getMasterController();
     const accounts = await web3.eth.getAccounts();
+
+    console.log("Submitting registration tx...");
     const tx = await masterController.methods.registerCustomInstruction(customInstruction).send({ from: accounts[0] });
 
-    console.log("Transaction status:", tx.status);
-    console.log("Transaction hash:", tx.transactionHash);
-
-    // Parse logs to find CustomInstructionRegistered event
+    // 4. Get the Call Hash (Encoded Instruction) from events
     const events = logEvents(tx.logs, "CustomInstructionRegistered", MASTER_ACCOUNT_CONTROLLER_ABI);
+    if (!events || events.length === 0) throw new Error("Failed to register instruction");
 
-    if (!events || events.length === 0) {
-        throw new Error("Failed to find CustomInstructionRegistered event");
-    }
-
-    const callHash = BigInt(events[0].decoded.callHash);
-
-    console.log("✅ Custom instruction registered!");
-    console.log("Call Hash:", callHash.toString());
-
-    // Encode instruction via MasterAccountController
-    console.log("Encoding instruction via MasterAccountController...");
+    // Calculate the encoded hex that needs to go into the XRPL Memo
     const encodedInstructionBN = await masterController.methods.encodeCustomInstruction(customInstruction).call();
     const encodedInstruction = BigInt(encodedInstructionBN).toString(16).padStart(64, "0");
-    console.log("Encoded instruction:", "0x" + encodedInstruction);
 
-    return { callHash, nativeFee, encodedInstruction };
+    console.log("✅ Instruction Registered.");
+    console.log("Instruction Hash (Memo):", encodedInstruction);
+
+    return encodedInstruction;
 }
 
 /**
- * Step 2.5: Get XRPL operator address from MasterAccountController
+ * Helper: Send XRPL Payment
  */
-async function getXrplOperatorAddress(): Promise<string> {
-    const masterController = new web3.eth.Contract(MASTER_ACCOUNT_CONTROLLER_ABI, CONFIG.MASTER_ACCOUNT_CONTROLLER);
-
-    console.log("\n=== Getting XRPL Operator Address ===");
-    const operatorAddress = await masterController.methods.xrplProviderWallet().call();
-    console.log("XRPL Operator Address:", operatorAddress);
-
-    return operatorAddress;
-}
-
-/**
- * Step 3: Send XRPL payment with encoded instruction
- */
-async function sendXrplPayment(
-    xrplWallet: any,
-    encodedInstruction: string,
-    operatorAddress: string
-): Promise<{ hash: string; timestamp: number }> {
-    // Check balance first (need 1 XRP for this payment)
-    await checkXrplBalance(xrplWallet, "1");
-
-    console.log("\n=== Step 3: Sending XRPL Payment ===");
-
+async function sendXrplMemoPayment(xrplWallet: any, destination: string, amountXrp: string, memoHex: string) {
     const client = new Client(CONFIG.XRPL_RPC);
     await client.connect();
-
     try {
-        const payment: Payment = {
+        const payment = {
             TransactionType: "Payment",
             Account: xrplWallet.address,
-            Destination: operatorAddress,
-            Amount: xrpToDrops(1), // 1 XRP payment
-            Memos: [
-                {
-                    Memo: {
-                        MemoData: encodedInstruction.toUpperCase(),
-                    },
-                },
-            ],
+            Destination: destination,
+            Amount: xrpToDrops(amountXrp),
+            Memos: [{ Memo: { MemoData: memoHex.toUpperCase() } }],
         };
 
-        console.log("Submitting XRPL payment...");
-        console.log("From:", xrplWallet.address);
-        console.log("To:", operatorAddress);
-        console.log("Amount: 1 XRP");
-        console.log("Memo:", encodedInstruction);
-
+        console.log(`Sending ${amountXrp} XRP to ${destination}...`);
         const prepared = await client.autofill(payment);
         const signed = xrplWallet.sign(prepared);
         const result = await client.submitAndWait(signed.tx_blob);
 
-        if (result.result.meta && typeof result.result.meta === "object" && "TransactionResult" in result.result.meta) {
-            const txResult = result.result.meta.TransactionResult;
-            console.log("Transaction hash:", result.result.hash);
-            console.log("Result:", txResult);
-
-            // Check if transaction was successful
-            if (txResult !== "tesSUCCESS") {
-                throw new Error(
-                    `XRPL payment failed with result: ${txResult}\n` +
-                    `This usually means:\n` +
-                    `- tecUNFUNDED_PAYMENT: Insufficient XRP balance in your XRPL account\n` +
-                    `- Check your XRPL account balance and ensure you have enough XRP for the payment + fees`
-                );
-            }
-
-            console.log("✅ XRPL payment successful!");
+        if (
+            result.result.meta &&
+            typeof result.result.meta === "object" &&
+            result.result.meta.TransactionResult !== "tesSUCCESS"
+        ) {
+            throw new Error(`XRPL Payment Failed: ${result.result.meta.TransactionResult}`);
         }
-
-        // Get timestamp from ledger
-        const timestamp = Math.floor(Date.now() / 1000);
-
-        return {
-            hash: result.result.hash,
-            timestamp,
-        };
+        console.log(`Tx Hash: ${result.result.hash}`);
+        return result.result.hash;
     } finally {
         await client.disconnect();
     }
 }
 
 /**
- * Step 4: Calculate voting round ID
+ * Get or Create Personal Account Balance
  */
-async function calculateVotingRoundId(timestamp: number): Promise<number> {
-    const fsm = await getFlareSystemsManager();
-    const firstTs = BigInt(await fsm.firstVotingRoundStartTs());
-    const epoch = BigInt(await fsm.votingEpochDurationSeconds());
-    const ts = BigInt(timestamp);
-    const roundId = Number((ts - firstTs) / epoch);
-    console.log("\n=== Step 4: Calculating Voting Round ===");
-    console.log("Transaction timestamp:", timestamp);
-    console.log("On-chain first round ts:", firstTs.toString());
-    console.log("Epoch duration:", epoch.toString());
-    console.log("Voting round ID:", roundId);
-    return roundId;
-}
-
-/**
- * Step 6: Retrieve FDC attestation proof
- */
-async function retrieveAttestationProof(votingRoundId: number, xrplTxHash: string): Promise<any> {
-    console.log("\n=== Step 6: Retrieving FDC Attestation Proof ===");
-
-    // Prepare request via Verifier using shared utils
-    const verifierUrl = `${CONFIG.FDC_VERIFIER_API}/Payment/prepareRequest`;
-    const apiKey = CONFIG.FDC_API_KEY || "";
-
-    const requestBody = {
-        transactionId: xrplTxHash.toUpperCase(),
-        inUtxo: "0",
-        utxo: "0",
-    };
-
-    console.log("Encoding attestation request...");
-    console.log("Transaction ID:", requestBody.transactionId);
-    console.log("Verifier URL:", verifierUrl);
-
-    const { abiEncodedRequest } = await prepareAttestationRequestBase(
-        verifierUrl,
-        apiKey,
-        "Payment",
-        "testXRP",
-        requestBody
-    );
-
-    console.log("Encoded request:", abiEncodedRequest);
-
-    // Retrieve the proof via DA using shared utils (handles finalization wait internally)
-    console.log("Retrieving proof from Data Availability...");
-    const proofRaw = await retrieveDataAndProofBaseWithRetry(CONFIG.FDC_DA_API, abiEncodedRequest, votingRoundId);
-
-    // Decode response into the struct expected by contracts
-    const IPaymentVerification = await artifacts.require("IPaymentVerification");
-    const responseType = IPaymentVerification._json.abi[0].inputs[0].components[1];
-    const decodedResponse = web3.eth.abi.decodeParameter(responseType, proofRaw.response_hex);
-
-    const proof = {
-        merkleProof: proofRaw.proof,
-        data: decodedResponse,
-    };
-
-    console.log("Structured proof for contract:");
-    console.log("  merkleProof length:", proof.merkleProof.length);
-    console.log("  data fields:", Object.keys(proof.data));
-    return proof;
-}
-
-/**
- * Check if personal account exists and has sufficient FXRP balance
- */
-async function checkPersonalAccountBalance(
-    xrplAddress: string,
-    requiredAmount: bigint
-): Promise<{ hasAccount: boolean; balance: bigint; needsDeposit: boolean }> {
-    console.log("\n=== Checking Personal Account ===");
-
-    const masterController = new web3.eth.Contract(MASTER_ACCOUNT_CONTROLLER_ABI, CONFIG.MASTER_ACCOUNT_CONTROLLER);
-
-    const personalAccount = await masterController.methods.getPersonalAccount(xrplAddress).call();
-    const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-    const hasAccount = personalAccount !== ZERO_ADDRESS;
-
-    console.log("Personal Account Address:", hasAccount ? personalAccount : "Not created yet");
+async function checkPersonalAccount(xrplAddress: string, requiredAmount: bigint) {
+    console.log("\n=== Checking Smart Account Balance ===");
+    const masterController = getMasterController();
+    const personalAccountAddr = await masterController.methods.getPersonalAccount(xrplAddress).call();
+    const hasAccount = personalAccountAddr !== "0x0000000000000000000000000000000000000000";
 
     let balance = 0n;
     if (hasAccount) {
         const ftestxrp: IERC20Instance = await IERC20.at(CONFIG.COSTON2_FTESTXRP);
-        balance = BigInt(await ftestxrp.balanceOf(personalAccount));
-        console.log("Current FXRP Balance:", formatUnits(balance, 6), "FXRP");
+        balance = BigInt(await ftestxrp.balanceOf(personalAccountAddr));
+        console.log(`Personal Account: ${personalAccountAddr}`);
+        console.log(`Balance: ${formatUnits(balance, 6)} FXRP`);
     } else {
-        console.log("Current FXRP Balance: 0 FXRP (account not created)");
+        console.log("Personal Account: Not created yet");
     }
 
-    console.log("Required FXRP:", formatUnits(requiredAmount, 6), "FXRP");
-
-    const needsDeposit = balance < requiredAmount;
-    if (needsDeposit) {
-        const shortfall = requiredAmount - balance;
-        console.log("⚠️  Insufficient balance! Shortfall:", formatUnits(shortfall, 6), "FXRP");
-    } else {
-        console.log("✅ Sufficient balance available");
-    }
-
-    return { hasAccount, balance, needsDeposit };
+    return {
+        personalAccountAddr,
+        hasAccount,
+        needsDeposit: balance < requiredAmount,
+    };
 }
 
 /**
- * Check XRPL account balance
+ * Wait for CollateralReserved Event
  */
-async function checkXrplBalance(xrplWallet: any, requiredXRP: string): Promise<void> {
-    console.log("\n=== Checking XRPL Account Balance ===");
-
-    const client = new Client(CONFIG.XRPL_RPC);
-    await client.connect();
-
-    try {
-        const response = await client.request({
-            command: "account_info",
-            account: xrplWallet.address,
-            ledger_index: "validated",
+async function waitForReservationEvent(assetManager: IAssetManagerInstance, agentVault: string, startBlock: number) {
+    console.log("⏳ Waiting for Operator to Execute Reservation on Flare...");
+    const maxRetries = 5;
+    for (let i = 0; i < maxRetries; i++) {
+        const events = await assetManager.getPastEvents("CollateralReserved", {
+            fromBlock: startBlock,
+            toBlock: "latest",
+            filter: { agentVault: agentVault },
         });
 
-        const balance = Number(response.result.account_data.Balance) / 1_000_000; // Convert drops to XRP
-        const required = Number(requiredXRP);
-
-        console.log("XRPL Account:", xrplWallet.address);
-        console.log("Current Balance:", balance.toFixed(6), "XRP");
-        console.log("Required:", required, "XRP + fees");
-
-        if (balance < required) {
-            throw new Error(
-                `Insufficient XRP balance!\n` +
-                `Current: ${balance.toFixed(6)} XRP\n` +
-                `Required: ${required} XRP + fees\n` +
-                `Please fund your XRPL testnet account at: https://faucet.altnet.rippletest.net/`
-            );
+        if (events.length > 0) {
+            const evt = events[events.length - 1];
+            return {
+                valueUBA: BigInt(evt.returnValues.valueUBA),
+                paymentReference: evt.returnValues.paymentReference,
+            };
         }
-
-        console.log("✅ Sufficient XRP balance available");
-    } finally {
-        await client.disconnect();
+        await sleep(3000);
     }
+    throw new Error("Timeout waiting for reservation event.");
 }
 
 /**
- * Get FXRP AssetManager from Flare Contract Registry
+ * Perform Minting Flow
  */
-async function getFXRPAssetManager(): Promise<IAssetManagerInstance> {
-    console.log("\n=== Getting FXRP AssetManager from Contract Registry ===");
+async function mintFXRP(xrplWallet: any, lots: number) {
+    console.log(`\n=== Starting Mint for ${lots} Lot(s) ===`);
+
     const assetManager = await getAssetManagerFXRP();
-    console.log("✅ FXRP AssetManager Address:", assetManager.address);
-    return assetManager;
-}
+    const masterController = getMasterController();
+    const operatorAddress = await masterController.methods.xrplProviderWallet().call();
 
-/**
- * Get an available agent vault from AssetManager
- */
-async function getAvailableAgentVault(assetManager: IAssetManagerInstance): Promise<string> {
-    console.log("\n=== Fetching Available Agent Vault ===");
-    console.log("AssetManager Address:", assetManager.address);
+    // 1. Find Agent
+    const agents = await assetManager.getAvailableAgentsDetailedList(0, 20);
+    const agent = agents._agents.find((a) => BigInt(a.freeCollateralLots) >= BigInt(lots));
+    if (!agent) throw new Error("No agents available");
+    console.log(`Selected Agent: ${agent.agentVault}`);
 
-    // Query first 10 agents
-    console.log("Querying available agents...");
-    const result = await assetManager.getAvailableAgentsDetailedList(0, 10);
-    const agents = result._agents;
+    const agentInfo = await assetManager.getAgentInfo(agent.agentVault);
+    const agentXrplAddress = agentInfo.underlyingAddressString;
 
-    console.log(`Found ${agents.length} agent(s)`);
+    // 2. Send Trigger (Instruction 05)
+    // Format: 05 (Op) + AgentVault (20 bytes) + Lots (32 bytes)
+    const agentVaultClean = agent.agentVault.toLowerCase().replace("0x", "");
+    const lotsHex = BigInt(lots).toString(16).padStart(64, "0"); // Standard uint256 padding
+    const instructionMemo = `05${agentVaultClean}${lotsHex}`;
 
-    // Find an agent with available lots
-    for (let i = 0; i < agents.length; i++) {
-        const agent = agents[i];
-        const agentVault = agent.agentVault;
-        const freeLots = BigInt(agent.freeCollateralLots);
+    console.log("1. Sending Reservation Trigger...");
+    const currentBlock = await web3.eth.getBlockNumber();
+    await sendXrplMemoPayment(xrplWallet, operatorAddress, "1", instructionMemo);
 
-        console.log(`Agent ${agentVault}: ${freeLots.toString()} free lots`);
+    // 3. Wait for Event to get EXACT amounts
+    const { valueUBA, paymentReference } = await waitForReservationEvent(assetManager, agent.agentVault, currentBlock);
+    const xrpAmount = Number(valueUBA) / 1_000_000;
 
-        if (freeLots > 0n) {
-            console.log(`✅ Selected agent vault: ${agentVault}`);
-            return agentVault;
+    console.log(`✅ Reservation Confirmed.`);
+    console.log(`   Amount Required: ${xrpAmount} XRP`);
+    console.log(`   Payment Ref: ${paymentReference}`);
+
+    // 4. Send Collateral
+    console.log("2. Sending Collateral to Agent...");
+    // Strip 0x from payment reference for XRPL Memo
+    const refClean = paymentReference.replace("0x", "");
+    await sendXrplMemoPayment(xrplWallet, agentXrplAddress, xrpAmount.toString(), refClean);
+
+    // 5. Wait for Execution
+    // todo(Anthony): improve obtaining personal account
+    console.log("⏳ Waiting for Smart Account Executor to mint FXRP...");
+    const startBalance = (await checkPersonalAccount(xrplWallet.address, 0n)).hasAccount
+        ? BigInt(
+              await (
+                  await IERC20.at(CONFIG.COSTON2_FTESTXRP)
+              ).balanceOf(await masterController.methods.getPersonalAccount(xrplWallet.address).call())
+          )
+        : 0n;
+
+    for (let i = 0; i < 40; i++) {
+        const { needsDeposit } = await checkPersonalAccount(
+            xrplWallet.address,
+            BigInt(lots) * 10000000n + startBalance
+        ); // Rough check
+        if (!needsDeposit) {
+            console.log("✅ Mint Complete!");
+            return;
         }
-    }
-
-    throw new Error(
-        "No agent vaults with available collateral found.\n" +
-        "This might mean:\n" +
-        "- All agents are at capacity\n" +
-        "- No active agents in the system\n" +
-        "Please try again later or contact support."
-    );
-}
-
-/**
- * Get agent's XRPL underlying address from AssetManager
- */
-async function getAgentUnderlyingAddress(assetManager: IAssetManagerInstance, agentVault: string): Promise<string> {
-    console.log("\n=== Getting Agent's XRPL Address ===");
-
-    // Get agent info which includes the underlying XRPL address
-    const agentInfo = await assetManager.getAgentInfo(agentVault);
-    const xrplAddress = agentInfo.underlyingAddressString;
-
-    console.log("Agent's XRPL Address:", xrplAddress);
-
-    return xrplAddress;
-}
-
-/**
- * Send XRPL payments for FAssets mint (2-step process)
- */
-async function sendMintPayments(
-    xrplWallet: any,
-    operatorAddress: string,
-    lots: number,
-    agentVault: string,
-    agentXrplAddress: string
-): Promise<{ hash: string; timestamp: number }> {
-    // todo(Anthony): get reserve collateral from CollateralReserved Event
-    // Calculate total XRP needed: 1 for trigger + (lots * 10) for collateral
-    const collateralXRP = lots * 10;
-    const totalXRP = 1 + collateralXRP;
-    await checkXrplBalance(xrplWallet, totalXRP.toString());
-
-    console.log("\n=== Step 1: Reserve Collateral (Instruction ID 05) ===");
-
-    const client = new Client(CONFIG.XRPL_RPC);
-    await client.connect();
-
-    try {
-        // STEP 1: Send reserveCollateral instruction
-        // Format: 0x05 (1 byte) + agent vault (20 bytes) + lots (11 bytes)
-        const agentVaultHex = agentVault.toLowerCase().replace("0x", "");
-        const lotsBN = BigInt(lots);
-        const lotsHex = lotsBN.toString(16).padStart(22, "0");
-        const mintInstruction = "05" + agentVaultHex + lotsHex;
-
-        const payment1: Payment = {
-            TransactionType: "Payment",
-            Account: xrplWallet.address,
-            Destination: operatorAddress,
-            Amount: xrpToDrops(1), // Trigger payment
-            Memos: [
-                {
-                    Memo: {
-                        MemoData: mintInstruction.toUpperCase(),
-                    },
-                },
-            ],
-        };
-
-        console.log("Sending reserve collateral instruction...");
-        console.log("From:", xrplWallet.address);
-        console.log("To:", operatorAddress);
-        console.log("Amount: 1 XRP (trigger payment)");
-        console.log("Memo:", mintInstruction);
-
-        const prepared1 = await client.autofill(payment1);
-        const signed1 = xrplWallet.sign(prepared1);
-        const result1 = await client.submitAndWait(signed1.tx_blob);
-
-        if (
-            result1.result.meta &&
-            typeof result1.result.meta === "object" &&
-            "TransactionResult" in result1.result.meta
-        ) {
-            const txResult = result1.result.meta.TransactionResult;
-            console.log("Transaction hash:", result1.result.hash);
-            console.log("Result:", txResult);
-
-            if (txResult !== "tesSUCCESS") {
-                throw new Error(`Reserve collateral payment failed: ${txResult}`);
-            }
-
-            console.log("✅ Reserve collateral successful!");
-        }
-
-        // Wait a few seconds before sending second payment
-        console.log("\nWaiting 5 seconds before sending collateral...");
         await sleep(5000);
-
-        // STEP 2: Send actual XRP collateral to agent's XRPL address
-        console.log("\n=== Step 2: Send XRP Collateral to Agent ===");
-
-        const payment2: Payment = {
-            TransactionType: "Payment",
-            Account: xrplWallet.address,
-            Destination: agentXrplAddress,
-            Amount: xrpToDrops(collateralXRP), // Actual collateral
-        };
-
-        console.log("Sending XRP collateral...");
-        console.log("From:", xrplWallet.address);
-        console.log("To:", agentXrplAddress);
-        console.log("Amount:", collateralXRP, "XRP (collateral for", lots, "lot(s))");
-
-        const prepared2 = await client.autofill(payment2);
-        const signed2 = xrplWallet.sign(prepared2);
-        const result2 = await client.submitAndWait(signed2.tx_blob);
-
-        if (
-            result2.result.meta &&
-            typeof result2.result.meta === "object" &&
-            "TransactionResult" in result2.result.meta
-        ) {
-            const txResult = result2.result.meta.TransactionResult;
-            console.log("Transaction hash:", result2.result.hash);
-            console.log("Result:", txResult);
-
-            if (txResult !== "tesSUCCESS") {
-                throw new Error(`Collateral payment failed: ${txResult}`);
-            }
-
-            console.log("✅ Collateral payment successful!");
-        }
-
-        console.log("\n✅ Both mint payments sent successfully!");
-        console.log("Executor will now process the mint...");
-
-        // Get timestamp from ledger
-        // XRPL epoch is 2000-01-01 00:00:00 UTC = 946684800 Unix
-        const timestamp = (result1.result.date || 0) + 946684800;
-
-        return { hash: result1.result.hash, timestamp };
-    } finally {
-        await client.disconnect();
     }
 }
 
-/**
- * Wait for Smart Accounts executor to process the mint and update balance
- */
-async function waitForMintExecution(
-    xrplAddress: string,
-    expectedMinimumBalance: bigint,
-    xrplTxHash: string,
-    timestamp: number
-): Promise<void> {
-    console.log("\n=== Waiting for Smart Accounts Executor ===");
-    console.log("The executor will automatically process your mint instruction.");
-    console.log("This typically takes 3-10 minutes.");
-
-    const masterController = new web3.eth.Contract(MASTER_ACCOUNT_CONTROLLER_ABI, CONFIG.MASTER_ACCOUNT_CONTROLLER);
-
-    const maxAttempts = 20; // 20 attempts * 30 seconds = 10 minutes max
-    const pollInterval = 30000; // 30 seconds
-
-    const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
-
-    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        console.log(`\nChecking balance (attempt ${attempt}/${maxAttempts})...`);
-
-        const personalAccount = await masterController.methods.getPersonalAccount(xrplAddress).call();
-        const hasAccount = personalAccount !== ZERO_ADDRESS;
-
-        if (hasAccount) {
-            const ftestxrp: IERC20Instance = await IERC20.at(CONFIG.COSTON2_FTESTXRP);
-            const balance = BigInt(await ftestxrp.balanceOf(personalAccount));
-
-            console.log("Personal Account:", personalAccount);
-            console.log("FXRP Balance:", formatUnits(balance, 6), "FXRP");
-
-            if (balance >= expectedMinimumBalance) {
-                console.log("\n✅ Mint successful! Balance updated.");
-                return;
-            }
-        } else {
-            console.log("Personal account not created yet...");
-        }
-
-        // If we've waited for 5 attempts (2.5 minutes) and still no account, try manual execution
-        if (attempt === 5 && !hasAccount) {
-            console.log("\n⚠️  Executor seems slow. Attempting manual execution...");
-            try {
-                const votingRoundId = await calculateVotingRoundId(timestamp);
-                console.log("Voting Round:", votingRoundId);
-
-                // Try to get proof
-                const proof = await retrieveAttestationProof(votingRoundId, xrplTxHash);
-                console.log("✅ Proof retrieved! Submitting execution transaction...");
-
-                const accounts = await web3.eth.getAccounts();
-                const tx = await masterController.methods
-                    .executeTransaction(proof, xrplAddress)
-                    .send({ from: accounts[0] });
-                console.log("Manual execution tx:", tx.transactionHash);
-                console.log("✅ Manual execution successful!");
-
-                // Wait a bit for state update
-                await sleep(5000);
-                continue; // Check balance again immediately
-            } catch (e: any) {
-                console.log("❌ Manual execution failed:", e.message);
-                console.log("Continuing to wait for Executor...");
-            }
-        }
-
-        if (attempt < maxAttempts) {
-            console.log(`Waiting ${pollInterval / 1000} seconds before next check...`);
-            await sleep(pollInterval);
-        }
-    }
-
-    throw new Error(
-        "Mint did not complete within the expected time.\n" + "The executor may be delayed. Check your balance later."
-    );
-}
-
-/**
- * Main execution flow
- */
 async function main() {
-    console.log("╔════════════════════════════════════════════════════════════╗");
-    console.log("║   Bridge via Flare Smart Accounts: XRPL → Flare → Sepolia  ║");
-    console.log("╚════════════════════════════════════════════════════════════╝");
-
-    // Get wallets
     const { signerAddress, xrplWallet } = await getWallets();
+    const amountToBridge = BigInt(web3.utils.toWei(CONFIG.BRIDGE_AMOUNT, "mwei"));
 
-    // Prepare bridge parameters
-    const amountToBridge = BigInt(web3.utils.toWei(CONFIG.BRIDGE_AMOUNT, "mwei")); // 6 decimals = mwei
-    const recipientAddress = signerAddress;
-
-    console.log("\n📋 Bridge Configuration:");
-    console.log("Amount:", formatUnits(amountToBridge, 6), "FXRP");
-    console.log("Destination: Sepolia");
-    console.log("Recipient:", recipientAddress);
-
-    console.log("\n💡 XRP Requirements:");
-    const mintXrp = 1 + CONFIG.MINT_LOTS * 10; // 1 XRP trigger + (lots * 10 XRP collateral)
-    console.log(
-        "- If mint needed:",
-        mintXrp,
-        "XRP (1 trigger +",
-        CONFIG.MINT_LOTS * 10,
-        "collateral for",
-        CONFIG.MINT_LOTS,
-        "lot(s) =",
-        CONFIG.MINT_LOTS * 10,
-        "FXRP)"
-    );
-    console.log("- Bridge payment: 1 XRP (trigger fee)");
-    console.log("- Total needed: ~" + (mintXrp + 1), "XRP + fees");
-    console.log("- Fund your XRPL testnet account at: https://faucet.altnet.rippletest.net/");
-
-    try {
-        // Check if personal account has sufficient balance
-        const { needsDeposit } = await checkPersonalAccountBalance(xrplWallet.address, amountToBridge);
-
-        // If insufficient balance, mint FXRP via FAssets
-        if (needsDeposit) {
-            if (!CONFIG.AUTO_MINT_IF_NEEDED) {
-                throw new Error(
-                    `\n❌ Insufficient FXRP in your Smart Account!\n\n` +
-                    `Set AUTO_MINT_IF_NEEDED=true in CONFIG to automatically mint FXRP.`
-                );
-            }
-
-            console.log("\n╔════════════════════════════════════════════════════════════╗");
-            console.log("║   Minting FXRP via Smart Account                           ║");
-            console.log("╚════════════════════════════════════════════════════════════╝");
-            console.log("Lots:", CONFIG.MINT_LOTS, "→", CONFIG.MINT_LOTS * 10, "FXRP");
-
-            // Get FXRP AssetManager from contract registry
-            const assetManager = await getFXRPAssetManager();
-
-            // Get agent vault dynamically
-            const agentVault = await getAvailableAgentVault(assetManager);
-            console.log("Using Agent Vault:", agentVault);
-
-            // Get agent's XRPL address
-            const agentXrplAddress = await getAgentUnderlyingAddress(assetManager, agentVault);
-
-            // Get XRPL operator address
-            const operatorAddress = await getXrplOperatorAddress();
-
-            // Send both XRPL payments for minting (reserve + collateral)
-            const { hash: mintTxHash, timestamp: mintTimestamp } = await sendMintPayments(
-                xrplWallet,
-                operatorAddress,
-                CONFIG.MINT_LOTS,
-                agentVault,
-                agentXrplAddress
-            );
-
-            // Wait for Smart Accounts executor to process the mint
-            // The executor handles FDC attestation and execution automatically
-            const expectedBalance = BigInt(web3.utils.toWei((CONFIG.MINT_LOTS * 10).toString(), "mwei"));
-            await waitForMintExecution(xrplWallet.address, expectedBalance, mintTxHash, mintTimestamp);
-
-            console.log("\n✅ Mint complete! Proceeding with bridge...\n");
-        }
-
-        console.log("\n╔════════════════════════════════════════════════════════════╗");
-        console.log("║   Bridging FXRP to Sepolia                                 ║");
-        console.log("╚════════════════════════════════════════════════════════════╝");
-
-        // Step 1: Register custom instruction & get encoded instruction
-        const { encodedInstruction } = await registerCustomInstruction(recipientAddress, amountToBridge);
-
-        // Step 2: Get XRPL operator address
-        const operatorAddress = await getXrplOperatorAddress();
-
-        // Step 3: Send XRPL payment
-        const { hash: xrplTxHash, timestamp } = await sendXrplPayment(xrplWallet, encodedInstruction, operatorAddress);
-
-        // Step 4: Calculate voting round
-        const votingRoundId = await calculateVotingRoundId(timestamp);
-
-        // Step 5: Retrieve proof (optional for diagnostics)
-        const proof = await retrieveAttestationProof(votingRoundId, xrplTxHash);
-
-        console.log("\n✅ XRPL payment submitted and verified by DA. FDC Proof:", proof);
-        console.log("An off-chain observer will submit the proof and execute on MasterAccountController.");
-        console.log("No direct submission from this script is required.");
-    } catch (error: any) {
-        console.error("\n❌ Error:", error.message);
-        if (error.stack) {
-            console.error(error.stack);
-        }
-        process.exit(1);
+    // 1. Check Balance / Mint
+    const { needsDeposit } = await checkPersonalAccount(xrplWallet.address, amountToBridge);
+    if (needsDeposit) {
+        if (!CONFIG.AUTO_MINT_IF_NEEDED) throw new Error("Insufficient Funds");
+        await mintFXRP(xrplWallet, CONFIG.MINT_LOTS);
     }
+
+    // 2. Bridge
+    console.log("\n=== Bridging to Sepolia ===");
+    // Register the intent on EVM
+    const encodedInstruction = await registerBridgeInstruction(signerAddress, amountToBridge);
+
+    // Send the trigger on XRPL
+    const masterController = getMasterController();
+    const operatorAddress = await masterController.methods.xrplProviderWallet().call();
+
+    console.log("Sending Bridge Trigger...");
+    await sendXrplMemoPayment(xrplWallet, operatorAddress, "1", encodedInstruction);
+
+    console.log("\n✅ Bridge Request Sent!");
+    console.log("The Smart Account Executor will now verify the payment and execute the bridge.");
+    console.log("Check LayerZero Scan for the message delivery.");
 }
 
 main().catch((error) => {
