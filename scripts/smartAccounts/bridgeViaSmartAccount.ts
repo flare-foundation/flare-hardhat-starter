@@ -1,33 +1,4 @@
 /**
- * Bridge FXRP from XRPL to Sepolia via Flare Smart Accounts
- *
- * This script provides a complete end-to-end flow:
- * 0. Check personal account balance and auto-mint if needed
- * 1. Mint FXRP via reserveCollateral instruction (if needed)
- * 2. Register custom instruction to bridge FXRP to Sepolia
- * 3. Send XRPL payment with encoded bridge instruction
- * 4. Monitor XRPL transaction confirmation
- * 5. Retrieve FDC attestation proof
- * 6. Execute bridge to Sepolia via LayerZero
- *
- * Features:
- * - Automatically checks if you have sufficient FXRP balance
- * - If balance is insufficient, automatically mints FXRP via smart accounts
- * - Uses instruction ID 05 (reserveCollateral) to mint FXRP
- * - Single script handles both minting and bridging workflows
- *
- * Prerequisites:
- * - XRPL testnet account with sufficient XRP:
- *   - For 1 lot (10 FXRP): 1 XRP trigger + 10 XRP collateral + 1 XRP bridge = ~12 XRP
- * - XRPL_SECRET in .env
- * - C2FLR on Coston2 for gas
- *
- * Configuration:
- * - Set AUTO_MINT_IF_NEEDED to true/false in CONFIG
- * - Adjust MINT_LOTS for how much FXRP to mint (1 lot = 10 FXRP)
- * - Adjust BRIDGE_AMOUNT for the amount to bridge to Sepolia
- * - Agent vault is automatically fetched from AssetManager
- *
  * Usage:
  * yarn hardhat run scripts/smartAccounts/bridgeViaSmartAccount.ts --network coston2
  */
@@ -37,7 +8,6 @@ import { formatUnits } from "ethers";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
 import { Client, Wallet as XrplWallet, xrpToDrops, Payment } from "xrpl";
-import BN from "bn.js";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -66,9 +36,9 @@ const CONFIG = {
     COSTON2_OFT_ADAPTER: "0xCd3d2127935Ae82Af54Fc31cCD9D3440dbF46639",
 
     // FDC Configuration
-    FDC_VERIFIER_API: (process.env.FDC_VERIFIER_API || process.env.VERIFIER_URL_TESTNET) as string,
-    FDC_DA_API: (process.env.FDC_DA_API || process.env.COSTON2_DA_LAYER_URL) as string,
-    FDC_API_KEY: (process.env.FDC_API_KEY || process.env.VERIFIER_API_KEY_TESTNET) as string,
+    FDC_VERIFIER_API: process.env.VERIFIER_URL_TESTNET,
+    FDC_DA_API: process.env.COSTON2_DA_LAYER_URL,
+    FDC_API_KEY: process.env.VERIFIER_API_KEY_TESTNET,
 
     // XRPL Configuration
     XRPL_RPC: "wss://s.altnet.rippletest.net:51233",
@@ -85,7 +55,7 @@ const CONFIG = {
 
 type CustomInstruction = {
     targetContract: string;
-    value: BN;
+    value: bigint;
     data: string;
 };
 
@@ -112,7 +82,7 @@ async function getWallets() {
 /**
  * Step 1: Register custom instruction with MasterAccountController
  */
-async function registerCustomInstruction(recipientAddress: string, amountToBridge: BN) {
+async function registerCustomInstruction(recipientAddress: string, amountToBridge: bigint) {
     console.log("\n=== Step 1: Registering Custom Instruction ===");
 
     // Build the send parameters for OFT Adapter
@@ -133,8 +103,8 @@ async function registerCustomInstruction(recipientAddress: string, amountToBridg
 
     // Get the native fee for the bridge
     const quoteResult = await oftAdapter.methods.quoteSend(sendParam, false).call();
-    const nativeFee = web3.utils.toBN(quoteResult.nativeFee);
-    console.log("LayerZero Fee:", formatUnits(nativeFee.toString(), 18), "CFLR");
+    const nativeFee = BigInt(quoteResult.nativeFee);
+    console.log("LayerZero Fee:", formatUnits(nativeFee, 18), "CFLR");
 
     // Encode the send call with fee
     const feeStruct = {
@@ -170,32 +140,18 @@ async function registerCustomInstruction(recipientAddress: string, amountToBridg
         throw new Error("Failed to find CustomInstructionRegistered event");
     }
 
-    const callHash = web3.utils.toBN(events[0].decoded.callHash);
+    const callHash = BigInt(events[0].decoded.callHash);
 
     console.log("✅ Custom instruction registered!");
     console.log("Call Hash:", callHash.toString());
 
-    return { callHash, nativeFee };
-}
+    // Encode instruction via MasterAccountController
+    console.log("Encoding instruction via MasterAccountController...");
+    const encodedInstructionBN = await masterController.methods.encodeCustomInstruction(customInstruction).call();
+    const encodedInstruction = BigInt(encodedInstructionBN).toString(16).padStart(64, "0");
+    console.log("Encoded instruction:", "0x" + encodedInstruction);
 
-/**
- * Step 2: Encode instruction for XRPL memo
- */
-function encodeInstruction(callHash: BN): string {
-    const INSTRUCTION_ID_CUSTOM = 99; // 0x63
-
-    // Convert callHash to 31 bytes (remove the highest byte)
-    const callHashHex = callHash.toString(16).padStart(62, "0"); // 31 bytes = 62 hex chars
-    const callHashBytes = callHashHex.slice(-62); // Take last 31 bytes
-
-    // Instruction = ID (1 byte) + callHash (31 bytes)
-    const instruction = INSTRUCTION_ID_CUSTOM.toString(16).padStart(2, "0") + callHashBytes;
-
-    console.log("\n=== Step 2: Encoding Instruction ===");
-    console.log("Instruction ID: 99 (Custom)");
-    console.log("Encoded instruction:", "0x" + instruction);
-
-    return instruction;
+    return { callHash, nativeFee, encodedInstruction };
 }
 
 /**
@@ -261,9 +217,9 @@ async function sendXrplPayment(
             if (txResult !== "tesSUCCESS") {
                 throw new Error(
                     `XRPL payment failed with result: ${txResult}\n` +
-                        `This usually means:\n` +
-                        `- tecUNFUNDED_PAYMENT: Insufficient XRP balance in your XRPL account\n` +
-                        `- Check your XRPL account balance and ensure you have enough XRP for the payment + fees`
+                    `This usually means:\n` +
+                    `- tecUNFUNDED_PAYMENT: Insufficient XRP balance in your XRPL account\n` +
+                    `- Check your XRPL account balance and ensure you have enough XRP for the payment + fees`
                 );
             }
 
@@ -354,8 +310,8 @@ async function retrieveAttestationProof(votingRoundId: number, xrplTxHash: strin
  */
 async function checkPersonalAccountBalance(
     xrplAddress: string,
-    requiredAmount: BN
-): Promise<{ hasAccount: boolean; balance: BN; needsDeposit: boolean }> {
+    requiredAmount: bigint
+): Promise<{ hasAccount: boolean; balance: bigint; needsDeposit: boolean }> {
     console.log("\n=== Checking Personal Account ===");
 
     const masterController = new web3.eth.Contract(MASTER_ACCOUNT_CONTROLLER_ABI, CONFIG.MASTER_ACCOUNT_CONTROLLER);
@@ -366,21 +322,21 @@ async function checkPersonalAccountBalance(
 
     console.log("Personal Account Address:", hasAccount ? personalAccount : "Not created yet");
 
-    let balance = web3.utils.toBN(0);
+    let balance = 0n;
     if (hasAccount) {
         const ftestxrp: IERC20Instance = await IERC20.at(CONFIG.COSTON2_FTESTXRP);
-        balance = web3.utils.toBN(await ftestxrp.balanceOf(personalAccount));
-        console.log("Current FXRP Balance:", formatUnits(balance.toString(), 6), "FXRP");
+        balance = BigInt(await ftestxrp.balanceOf(personalAccount));
+        console.log("Current FXRP Balance:", formatUnits(balance, 6), "FXRP");
     } else {
         console.log("Current FXRP Balance: 0 FXRP (account not created)");
     }
 
-    console.log("Required FXRP:", formatUnits(requiredAmount.toString(), 6), "FXRP");
+    console.log("Required FXRP:", formatUnits(requiredAmount, 6), "FXRP");
 
-    const needsDeposit = balance.lt(requiredAmount);
+    const needsDeposit = balance < requiredAmount;
     if (needsDeposit) {
-        const shortfall = requiredAmount.sub(balance);
-        console.log("⚠️  Insufficient balance! Shortfall:", formatUnits(shortfall.toString(), 6), "FXRP");
+        const shortfall = requiredAmount - balance;
+        console.log("⚠️  Insufficient balance! Shortfall:", formatUnits(shortfall, 6), "FXRP");
     } else {
         console.log("✅ Sufficient balance available");
     }
@@ -414,9 +370,9 @@ async function checkXrplBalance(xrplWallet: any, requiredXRP: string): Promise<v
         if (balance < required) {
             throw new Error(
                 `Insufficient XRP balance!\n` +
-                    `Current: ${balance.toFixed(6)} XRP\n` +
-                    `Required: ${required} XRP + fees\n` +
-                    `Please fund your XRPL testnet account at: https://faucet.altnet.rippletest.net/`
+                `Current: ${balance.toFixed(6)} XRP\n` +
+                `Required: ${required} XRP + fees\n` +
+                `Please fund your XRPL testnet account at: https://faucet.altnet.rippletest.net/`
             );
         }
 
@@ -454,11 +410,11 @@ async function getAvailableAgentVault(assetManager: IAssetManagerInstance): Prom
     for (let i = 0; i < agents.length; i++) {
         const agent = agents[i];
         const agentVault = agent.agentVault;
-        const freeLots = web3.utils.toBN(agent.freeCollateralLots);
+        const freeLots = BigInt(agent.freeCollateralLots);
 
         console.log(`Agent ${agentVault}: ${freeLots.toString()} free lots`);
 
-        if (freeLots.gtn(0)) {
+        if (freeLots > 0n) {
             console.log(`✅ Selected agent vault: ${agentVault}`);
             return agentVault;
         }
@@ -466,10 +422,10 @@ async function getAvailableAgentVault(assetManager: IAssetManagerInstance): Prom
 
     throw new Error(
         "No agent vaults with available collateral found.\n" +
-            "This might mean:\n" +
-            "- All agents are at capacity\n" +
-            "- No active agents in the system\n" +
-            "Please try again later or contact support."
+        "This might mean:\n" +
+        "- All agents are at capacity\n" +
+        "- No active agents in the system\n" +
+        "Please try again later or contact support."
     );
 }
 
@@ -513,7 +469,7 @@ async function sendMintPayments(
         // STEP 1: Send reserveCollateral instruction
         // Format: 0x05 (1 byte) + agent vault (20 bytes) + lots (11 bytes)
         const agentVaultHex = agentVault.toLowerCase().replace("0x", "");
-        const lotsBN = web3.utils.toBN(lots);
+        const lotsBN = BigInt(lots);
         const lotsHex = lotsBN.toString(16).padStart(22, "0");
         const mintInstruction = "05" + agentVaultHex + lotsHex;
 
@@ -614,7 +570,7 @@ async function sendMintPayments(
  */
 async function waitForMintExecution(
     xrplAddress: string,
-    expectedMinimumBalance: BN,
+    expectedMinimumBalance: bigint,
     xrplTxHash: string,
     timestamp: number
 ): Promise<void> {
@@ -637,12 +593,12 @@ async function waitForMintExecution(
 
         if (hasAccount) {
             const ftestxrp: IERC20Instance = await IERC20.at(CONFIG.COSTON2_FTESTXRP);
-            const balance = web3.utils.toBN(await ftestxrp.balanceOf(personalAccount));
+            const balance = BigInt(await ftestxrp.balanceOf(personalAccount));
 
             console.log("Personal Account:", personalAccount);
-            console.log("FXRP Balance:", formatUnits(balance.toString(), 6), "FXRP");
+            console.log("FXRP Balance:", formatUnits(balance, 6), "FXRP");
 
-            if (balance.gte(expectedMinimumBalance)) {
+            if (balance >= expectedMinimumBalance) {
                 console.log("\n✅ Mint successful! Balance updated.");
                 return;
             }
@@ -700,11 +656,11 @@ async function main() {
     const { signerAddress, xrplWallet } = await getWallets();
 
     // Prepare bridge parameters
-    const amountToBridge = web3.utils.toBN(web3.utils.toWei(CONFIG.BRIDGE_AMOUNT, "mwei")); // 6 decimals = mwei
+    const amountToBridge = BigInt(web3.utils.toWei(CONFIG.BRIDGE_AMOUNT, "mwei")); // 6 decimals = mwei
     const recipientAddress = signerAddress;
 
     console.log("\n📋 Bridge Configuration:");
-    console.log("Amount:", formatUnits(amountToBridge.toString(), 6), "FXRP");
+    console.log("Amount:", formatUnits(amountToBridge, 6), "FXRP");
     console.log("Destination: Sepolia");
     console.log("Recipient:", recipientAddress);
 
@@ -734,7 +690,7 @@ async function main() {
             if (!CONFIG.AUTO_MINT_IF_NEEDED) {
                 throw new Error(
                     `\n❌ Insufficient FXRP in your Smart Account!\n\n` +
-                        `Set AUTO_MINT_IF_NEEDED=true in CONFIG to automatically mint FXRP.`
+                    `Set AUTO_MINT_IF_NEEDED=true in CONFIG to automatically mint FXRP.`
                 );
             }
 
@@ -767,7 +723,7 @@ async function main() {
 
             // Wait for Smart Accounts executor to process the mint
             // The executor handles FDC attestation and execution automatically
-            const expectedBalance = web3.utils.toBN(web3.utils.toWei((CONFIG.MINT_LOTS * 10).toString(), "mwei"));
+            const expectedBalance = BigInt(web3.utils.toWei((CONFIG.MINT_LOTS * 10).toString(), "mwei"));
             await waitForMintExecution(xrplWallet.address, expectedBalance, mintTxHash, mintTimestamp);
 
             console.log("\n✅ Mint complete! Proceeding with bridge...\n");
@@ -777,13 +733,10 @@ async function main() {
         console.log("║   Bridging FXRP to Sepolia                                 ║");
         console.log("╚════════════════════════════════════════════════════════════╝");
 
-        // Step 1: Register custom instruction
-        const { callHash } = await registerCustomInstruction(recipientAddress, amountToBridge);
+        // Step 1: Register custom instruction & get encoded instruction
+        const { encodedInstruction } = await registerCustomInstruction(recipientAddress, amountToBridge);
 
-        // Step 2: Encode instruction
-        const encodedInstruction = encodeInstruction(callHash);
-
-        // Step 2.5: Get XRPL operator address
+        // Step 2: Get XRPL operator address
         const operatorAddress = await getXrplOperatorAddress();
 
         // Step 3: Send XRPL payment
