@@ -66,9 +66,9 @@ const CONFIG = {
     COSTON2_OFT_ADAPTER: "0xCd3d2127935Ae82Af54Fc31cCD9D3440dbF46639",
 
     // FDC Configuration
-    FDC_VERIFIER_API: process.env.FDC_VERIFIER_API as string,
-    FDC_DA_API: process.env.FDC_DA_API as string,
-    FDC_API_KEY: process.env.FDC_API_KEY as string,
+    FDC_VERIFIER_API: (process.env.FDC_VERIFIER_API || process.env.VERIFIER_URL_TESTNET) as string,
+    FDC_DA_API: (process.env.FDC_DA_API || process.env.COSTON2_DA_LAYER_URL) as string,
+    FDC_API_KEY: (process.env.FDC_API_KEY || process.env.VERIFIER_API_KEY_TESTNET) as string,
 
     // XRPL Configuration
     XRPL_RPC: "wss://s.altnet.rippletest.net:51233",
@@ -497,7 +497,7 @@ async function sendMintPayments(
     lots: number,
     agentVault: string,
     agentXrplAddress: string
-): Promise<void> {
+): Promise<{ hash: string; timestamp: number }> {
     // todo(Anthony): get reserve collateral from CollateralReserved Event
     // Calculate total XRP needed: 1 for trigger + (lots * 10) for collateral
     const collateralXRP = lots * 10;
@@ -598,6 +598,12 @@ async function sendMintPayments(
 
         console.log("\n✅ Both mint payments sent successfully!");
         console.log("Executor will now process the mint...");
+
+        // Get timestamp from ledger
+        // XRPL epoch is 2000-01-01 00:00:00 UTC = 946684800 Unix
+        const timestamp = (result1.result.date || 0) + 946684800;
+
+        return { hash: result1.result.hash, timestamp };
     } finally {
         await client.disconnect();
     }
@@ -606,7 +612,12 @@ async function sendMintPayments(
 /**
  * Wait for Smart Accounts executor to process the mint and update balance
  */
-async function waitForMintExecution(xrplAddress: string, expectedMinimumBalance: BN): Promise<void> {
+async function waitForMintExecution(
+    xrplAddress: string,
+    expectedMinimumBalance: BN,
+    xrplTxHash: string,
+    timestamp: number
+): Promise<void> {
     console.log("\n=== Waiting for Smart Accounts Executor ===");
     console.log("The executor will automatically process your mint instruction.");
     console.log("This typically takes 3-10 minutes.");
@@ -639,6 +650,33 @@ async function waitForMintExecution(xrplAddress: string, expectedMinimumBalance:
             console.log("Personal account not created yet...");
         }
 
+        // If we've waited for 5 attempts (2.5 minutes) and still no account, try manual execution
+        if (attempt === 5 && !hasAccount) {
+            console.log("\n⚠️  Executor seems slow. Attempting manual execution...");
+            try {
+                const votingRoundId = await calculateVotingRoundId(timestamp);
+                console.log("Voting Round:", votingRoundId);
+
+                // Try to get proof
+                const proof = await retrieveAttestationProof(votingRoundId, xrplTxHash);
+                console.log("✅ Proof retrieved! Submitting execution transaction...");
+
+                const accounts = await web3.eth.getAccounts();
+                const tx = await masterController.methods
+                    .executeTransaction(proof, xrplAddress)
+                    .send({ from: accounts[0] });
+                console.log("Manual execution tx:", tx.transactionHash);
+                console.log("✅ Manual execution successful!");
+
+                // Wait a bit for state update
+                await sleep(5000);
+                continue; // Check balance again immediately
+            } catch (e: any) {
+                console.log("❌ Manual execution failed:", e.message);
+                console.log("Continuing to wait for Executor...");
+            }
+        }
+
         if (attempt < maxAttempts) {
             console.log(`Waiting ${pollInterval / 1000} seconds before next check...`);
             await sleep(pollInterval);
@@ -649,7 +687,6 @@ async function waitForMintExecution(xrplAddress: string, expectedMinimumBalance:
         "Mint did not complete within the expected time.\n" + "The executor may be delayed. Check your balance later."
     );
 }
-
 
 /**
  * Main execution flow
@@ -720,12 +757,18 @@ async function main() {
             const operatorAddress = await getXrplOperatorAddress();
 
             // Send both XRPL payments for minting (reserve + collateral)
-            await sendMintPayments(xrplWallet, operatorAddress, CONFIG.MINT_LOTS, agentVault, agentXrplAddress);
+            const { hash: mintTxHash, timestamp: mintTimestamp } = await sendMintPayments(
+                xrplWallet,
+                operatorAddress,
+                CONFIG.MINT_LOTS,
+                agentVault,
+                agentXrplAddress
+            );
 
             // Wait for Smart Accounts executor to process the mint
             // The executor handles FDC attestation and execution automatically
             const expectedBalance = web3.utils.toBN(web3.utils.toWei((CONFIG.MINT_LOTS * 10).toString(), "mwei"));
-            await waitForMintExecution(xrplWallet.address, expectedBalance);
+            await waitForMintExecution(xrplWallet.address, expectedBalance, mintTxHash, mintTimestamp);
 
             console.log("\n✅ Mint complete! Proceeding with bridge...\n");
         }
