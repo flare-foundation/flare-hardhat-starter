@@ -103,11 +103,7 @@ contract FAssetRedeemComposer is IOAppComposer, Ownable, ReentrancyGuard {
     ///      Users should get the requestId from the RedemptionRequested event emitted by AssetManager.
     /// @param _redemptionRequestId The redemption request ID to query
     /// @return Redemption request information including status, agent, amounts, and timing details
-    function getRedemptionInfo(uint256 _redemptionRequestId)
-        external
-        view
-        returns (RedemptionRequestInfo.Data memory)
-    {
+    function getRedemptionInfo(uint256 _redemptionRequestId) external view returns (RedemptionRequestInfo.Data memory) {
         IAssetManager assetManager = ContractRegistry.getAssetManagerFXRP();
         return assetManager.redemptionRequestInfo(_redemptionRequestId);
     }
