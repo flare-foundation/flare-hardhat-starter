@@ -1,44 +1,53 @@
-# Bridge via Smart Account
+Here is a simple, clean `README.md` for your script.
 
-Bridge FXRP from XRPL to Sepolia via Flare Smart Accounts using the FAssets protocol.
+***
+
+# Flare Smart Account Bridge Script
+
+This script automates the process of bridging **FXRP** from the Flare Testnet (Coston2) to Sepolia via **LayerZero**, triggered entirely by an **XRPL** payment.
+
+It handles the entire lifecycle:
+1.  **Account Discovery:** Finds or creates your Flare Personal Account derived from your XRPL address.
+2.  **Auto-Minting:** If you lack FXRP, it automates the reservation and collateral transfer on XRPL to mint FTestXRP.
+3.  **Gas Funding:** Automatically tops up your Smart Account with C2FLR (Gas) if needed.
+4.  **Bridging:** Registers an atomic "Approve + Send" instruction and triggers it via an XRPL Memo payment.
+
+## Prerequisites
+
+1.  **XRPL Testnet Wallet:** Funded with testnet XRP (get it from the [XRPL Faucet](https://xrpl.org/xrp-testnet-faucet.html)).
+2.  **Flare Coston2 Wallet:** Funded with C2FLR for gas (get it from the [Coston2 Faucet](https://faucet.flare.network/coston2)).
+
+## Setup
+
+1.  **Install Dependencies:**
+    ```bash
+    yarn install
+    ```
+
+2.  **Configure Environment:**
+    Create a `.env` file in the root directory and add the following:
+    ```env
+    # Your EVM/Flare Private Key (Must hold C2FLR to pay for registration/gas)
+    PRIVATE_KEY=0x...
+
+    # Your XRPL Wallet Secret (e.g., sEd...)
+    XRPL_SECRET=sEd...
+    ```
 
 ## Usage
+
+Run the script targeting the Coston2 network:
 
 ```bash
 yarn hardhat run scripts/smartAccounts/bridgeViaSmartAccount.ts --network coston2
 ```
 
-## Prerequisites
+## What to Expect
 
-Add to your `.env` file:
-```bash
-PRIVATE_KEY=your_private_key_here
-XRPL_SECRET=your_xrpl_secret_here
-SEPOLIA_API_KEY=your_sepolia_api_key_here
-```
+The script will run through the following stages. **Do not close the terminal**, as it waits for Flare Data Connector (FDC) attestations which can take 3–5 minutes.
 
-Fund your XRPL testnet account: https://faucet.altnet.rippletest.net/
-
-## Configuration
-
-Edit the `CONFIG` object in the script:
-
-- `BRIDGE_AMOUNT` - Amount of FXRP to bridge (default: "10")
-- `AUTO_MINT_IF_NEEDED` - Automatically mint FXRP if balance insufficient (default: true)
-- `MINT_LOTS` - Number of lots to mint if needed (1 lot = 10 FXRP, default: 1)
-
-## What It Does
-
-1. Checks your Smart Account FXRP balance
-2. Automatically mints FXRP via FAssets if balance is insufficient
-3. Registers a custom bridge instruction with MasterAccountController
-4. Sends XRPL payment with encoded instruction
-5. Retrieves FDC attestation proof
-6. Executes the bridge to Sepolia via LayerZero
-
-## XRP Requirements
-
-- **If minting needed**: ~11 XRP (1 XRP trigger + 10 XRP collateral for 1 lot)
-- **Bridge payment**: 1 XRP
-- **Total**: ~12 XRP + fees
--
+1.  **Registering Instruction:** You will see a transaction on Flare registering the LayerZero bridge capability.
+2.  **Status Check:** It checks if you have a Personal Account, FXRP balance, and Gas.
+3.  **Minting (Optional):** If you have 0 FXRP, it will send XRP payments to an Agent to mint new tokens.
+4.  **Bridging:** It sends a ~0.1 XRP payment with a specific **Memo** to the Flare Operator.
+5.  **Tracking:** Finally, it outputs a **LayerZero Scan link** where you can track your tokens moving to Sepolia.
