@@ -58,7 +58,7 @@ contract FAssetRedeemComposer is IOAppComposer, Ownable, ReentrancyGuard {
         if (currentBalance == 0) revert InsufficientBalance();
 
         // 4. Calculate Lots
-        uint256 lotSizeUBA = assetManager.lotSize();
+        uint256 lotSizeUBA = assetManager.getSettings().lotSizeAMG;
         uint256 lots = currentBalance / lotSizeUBA;
 
         if (lots == 0) revert AmountTooSmall();
