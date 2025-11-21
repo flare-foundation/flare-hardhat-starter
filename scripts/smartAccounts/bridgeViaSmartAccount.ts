@@ -9,7 +9,7 @@ import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
 import { Client, Wallet as XrplWallet, xrpToDrops, Payment, decodeAccountID } from "xrpl";
 import { getAssetManagerFXRP } from "../utils/getters";
-import { logEvents, sleep } from "../utils/core";
+import { sleep } from "../utils/core";
 import { IAssetManagerInstance, IERC20Instance } from "../../typechain-types";
 import * as fs from "fs";
 import * as path from "path";
