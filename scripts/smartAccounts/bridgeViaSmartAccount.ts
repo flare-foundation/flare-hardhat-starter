@@ -247,22 +247,8 @@ async function waitForBridgeExecution(oftAdapterAddress: string, personalAccount
             });
 
             for (const evt of events) {
-                if (evt.event === "OFTSent") {
-                    // Check if this tx involved our PA.
-                    // Since PA calls Adapter, tx.from is Operator, but msg.sender in contract is PA.
-                    // The event args usually contain the sender.
-                    const returnValues = (evt as any).returnValues;
-
-                    // Check if our Personal Account was the sender or involved
-                    const isFromPA = Object.values(returnValues).some(
-                        (val) => typeof val === "string" && val.toLowerCase() === personalAccountAddr.toLowerCase()
-                    );
-
-                    if (isFromPA) {
-                        console.log("\n🚀 Bridge Executed!");
-                        console.log("Flare Tx Hash:", evt.transactionHash);
-                        return evt.transactionHash;
-                    }
+                if (evt.event !== "OFTSent") {
+                    continue;
                 }
             }
             currentFrom = currentTo + 1;
@@ -308,6 +294,30 @@ async function mintFXRP(xrplWallet: any, lots: number) {
     await sleep(60000);
 }
 
+async function executeBridge(
+    xrplWallet: any,
+    bridgeMemo: string,
+    status: { hasAccount: boolean; personalAccountAddr: string }
+) {
+    console.log("\n=== Bridging to Sepolia via Custom Instruction ===");
+    const masterController = getMasterController();
+    const operatorAddress = await masterController.methods.xrplProviderWallet().call();
+
+    const startBlock = await web3.eth.getBlockNumber();
+
+    console.log("Sending Bridge Trigger on XRPL...");
+    await sendXrplMemoPayment(xrplWallet, operatorAddress, "0.1", bridgeMemo);
+    console.log("\n✅ Bridge Request Sent!");
+
+    if (status.hasAccount) {
+        const txHash = await waitForBridgeExecution(CONFIG.COSTON2_OFT_ADAPTER, status.personalAccountAddr, startBlock);
+        if (txHash) {
+            console.log("\n🌐 Track your transaction on LayerZero Scan:");
+            console.log(`👉 https://testnet.layerzeroscan.com/tx/${txHash}`);
+        }
+    }
+}
+
 /**
  * Main Flow
  */
@@ -342,23 +352,7 @@ async function main() {
     }
 
     // 5. Execute Bridge
-    console.log("\n=== Bridging to Sepolia via Custom Instruction ===");
-    const masterController = getMasterController();
-    const operatorAddress = await masterController.methods.xrplProviderWallet().call();
-
-    const startBlock = await web3.eth.getBlockNumber();
-
-    console.log("Sending Bridge Trigger on XRPL...");
-    await sendXrplMemoPayment(xrplWallet, operatorAddress, "0.1", bridgeMemo);
-    console.log("\n✅ Bridge Request Sent!");
-
-    if (status.hasAccount) {
-        const txHash = await waitForBridgeExecution(CONFIG.COSTON2_OFT_ADAPTER, status.personalAccountAddr, startBlock);
-        if (txHash) {
-            console.log("\n🌐 Track your transaction on LayerZero Scan:");
-            console.log(`👉 https://testnet.layerzeroscan.com/tx/${txHash}`);
-        }
-    }
+    await executeBridge(xrplWallet, bridgeMemo, status);
 }
 
 main().catch((error) => {
