@@ -10,7 +10,7 @@ import { EndpointId } from "@layerzerolabs/lz-definitions";
 
 const CONFIG = {
     SEPOLIA_FXRP_OFT: process.env.SEPOLIA_FXRP_OFT || "0x81672c5d42F3573aD95A0bdfBE824faaC547d4E6",
-    COSTON2_COMPOSER: process.env.COSTON2_COMPOSER || "",
+    COSTON2_COMPOSER: process.env.COSTON2_COMPOSER || "0x5051E8db650E9e0E2a3f03010Ee5c60e79CF583E",
     COSTON2_EID: EndpointId.FLARE_V2_TESTNET,
     EXECUTOR_GAS: 1_000_000,
     COMPOSE_GAS: 1_000_000,
