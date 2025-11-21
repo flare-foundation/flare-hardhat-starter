@@ -8,20 +8,19 @@ import { formatUnits, parseUnits, zeroPadValue, AbiCoder } from "ethers";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
 
-// Configuration
 const CONFIG = {
     SEPOLIA_FXRP_OFT: process.env.SEPOLIA_FXRP_OFT || "0x81672c5d42F3573aD95A0bdfBE824faaC547d4E6",
-    COSTON2_COMPOSER: process.env.COSTON2_COMPOSER || "", // Address of FAssetRedeemComposer on Coston2
+    COSTON2_COMPOSER: process.env.COSTON2_COMPOSER || "",
     COSTON2_EID: EndpointId.FLARE_V2_TESTNET,
-    EXECUTOR_GAS: 1_000_000, // Increased gas for redemption logic
+    EXECUTOR_GAS: 1_000_000,
     COMPOSE_GAS: 1_000_000,
     SEND_AMOUNT: "10",
     XRP_ADDRESS: "rpHuw4bKSjonKRrKKVYUZYYVedg1jyPrmp",
 } as const;
 
 type RedemptionParams = {
-    amountLD: bigint; // Local Decimals (Sepolia)
-    amountSD: bigint; // Shared/Dest Decimals (Coston2 - 6)
+    amountLD: bigint;
+    amountSD: bigint;
     underlyingAddress: string;
     redeemer: string;
     signerAddress: string;
@@ -51,23 +50,14 @@ async function connectToOFT() {
     return await ethers.getContractAt("FXRPOFT", CONFIG.SEPOLIA_FXRP_OFT);
 }
 
-/**
- * 1. Fetch Decimals and Calculate Amounts correctly
- */
 async function prepareRedemptionParams(oft: any, signerAddress: string): Promise<RedemptionParams> {
-    // Get Local Decimals (Sepolia)
     const decimals = await oft.decimals();
     console.log(`\nℹ️  Source Token Decimals: ${decimals}`);
 
-    // Destination Decimals (Coston2 FAssets are always 6)
     const destDecimals = 6;
 
-    // 1. Amount to Send (in Local Sepolia Decimals)
-    // If decimals is 18, this makes 10000000000000000000
     const amountLD = parseUnits(CONFIG.SEND_AMOUNT, decimals);
 
-    // 2. Amount for Compose Message (in Destination Coston2 Decimals)
-    // This tells the composer exactly how much it *should* receive
     const amountSD = parseUnits(CONFIG.SEND_AMOUNT, destDecimals);
 
     console.log("\n📋 Redemption Parameters:");
@@ -84,13 +74,9 @@ async function prepareRedemptionParams(oft: any, signerAddress: string): Promise
     };
 }
 
-/**
- * 2. Encode the Message using the DESTINATION amount (6 decimals)
- */
 function encodeComposeMessage(params: RedemptionParams): string {
     const abiCoder = AbiCoder.defaultAbiCoder();
 
-    // We encode amountSD (6 decimals) because that is what the contract on Coston2 expects
     const composeMsg = abiCoder.encode(
         ["uint256", "string", "address"],
         [params.amountSD, params.underlyingAddress, params.redeemer]
@@ -111,8 +97,8 @@ function buildSendParams(params: RedemptionParams, composeMsg: string, options: 
     return {
         dstEid: CONFIG.COSTON2_EID,
         to: zeroPadValue(CONFIG.COSTON2_COMPOSER, 32),
-        amountLD: params.amountLD, // Send using Source Decimals
-        minAmountLD: params.amountLD, // Slippage setting (using source decimals)
+        amountLD: params.amountLD,
+        minAmountLD: params.amountLD,
         extraOptions: options,
         composeMsg: composeMsg,
         oftCmd: "0x",
@@ -148,10 +134,8 @@ async function main() {
     const signer = await validateSetup();
     const oft = await connectToOFT();
 
-    // Prepare params dynamically fetching source decimals
     const params = await prepareRedemptionParams(oft, signer.address);
 
-    // Encode the message for the destination (using params.amountSD)
     const composeMsg = encodeComposeMessage(params);
 
     const options = buildComposeOptions();
