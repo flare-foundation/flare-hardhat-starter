@@ -27,7 +27,7 @@ const CONFIG = {
     COSTON2_FTESTXRP: "0x8b4abA9C4BD7DD961659b02129beE20c6286e17F", // OLD token that matches OFT Adapter
     COSTON2_OFT_ADAPTER: "0xCd3d2127935Ae82Af54Fc31cCD9D3440dbF46639",
     COSTON2_COMPOSER: process.env.COSTON2_COMPOSER || "",
-    HYPERLIQUID_EID: process.env.HYPERLIQUID_EID, // Hyperliquid testnet EID
+    HYPERLIQUID_EID: EndpointId.HYPERLIQUID_V2_TESTNET, // Hyperliquid testnet EID
     EXECUTOR_GAS: 200_000,
     BRIDGE_AMOUNT: "11",
 } as const;

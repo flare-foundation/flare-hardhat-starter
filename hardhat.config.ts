@@ -84,6 +84,16 @@ const config: HardhatUserConfig = {
             accounts: [`${PRIVATE_KEY}`],
             chainId: 14,
         },
+        hyperliquidTestnet: {
+            url: "https://rpc.hyperliquid-testnet.xyz/evm",
+            accounts: [`${PRIVATE_KEY}`],
+            chainId: 998,
+        },
+        hyperliquid: {
+            url: "https://rpc.hyperliquid.xyz/evm",
+            accounts: [`${PRIVATE_KEY}`],
+            chainId: 999,
+        },
         tenderly: {
             url: "https://flare.gateway.tenderly.co/pdYQcL54puW9QXPURLblM",
             accounts: [`${PRIVATE_KEY}`],
