@@ -5,6 +5,9 @@ These scripts handle various operations related to minting, redeeming, and manag
 
 Read more about FAssets https://dev.flare.network/fassets/overview
 
+- Run `autoRedeem.ts` to execute auto-redeem of FXRP from Sepolia to the underlying XRP Ledger address using LayerZero compose.
+- Run `bridgeToSepolia.ts` to bridge FXRP from Flare to Sepolia to ensure there's enough fxrp for auto-redeem.
+- Run `deployFassetRedeemComposer.ts` to deploy the FAssetRedeemComposer contract.
 - Run `executeMinting.ts` to execute FAssets minting using FDC Merkle proofs. Handles proof retrieval and contract interaction. Run after the `reserveCollateral.ts` script.
 - Run `getLotSize.ts` to get the FAssets system lot size.
 - Run `getRedemptionQueue.ts` to get the FAssets system agent redemption queue.
