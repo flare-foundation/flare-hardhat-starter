@@ -154,13 +154,13 @@ async function sendXrplMemoPayment(xrplWallet: any, destination: string, amountX
 }
 
 /**
- * FIX: Correctly converts XRPL Address to Hex for Contract Lookup
+ * Correctly converts XRPL Address to Hex for Contract Lookup
  */
 async function checkPersonalAccount(xrplAddress: string, requiredAmountFXRP: bigint, requiredGas: bigint) {
     console.log("\n=== Checking Smart Account Balance ===");
     const masterController = getMasterController();
 
-    // FIX: Decode XRPL Address (Base58) to Hex Bytes
+    // Decode XRPL Address (Base58) to Hex Bytes
     const xrplBytes = decodeAccountID(xrplAddress);
     const xrplBytesHex = "0x" + Buffer.from(xrplBytes).toString("hex");
 
