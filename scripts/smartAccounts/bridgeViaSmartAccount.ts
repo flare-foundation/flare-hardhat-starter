@@ -33,7 +33,7 @@ const CONFIG = {
     XRPL_RPC: "wss://s.altnet.rippletest.net:51233",
     SEPOLIA_EID: EndpointId.SEPOLIA_V2_TESTNET,
     EXECUTOR_GAS: 400_000,
-    BRIDGE_AMOUNT: "5", // Amount in FXRP (Tokens)
+    BRIDGE_AMOUNT: "10", // Amount in FXRP (Tokens)
     AUTO_MINT_IF_NEEDED: true,
     MINT_LOTS: 1,
 } as const;
@@ -224,42 +224,6 @@ async function waitForReservationEvent(assetManager: IAssetManagerInstance, agen
     throw new Error("Timeout waiting for reservation event.");
 }
 
-/**
- * TRACKING: Wait for OFTSent event to get the LayerZero Tx Hash
- */
-async function waitForBridgeExecution(oftAdapterAddress: string, personalAccountAddr: string, startBlock: number) {
-    console.log("\n⏳ Waiting for Bridge Execution on Flare (watching FAssetOFTAdapter)...");
-
-    const oftAdapter = new web3.eth.Contract(FASSET_OFT_ADAPTER_ABI, oftAdapterAddress);
-    let currentFrom = startBlock;
-    const MAX_BLOCK_RANGE = 25;
-    const MAX_DURATION = 20 * 60 * 1000; // 20 mins max wait
-    const startTime = Date.now();
-
-    while (Date.now() - startTime < MAX_DURATION) {
-        const latest = await web3.eth.getBlockNumber();
-
-        while (currentFrom <= latest) {
-            const currentTo = Math.min(currentFrom + MAX_BLOCK_RANGE, latest);
-            const events = await oftAdapter.getPastEvents("allEvents", {
-                fromBlock: currentFrom,
-                toBlock: currentTo,
-            });
-
-            for (const evt of events) {
-                if (evt.event !== "OFTSent") {
-                    continue;
-                }
-            }
-            currentFrom = currentTo + 1;
-        }
-        process.stdout.write(">");
-        await sleep(5000);
-    }
-    console.warn("\n⚠️ Timeout waiting for bridge confirmation event.");
-    return null;
-}
-
 async function mintFXRP(xrplWallet: any, lots: number) {
     console.log(`\n=== Starting Mint for ${lots} Lot(s) ===`);
     const assetManager = await getAssetManagerFXRP();
@@ -294,28 +258,14 @@ async function mintFXRP(xrplWallet: any, lots: number) {
     await sleep(60000);
 }
 
-async function executeBridge(
-    xrplWallet: any,
-    bridgeMemo: string,
-    status: { hasAccount: boolean; personalAccountAddr: string }
-) {
+async function executeBridge(xrplWallet: any, bridgeMemo: string) {
     console.log("\n=== Bridging to Sepolia via Custom Instruction ===");
     const masterController = getMasterController();
     const operatorAddress = await masterController.methods.xrplProviderWallet().call();
 
-    const startBlock = await web3.eth.getBlockNumber();
-
     console.log("Sending Bridge Trigger on XRPL...");
     await sendXrplMemoPayment(xrplWallet, operatorAddress, "0.1", bridgeMemo);
-    console.log("\n✅ Bridge Request Sent!");
-
-    if (status.hasAccount) {
-        const txHash = await waitForBridgeExecution(CONFIG.COSTON2_OFT_ADAPTER, status.personalAccountAddr, startBlock);
-        if (txHash) {
-            console.log("\n🌐 Track your transaction on LayerZero Scan:");
-            console.log(`👉 https://testnet.layerzeroscan.com/tx/${txHash}`);
-        }
-    }
+    console.log("\n✅ Bridge Request Sent! (Asynchronous execution on Flare will follow)");
 }
 
 /**
@@ -352,7 +302,7 @@ async function main() {
     }
 
     // 5. Execute Bridge
-    await executeBridge(xrplWallet, bridgeMemo, status);
+    await executeBridge(xrplWallet, bridgeMemo);
 }
 
 main().catch((error) => {
