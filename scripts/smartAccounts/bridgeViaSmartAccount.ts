@@ -28,7 +28,6 @@ const FASSET_OFT_ADAPTER_ABI = JSON.parse(
 // Configuration
 const CONFIG = {
     MASTER_ACCOUNT_CONTROLLER: "0xa7bc2aC84DB618fde9fa4892D1166fFf75D36FA6",
-    COSTON2_FTESTXRP: "0x8b4abA9C4BD7DD961659b02129beE20c6286e17F",
     COSTON2_OFT_ADAPTER: "0xCd3d2127935Ae82Af54Fc31cCD9D3440dbF46639",
     XRPL_RPC: "wss://s.altnet.rippletest.net:51233",
     SEPOLIA_EID: EndpointId.SEPOLIA_V2_TESTNET,
@@ -37,6 +36,15 @@ const CONFIG = {
     AUTO_MINT_IF_NEEDED: true,
     MINT_LOTS: 1,
 } as const;
+
+/**
+ * Get the FXRP token address dynamically from the Asset Manager
+ * @see https://dev.flare.network/fassets/developer-guides/fassets-fxrp-address
+ */
+async function getFXRPAddress(): Promise<string> {
+    const assetManager = await getAssetManagerFXRP();
+    return await assetManager.fAsset();
+}
 
 type CustomInstruction = {
     targetContract: string;
@@ -64,17 +72,17 @@ function getMasterController() {
  * Step 1: Register the Bridge Instruction on Flare
  * Creates an ATOMIC BATCH: [Approve Token, Send Token]
  */
-async function registerBridgeInstruction(recipientAddress: string, amountToBridge: bigint) {
+async function registerBridgeInstruction(recipientAddress: string, amountToBridge: bigint, fxrpAddress: string) {
     console.log("\n=== Step 1: Registering Atomic Bridge Instruction ===");
 
     const oftAdapter = new web3.eth.Contract(FASSET_OFT_ADAPTER_ABI, CONFIG.COSTON2_OFT_ADAPTER);
-    const ftestxrp = new web3.eth.Contract(IERC20.abi, CONFIG.COSTON2_FTESTXRP);
+    const ftestxrp = new web3.eth.Contract(IERC20.abi, fxrpAddress);
 
     // 1. Prepare APPROVE Call (Personal Account -> OFT Adapter)
     const approveCallData = ftestxrp.methods.approve(CONFIG.COSTON2_OFT_ADAPTER, amountToBridge.toString()).encodeABI();
 
     const instructionApprove: CustomInstruction = {
-        targetContract: CONFIG.COSTON2_FTESTXRP,
+        targetContract: fxrpAddress,
         value: 0n,
         data: approveCallData,
     };
@@ -156,7 +164,12 @@ async function sendXrplMemoPayment(xrplWallet: any, destination: string, amountX
 /**
  * Correctly converts XRPL Address to Hex for Contract Lookup
  */
-async function checkPersonalAccount(xrplAddress: string, requiredAmountFXRP: bigint, requiredGas: bigint) {
+async function checkPersonalAccount(
+    xrplAddress: string,
+    requiredAmountFXRP: bigint,
+    requiredGas: bigint,
+    fxrpAddress: string
+) {
     console.log("\n=== Checking Smart Account Balance ===");
     const masterController = getMasterController();
 
@@ -171,7 +184,7 @@ async function checkPersonalAccount(xrplAddress: string, requiredAmountFXRP: big
     let nativeBalance = 0n;
 
     if (hasAccount) {
-        const ftestxrp: IERC20Instance = await IERC20.at(CONFIG.COSTON2_FTESTXRP);
+        const ftestxrp: IERC20Instance = await IERC20.at(fxrpAddress);
         fxrpBalance = BigInt(await ftestxrp.balanceOf(personalAccountAddr));
         nativeBalance = BigInt(await web3.eth.getBalance(personalAccountAddr));
 
@@ -275,11 +288,18 @@ async function main() {
     const { signerAddress, xrplWallet } = await getWallets();
     const amountToBridge = BigInt(web3.utils.toWei(CONFIG.BRIDGE_AMOUNT, "ether"));
 
+    // Get FXRP address dynamically from Asset Manager
+    const fxrpAddress = await getFXRPAddress();
+
     // 1. Register
-    const { memo: bridgeMemo, requiredGas } = await registerBridgeInstruction(signerAddress, amountToBridge);
+    const { memo: bridgeMemo, requiredGas } = await registerBridgeInstruction(
+        signerAddress,
+        amountToBridge,
+        fxrpAddress
+    );
 
     // 2. Check State (With FIX)
-    const status = await checkPersonalAccount(xrplWallet.address, amountToBridge, requiredGas);
+    const status = await checkPersonalAccount(xrplWallet.address, amountToBridge, requiredGas, fxrpAddress);
 
     // 3. Fund Gas
     if (status.needsGas && status.hasAccount) {
