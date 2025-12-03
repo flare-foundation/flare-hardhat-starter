@@ -101,7 +101,7 @@ async function registerBridgeInstruction(recipientAddress: string, amountToBridg
 
     const quoteResult = await oftAdapter.methods.quoteSend(sendParam, false).call();
     const nativeFee = BigInt(quoteResult.nativeFee);
-    console.log(`LayerZero Fee: ${formatUnits(nativeFee, 18)} C2FLR required in PA`);
+    console.log(`LayerZero Fee: ${formatUnits(nativeFee, 18)} C2FLR required in personal account`);
 
     const feeStruct = { nativeFee: nativeFee.toString(), lzTokenFee: "0" };
     const sendCallData = oftAdapter.methods.send(sendParam, feeStruct, recipientAddress).encodeABI();
@@ -161,9 +161,6 @@ async function sendXrplMemoPayment(xrplWallet: any, destination: string, amountX
     }
 }
 
-/**
- * Correctly converts XRPL Address to Hex for Contract Lookup
- */
 async function checkPersonalAccount(
     xrplAddress: string,
     requiredAmountFXRP: bigint,
@@ -173,11 +170,8 @@ async function checkPersonalAccount(
     console.log("\n=== Checking Smart Account Balance ===");
     const masterController = getMasterController();
 
-    // Decode XRPL Address (Base58) to Hex Bytes
-    const xrplBytes = decodeAccountID(xrplAddress);
-    const xrplBytesHex = "0x" + Buffer.from(xrplBytes).toString("hex");
+    const personalAccountAddr = await masterController.methods.getPersonalAccount(xrplAddress).call();
 
-    const personalAccountAddr = await masterController.methods.getPersonalAccount(xrplBytesHex).call();
     const hasAccount = personalAccountAddr !== "0x0000000000000000000000000000000000000000";
 
     let fxrpBalance = 0n;
@@ -244,6 +238,7 @@ async function mintFXRP(xrplWallet: any, lots: number) {
     const operatorAddress = await masterController.methods.xrplProviderWallet().call();
 
     const agents = await assetManager.getAvailableAgentsDetailedList(0, 20);
+    // Note: This is a proof of concept. In production, you can select your own agent.
     const agent = agents._agents.find((a) => BigInt(a.freeCollateralLots) >= BigInt(lots));
     if (!agent) throw new Error("No agents available");
     console.log(`Selected Agent: ${agent.agentVault}`);
@@ -253,6 +248,7 @@ async function mintFXRP(xrplWallet: any, lots: number) {
 
     const agentVaultClean = agent.agentVault.toLowerCase().replace("0x", "");
     const lotsHex = BigInt(lots).toString(16).padStart(22, "0");
+    // TODO:(Anthony) get from library, once the library is published
     const instructionMemo = `05${agentVaultClean}${lotsHex}`;
 
     const currentBlock = await web3.eth.getBlockNumber();
@@ -291,14 +287,14 @@ async function main() {
     // Get FXRP address dynamically from Asset Manager
     const fxrpAddress = await getFXRPAddress();
 
-    // 1. Register
+    // 1. Register custom instruction
     const { memo: bridgeMemo, requiredGas } = await registerBridgeInstruction(
         signerAddress,
         amountToBridge,
         fxrpAddress
     );
 
-    // 2. Check State (With FIX)
+    // 2. Check State
     const status = await checkPersonalAccount(xrplWallet.address, amountToBridge, requiredGas, fxrpAddress);
 
     // 3. Fund Gas
