@@ -7,7 +7,7 @@ import { web3, artifacts } from "hardhat";
 import { formatUnits } from "ethers";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
-import { Client, Wallet as XrplWallet, xrpToDrops, Payment, decodeAccountID } from "xrpl";
+import { Client, Wallet as XrplWallet, xrpToDrops, Payment } from "xrpl";
 import { getAssetManagerFXRP } from "../utils/getters";
 import { sleep } from "../utils/core";
 import { IAssetManagerInstance, IERC20Instance } from "../../typechain-types";
@@ -24,6 +24,12 @@ const MASTER_ACCOUNT_CONTROLLER_ABI = JSON.parse(
 const FASSET_OFT_ADAPTER_ABI = JSON.parse(
     fs.readFileSync(path.join(__dirname, "../abi/FAssetOFTAdapter.json"), "utf-8")
 ).abi;
+
+type CustomInstruction = {
+    targetContract: string;
+    value: bigint;
+    data: string;
+};
 
 // Configuration
 const CONFIG = {
@@ -45,12 +51,6 @@ async function getFXRPAddress(): Promise<string> {
     const assetManager = await getAssetManagerFXRP();
     return await assetManager.fAsset();
 }
-
-type CustomInstruction = {
-    targetContract: string;
-    value: bigint;
-    data: string;
-};
 
 async function getWallets() {
     const accounts = await web3.eth.getAccounts();
