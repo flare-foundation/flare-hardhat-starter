@@ -73,7 +73,7 @@ async function prepareWeb2JsonAttestationRequest(transaction: AttestationRequest
         abiSignature: transaction.data.abiSignature,
     };
 
-    const url = `${transaction.verifierUrlBase}Web2Json/prepareRequest`;
+    const url = `${transaction.verifierUrlBase}/Web2Json/prepareRequest`;
     const apiKey = transaction.verifierApiKey;
 
     return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, transaction.sourceIdBase, requestBody);
@@ -95,7 +95,7 @@ async function prepareTransactionAttestationRequest(transaction: AttestationRequ
         logIndices: logIndices,
     };
 
-    const url = `${transaction.verifierUrlBase}verifier/${transaction.urlTypeBase}/EVMTransaction/prepareRequest`;
+    const url = `${transaction.verifierUrlBase}/verifier/${transaction.urlTypeBase}/EVMTransaction/prepareRequest`;
     const apiKey = transaction.verifierApiKey;
 
     return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, transaction.sourceIdBase, requestBody);
@@ -152,7 +152,7 @@ async function retrieveDataAndProofs(data: Map<string, string>, roundIds: Map<st
 
     const proofs: Map<string, any> = new Map();
 
-    const url = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
+    const url = `${COSTON2_DA_LAYER_URL}/api/v1/fdc/proof-by-request-round-raw`;
     console.log("Url:", url, "\n");
     for (const [source, roundId] of roundIds.entries()) {
         console.log(`(${source})\n`);
