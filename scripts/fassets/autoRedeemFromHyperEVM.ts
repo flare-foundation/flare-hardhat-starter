@@ -7,7 +7,7 @@
  * 3. Redeem the underlying asset (XRP) to a specified address
  *
  * Usage:
- * yarn hardhat run scripts/fassets/autoRedeemHyperEVM.ts --network hyperliquidTestnet
+ * yarn hardhat run scripts/fassets/autoRedeemFromHyperEVM.ts --network hyperliquidTestnet
  */
 
 import { ethers } from "hardhat";
@@ -18,12 +18,12 @@ import { EndpointId } from "@layerzerolabs/lz-definitions";
 // Configuration - using existing deployed contracts
 const CONFIG = {
     HYPERLIQUID_FXRP_OFT: process.env.HYPERLIQUID_FXRP_OFT || "0x14bfb521e318fc3d5e92A8462C65079BC7d4284c",
-    COSTON2_COMPOSER: process.env.COSTON2_COMPOSER || "",
-    COSTON2_EID: EndpointId.FLARE_V2_TESTNET, // Coston2 EID (destination)
-    EXECUTOR_GAS: 400_000,
-    COMPOSE_GAS: 700_000,
-    SEND_AMOUNT: "10", // 10 FXRP = 1 lot
-    XRP_ADDRESS: "rpHuw4bKSjonKRrKKVYUZYYVedg1jyPrmp", // Default XRP address we are auto-redeeming to
+    COSTON2_COMPOSER: process.env.COSTON2_COMPOSER || "0x5051E8db650E9e0E2a3f03010Ee5c60e79CF583E",
+    COSTON2_EID: EndpointId.FLARE_V2_TESTNET,
+    EXECUTOR_GAS: 1_000_000,
+    COMPOSE_GAS: 1_000_000,
+    SEND_LOTS: "1",
+    XRP_ADDRESS: "rpHuw4bKSjonKRrKKVYUZYYVedg1jyPrmp",
 } as const;
 
 type RedemptionParams = {
@@ -43,6 +43,12 @@ type SendParams = {
     composeMsg: string;
     oftCmd: string;
 };
+
+async function calculateAmountToSend(lots: bigint) {
+    // 1 lot = 10 FXRP (10_000_000 in 6 decimals)
+    const lotSize = BigInt(10_000_000);
+    return lotSize * lots;
+}
 
 /**
  * Gets the signer and validates composer is deployed
@@ -68,13 +74,13 @@ async function validateSetup() {
 /**
  * Prepares redemption parameters
  */
-function prepareRedemptionParams(signerAddress: string): RedemptionParams {
-    const amountToSend = parseUnits(CONFIG.SEND_AMOUNT, 6);
+async function prepareRedemptionParams(signerAddress: string): Promise<RedemptionParams> {
+    const amountToSend = await calculateAmountToSend(BigInt(CONFIG.SEND_LOTS));
     const underlyingAddress = CONFIG.XRP_ADDRESS;
     const redeemer = signerAddress;
 
     console.log("\n📋 Redemption Parameters:");
-    console.log("Amount:", formatUnits(amountToSend, 6), "FXRP");
+    console.log("Amount:", formatUnits(amountToSend.toString(), 6), "FXRP");
     console.log("XRP Address:", underlyingAddress);
     console.log("Redeemer:", redeemer);
 
@@ -206,7 +212,7 @@ async function main() {
     const signer = await validateSetup();
 
     // 2. Prepare redemption parameters
-    const params = prepareRedemptionParams(signer.address);
+    const params = await prepareRedemptionParams(signer.address);
 
     // 3. Connect to OFT contract
     const oft = await connectToOFT();

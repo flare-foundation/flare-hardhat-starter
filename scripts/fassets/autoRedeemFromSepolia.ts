@@ -1,10 +1,10 @@
 /**
  * Usage:
- * yarn hardhat run scripts/fassets/autoRedeem.ts --network sepolia
+ * yarn hardhat run scripts/fassets/autoRedeemFromSepolia.ts --network sepolia
  */
 
 import { ethers } from "hardhat";
-import { formatUnits, parseUnits, zeroPadValue, AbiCoder } from "ethers";
+import { formatUnits, zeroPadValue, AbiCoder } from "ethers";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
 
@@ -14,13 +14,12 @@ const CONFIG = {
     COSTON2_EID: EndpointId.FLARE_V2_TESTNET,
     EXECUTOR_GAS: 1_000_000,
     COMPOSE_GAS: 1_000_000,
-    SEND_AMOUNT: "10",
+    SEND_LOTS: "1",
     XRP_ADDRESS: "rpHuw4bKSjonKRrKKVYUZYYVedg1jyPrmp",
 } as const;
 
 type RedemptionParams = {
-    amountLD: bigint;
-    amountSD: bigint;
+    amountToSend: bigint;
     underlyingAddress: string;
     redeemer: string;
     signerAddress: string;
@@ -46,28 +45,26 @@ async function validateSetup() {
     return signer;
 }
 
+async function calculateAmountToSend(lots: bigint) {
+    // 1 lot = 10 FXRP (10_000_000 in 6 decimals)
+    const lotSize = BigInt(10_000_000);
+    return lotSize * lots;
+}
+
 async function connectToOFT() {
     return await ethers.getContractAt("FXRPOFT", CONFIG.SEPOLIA_FXRP_OFT);
 }
 
-async function prepareRedemptionParams(oft: any, signerAddress: string): Promise<RedemptionParams> {
-    const decimals = await oft.decimals();
-    console.log(`\nℹ️  Source Token Decimals: ${decimals}`);
-
-    const destDecimals = 6;
-
-    const amountLD = parseUnits(CONFIG.SEND_AMOUNT, decimals);
-
-    const amountSD = parseUnits(CONFIG.SEND_AMOUNT, destDecimals);
+async function prepareRedemptionParams(signerAddress: string): Promise<RedemptionParams> {
+    const amountToSend = await calculateAmountToSend(BigInt(CONFIG.SEND_LOTS));
 
     console.log("\n📋 Redemption Parameters:");
-    console.log(`   Send Amount (Source): ${formatUnits(amountLD, decimals)} FXRP (Raw: ${amountLD})`);
-    console.log(`   Expect Amount (Dest): ${formatUnits(amountSD, destDecimals)} FXRP (Raw: ${amountSD})`);
+    console.log("   Amount:", formatUnits(amountToSend.toString(), 6), "FXRP");
     console.log("   XRP Address:", CONFIG.XRP_ADDRESS);
+    console.log("   Redeemer:", signerAddress);
 
     return {
-        amountLD,
-        amountSD,
+        amountToSend,
         underlyingAddress: CONFIG.XRP_ADDRESS,
         redeemer: signerAddress,
         signerAddress,
@@ -79,10 +76,10 @@ function encodeComposeMessage(params: RedemptionParams): string {
 
     const composeMsg = abiCoder.encode(
         ["uint256", "string", "address"],
-        [params.amountSD, params.underlyingAddress, params.redeemer]
+        [params.amountToSend, params.underlyingAddress, params.redeemer]
     );
 
-    console.log("✓ Compose message encoded (using 6 decimals)");
+    console.log("✓ Compose message encoded");
     return composeMsg;
 }
 
@@ -97,8 +94,8 @@ function buildSendParams(params: RedemptionParams, composeMsg: string, options: 
     return {
         dstEid: CONFIG.COSTON2_EID,
         to: zeroPadValue(CONFIG.COSTON2_COMPOSER, 32),
-        amountLD: params.amountLD,
-        minAmountLD: params.amountLD,
+        amountLD: params.amountToSend,
+        minAmountLD: params.amountToSend,
         extraOptions: options,
         composeMsg: composeMsg,
         oftCmd: "0x",
@@ -120,7 +117,7 @@ async function quoteFee(oft: any, sendParam: SendParams): Promise<{ nativeFee: b
 }
 
 async function executeSendAndRedeem(oft: any, sendParam: SendParams, nativeFee: bigint, params: RedemptionParams) {
-    console.log(`\n🚀 Sending ${CONFIG.SEND_AMOUNT} FXRP to Coston2...`);
+    console.log(`\n🚀 Sending ${formatUnits(params.amountToSend.toString(), 6)} FXRP to Coston2...`);
 
     const tx = await oft.send(sendParam, { nativeFee, lzTokenFee: 0 }, params.signerAddress, { value: nativeFee });
 
@@ -134,14 +131,14 @@ async function main() {
     const signer = await validateSetup();
     const oft = await connectToOFT();
 
-    const params = await prepareRedemptionParams(oft, signer.address);
+    const params = await prepareRedemptionParams(signer.address);
 
     const composeMsg = encodeComposeMessage(params);
 
     const options = buildComposeOptions();
     const sendParam = buildSendParams(params, composeMsg, options);
 
-    await checkBalance(oft, params.signerAddress, params.amountLD);
+    await checkBalance(oft, params.signerAddress, params.amountToSend);
 
     const { nativeFee } = await quoteFee(oft, sendParam);
 
