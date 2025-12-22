@@ -1361,6 +1361,11 @@
   resolved "https://registry.yarnpkg.com/@flarenetwork/prettier-config-flare/-/prettier-config-flare-0.0.1.tgz#ec9f14e2ab8972f2a27c7e0102e2429c53847e1d"
   integrity sha512-Akt/nlsHRKely09L3x2JdboohEC7Kd3ciAcyu7ffDkH1qOj8s5Xu2MGl9WyZte2cWxKbP663UM8ISDTfzRtC/g==
 
+"@flarenetwork/smart-accounts-encoder@^0.0.8":
+  version "0.0.8"
+  resolved "https://registry.yarnpkg.com/@flarenetwork/smart-accounts-encoder/-/smart-accounts-encoder-0.0.8.tgz#fd8076403edda09f359c380e4aa58fab35b8fb51"
+  integrity sha512-JbB2C41fT/Dre/ySB63LSZOXXFBTrROe1zEm4/QA93B7wl7Fq/TVMzzyjhkM140+1VNP1ji1/l4jov+OAY2Trg==
+
 "@humanfs/core@^0.19.1":
   version "0.19.1"
   resolved "https://registry.yarnpkg.com/@humanfs/core/-/core-0.19.1.tgz#17c55ca7d426733fe3c561906b8173c336b40a77"

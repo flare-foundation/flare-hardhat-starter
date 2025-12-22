@@ -8,6 +8,7 @@ import { formatUnits } from "ethers";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
 import { Client, Wallet as XrplWallet, xrpToDrops, Payment } from "xrpl";
+import { FXRPCollateralReservationInstruction } from "@flarenetwork/smart-accounts-encoder";
 import { getAssetManagerFXRP } from "../utils/getters";
 import { sleep } from "../utils/core";
 import { IAssetManagerInstance, IERC20Instance } from "../../typechain-types";
@@ -38,18 +39,26 @@ const CONFIG = {
     XRPL_RPC: "wss://s.altnet.rippletest.net:51233",
     SEPOLIA_EID: EndpointId.SEPOLIA_V2_TESTNET,
     EXECUTOR_GAS: 400_000,
-    BRIDGE_AMOUNT: "10", // Amount in FXRP (Tokens)
+    BRIDGE_LOTS: 1, // Number of lots to bridge
     AUTO_MINT_IF_NEEDED: true,
     MINT_LOTS: 1,
 } as const;
 
 /**
- * Get the FXRP token address dynamically from the Asset Manager
+ * Get the FXRP token address and calculate bridge amount from lots
  * @see https://dev.flare.network/fassets/developer-guides/fassets-fxrp-address
  */
-async function getFXRPAddress(): Promise<string> {
+async function getAssetManagerInfo(lots: number) {
     const assetManager = await getAssetManagerFXRP();
-    return await assetManager.fAsset();
+    const fxrpAddress = await assetManager.fAsset();
+    const lotSizeBN = await assetManager.lotSize();
+    const lotSize = BigInt(lotSizeBN.toString());
+    const amountToBridge = lotSize * BigInt(lots);
+
+    return {
+        fxrpAddress,
+        amountToBridge,
+    };
 }
 
 async function getWallets() {
@@ -239,17 +248,21 @@ async function mintFXRP(xrplWallet: any, lots: number) {
 
     const agents = await assetManager.getAvailableAgentsDetailedList(0, 20);
     // Note: This is a proof of concept. In production, you can select your own agent.
-    const agent = agents._agents.find((a) => BigInt(a.freeCollateralLots) >= BigInt(lots));
-    if (!agent) throw new Error("No agents available");
-    console.log(`Selected Agent: ${agent.agentVault}`);
+    const agentIndex = agents._agents.findIndex((a) => BigInt(a.freeCollateralLots) >= BigInt(lots));
+    if (agentIndex === -1) throw new Error("No agents available");
+    const agent = agents._agents[agentIndex];
+    console.log(`Selected Agent: ${agent.agentVault} (index: ${agentIndex})`);
 
     const agentInfo = await assetManager.getAgentInfo(agent.agentVault);
     const agentXrplAddress = agentInfo.underlyingAddressString;
 
-    const agentVaultClean = agent.agentVault.toLowerCase().replace("0x", "");
-    const lotsHex = BigInt(lots).toString(16).padStart(22, "0");
-    // TODO:(Anthony) get from library, once the library is published
-    const instructionMemo = `05${agentVaultClean}${lotsHex}`;
+    // Encode mint instruction using smart-accounts-encoder library
+    const reservationInstruction = new FXRPCollateralReservationInstruction({
+        walletId: 0,
+        value: lots,
+        agentVaultId: agentIndex,
+    });
+    const instructionMemo = reservationInstruction.encode().slice(2); // Remove '0x' prefix for XRPL memo
 
     const currentBlock = await web3.eth.getBlockNumber();
     console.log(`1. Sending Reservation Trigger...`);
@@ -282,10 +295,10 @@ async function executeBridge(xrplWallet: any, bridgeMemo: string) {
  */
 async function main() {
     const { signerAddress, xrplWallet } = await getWallets();
-    const amountToBridge = BigInt(web3.utils.toWei(CONFIG.BRIDGE_AMOUNT, "ether"));
 
-    // Get FXRP address dynamically from Asset Manager
-    const fxrpAddress = await getFXRPAddress();
+    // Get FXRP address and calculate bridge amount from lots
+    const { fxrpAddress, amountToBridge } = await getAssetManagerInfo(CONFIG.BRIDGE_LOTS);
+    console.log(`\nBridging ${CONFIG.BRIDGE_LOTS} lot(s) = ${formatUnits(amountToBridge, 6)} FXRP`);
 
     // 1. Register custom instruction
     const { memo: bridgeMemo, requiredGas } = await registerBridgeInstruction(

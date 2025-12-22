@@ -65,6 +65,7 @@
         "@flarenetwork/flare-periphery-contract-artifacts": "0.1.37",
         "@flarenetwork/flare-periphery-contracts": "0.1.37",
         "@flarenetwork/ftso-adapters": "^0.0.1-rc.1",
+        "@flarenetwork/smart-accounts-encoder": "^0.0.8",
         "@layerzerolabs/lz-definitions": "^3.0.145",
         "@layerzerolabs/lz-evm-protocol-v2": "^3.0.144",
         "@layerzerolabs/lz-evm-sdk-v2": "^3.0.144",
