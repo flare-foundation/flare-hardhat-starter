@@ -11,7 +11,7 @@
  */
 
 import { ethers } from "hardhat";
-import { formatUnits, parseUnits, zeroPadValue, AbiCoder } from "ethers";
+import { formatUnits, zeroPadValue, AbiCoder } from "ethers";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
 
@@ -44,7 +44,7 @@ type SendParams = {
     oftCmd: string;
 };
 
-async function calculateAmountToSend(lots: bigint) {
+function calculateAmountToSend(lots: bigint) {
     // 1 lot = 10 FXRP (10_000_000 in 6 decimals)
     const lotSize = BigInt(10_000_000);
     return lotSize * lots;
@@ -74,8 +74,8 @@ async function validateSetup() {
 /**
  * Prepares redemption parameters
  */
-async function prepareRedemptionParams(signerAddress: string): Promise<RedemptionParams> {
-    const amountToSend = await calculateAmountToSend(BigInt(CONFIG.SEND_LOTS));
+function prepareRedemptionParams(signerAddress: string): RedemptionParams {
+    const amountToSend = calculateAmountToSend(BigInt(CONFIG.SEND_LOTS));
     const underlyingAddress = CONFIG.XRP_ADDRESS;
     const redeemer = signerAddress;
 
@@ -212,7 +212,7 @@ async function main() {
     const signer = await validateSetup();
 
     // 2. Prepare redemption parameters
-    const params = await prepareRedemptionParams(signer.address);
+    const params = prepareRedemptionParams(signer.address);
 
     // 3. Connect to OFT contract
     const oft = await connectToOFT();

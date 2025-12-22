@@ -45,7 +45,7 @@ async function validateSetup() {
     return signer;
 }
 
-async function calculateAmountToSend(lots: bigint) {
+function calculateAmountToSend(lots: bigint) {
     // 1 lot = 10 FXRP (10_000_000 in 6 decimals)
     const lotSize = BigInt(10_000_000);
     return lotSize * lots;
@@ -55,8 +55,8 @@ async function connectToOFT() {
     return await ethers.getContractAt("FXRPOFT", CONFIG.SEPOLIA_FXRP_OFT);
 }
 
-async function prepareRedemptionParams(signerAddress: string): Promise<RedemptionParams> {
-    const amountToSend = await calculateAmountToSend(BigInt(CONFIG.SEND_LOTS));
+function prepareRedemptionParams(signerAddress: string): RedemptionParams {
+    const amountToSend = calculateAmountToSend(BigInt(CONFIG.SEND_LOTS));
 
     console.log("\n📋 Redemption Parameters:");
     console.log("   Amount:", formatUnits(amountToSend.toString(), 6), "FXRP");
@@ -131,7 +131,7 @@ async function main() {
     const signer = await validateSetup();
     const oft = await connectToOFT();
 
-    const params = await prepareRedemptionParams(signer.address);
+    const params = prepareRedemptionParams(signer.address);
 
     const composeMsg = encodeComposeMessage(params);
 
