@@ -16,26 +16,24 @@ import { formatUnits } from "ethers";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { IERC20Instance, FAssetOFTAdapterInstance } from "../../typechain-types";
-import { getFXRPTokenAddress } from "../utils/fassets";
+import { getAssetManagerFXRP } from "../utils/getters";
 
-import BN from "bn.js";
-
-// Get the contracts
 const IERC20 = artifacts.require("IERC20");
 const FAssetOFTAdapter = artifacts.require("FAssetOFTAdapter");
 
 const CONFIG = {
     COSTON2_OFT_ADAPTER: "0xCd3d2127935Ae82Af54Fc31cCD9D3440dbF46639",
     COSTON2_COMPOSER: process.env.COSTON2_COMPOSER || "",
-    HYPERLIQUID_EID: EndpointId.HYPERLIQUID_V2_TESTNET, // Hyperliquid testnet EID
+    HYPERLIQUID_EID: EndpointId.HYPERLIQUID_V2_TESTNET,
     EXECUTOR_GAS: 200_000,
-    BRIDGE_AMOUNT: "11",
+    BRIDGE_LOTS: "1",
 } as const;
 
 type BridgeParams = {
-    amountToBridge: BN;
+    amountToBridge: bigint;
     recipientAddress: string;
     signerAddress: string;
+    fAssetAddress: string;
 };
 
 type SendParams = {
@@ -48,14 +46,28 @@ type SendParams = {
     oftCmd: string;
 };
 
+async function getAssetManagerInfo(lots: bigint) {
+    const assetManager = await getAssetManagerFXRP();
+    const fAssetAddress = await assetManager.fAsset();
+    const lotSizeBN = await assetManager.lotSize();
+    const lotSize = BigInt(lotSizeBN.toString());
+    const amountToBridge = lotSize * lots;
+
+    return {
+        fAssetAddress,
+        amountToBridge: (amountToBridge * 11n) / 10n, // 10% buffer
+    };
+}
+
 /**
  * Gets the signer and displays account information
  */
-async function getSigner() {
+async function getSigner(fAssetAddress: string) {
     const accounts = await web3.eth.getAccounts();
     const signerAddress = accounts[0];
 
     console.log("Using account:", signerAddress);
+    console.log("Token address:", fAssetAddress);
 
     return signerAddress;
 }
@@ -63,9 +75,7 @@ async function getSigner() {
 /**
  * Prepares bridge parameters
  */
-function prepareBridgeParams(signerAddress: string): BridgeParams {
-    // Parse amount with 6 decimals (10 * 10^6 = 10000000)
-    const amountToBridge = web3.utils.toBN(CONFIG.BRIDGE_AMOUNT).mul(web3.utils.toBN(10).pow(web3.utils.toBN(6)));
+function prepareBridgeParams(signerAddress: string, fAssetAddress: string, amountToBridge: bigint): BridgeParams {
     const recipientAddress = signerAddress;
 
     console.log("\n📋 Bridge Details:");
@@ -74,65 +84,63 @@ function prepareBridgeParams(signerAddress: string): BridgeParams {
     console.log("Amount:", formatUnits(amountToBridge.toString(), 6), "FXRP");
     console.log("Recipient:", recipientAddress);
 
-    return { amountToBridge, recipientAddress, signerAddress };
+    return { amountToBridge, recipientAddress, signerAddress, fAssetAddress };
 }
 
 /**
  * Checks if user has sufficient balance to bridge
  */
 async function checkBalance(params: BridgeParams): Promise<IERC20Instance> {
-    const fxrpTokenAddress = await getFXRPTokenAddress();
-    const fTestXRP: IERC20Instance = await IERC20.at(fxrpTokenAddress);
+    const fAsset: IERC20Instance = await IERC20.at(params.fAssetAddress);
 
-    const balance = await fTestXRP.balanceOf(params.signerAddress);
+    const balance = await fAsset.balanceOf(params.signerAddress);
     console.log("\nYour FTestXRP balance:", formatUnits(balance.toString(), 6));
 
-    if (web3.utils.toBN(balance.toString()).lt(params.amountToBridge)) {
+    if (BigInt(balance.toString()) < params.amountToBridge) {
         console.error("\n❌ Insufficient FTestXRP balance!");
-        console.log("   Token address: " + fxrpTokenAddress);
+        console.log("   Token address: " + params.fAssetAddress);
         throw new Error("Insufficient balance");
     }
 
-    return fTestXRP;
+    return fAsset;
 }
 
 /**
  * Approves OFT Adapter AND Composer to spend FTestXRP
  */
 async function approveTokens(
-    fTestXRP: IERC20Instance,
-    amountToBridge: BN,
-    signerAddress: string
+    fAsset: IERC20Instance,
+    amountToBridge: bigint,
+    signerAddress: string,
+    fAssetAddress: string
 ): Promise<FAssetOFTAdapterInstance> {
-    const fxrpTokenAddress = await getFXRPTokenAddress();
     const oftAdapter: FAssetOFTAdapterInstance = await FAssetOFTAdapter.at(CONFIG.COSTON2_OFT_ADAPTER);
 
     console.log("\n1️⃣ Checking OFT Adapter token address...");
-    const innerToken = await oftAdapter.token();
-    console.log("   OFT Adapter's inner token:", innerToken);
-    console.log("   Expected token:", fxrpTokenAddress);
-    console.log("   Match:", innerToken.toLowerCase() === fxrpTokenAddress);
+    const underlyingToken = await oftAdapter.token();
+    console.log("   OFT Adapter's underlying token:", underlyingToken);
+    console.log("   Expected token:", fAssetAddress);
+    console.log("   Match:", underlyingToken.toLowerCase() === fAssetAddress.toLowerCase());
 
     console.log("\n   Approving FTestXRP for OFT Adapter...");
     console.log("   OFT Adapter address:", oftAdapter.address);
     console.log("   Amount:", formatUnits(amountToBridge.toString(), 6), "FXRP");
 
-    // Approve a much larger amount to account for any potential fees
-    const largeAmount = amountToBridge.mul(web3.utils.toBN(2));
-    await fTestXRP.approve(oftAdapter.address, largeAmount.toString());
+    const amount = amountToBridge;
+    await fAsset.approve(oftAdapter.address, amount.toString());
     console.log("✅ OFT Adapter approved");
 
     // Verify the allowance
-    const allowance1 = await fTestXRP.allowance(signerAddress, oftAdapter.address);
+    const allowance1 = await fAsset.allowance(signerAddress, oftAdapter.address);
     console.log("   Verified allowance:", formatUnits(allowance1.toString(), 6), "FXRP");
 
     console.log("\n2️⃣ Approving FTestXRP for Composer...");
     console.log("   Composer address:", CONFIG.COSTON2_COMPOSER);
-    await fTestXRP.approve(CONFIG.COSTON2_COMPOSER, amountToBridge.toString());
+    await fAsset.approve(CONFIG.COSTON2_COMPOSER, amountToBridge.toString());
     console.log("✅ Composer approved");
 
     // Verify the allowance
-    const allowance2 = await fTestXRP.allowance(signerAddress, CONFIG.COSTON2_COMPOSER);
+    const allowance2 = await fAsset.allowance(signerAddress, CONFIG.COSTON2_COMPOSER);
     console.log("   Verified allowance:", formatUnits(allowance2.toString(), 6), "FXRP");
 
     return oftAdapter;
@@ -158,9 +166,9 @@ function buildSendParams(params: BridgeParams): SendParams {
 /**
  * Quotes the LayerZero fee for the bridge transaction
  */
-async function quoteFee(oftAdapter: FAssetOFTAdapterInstance, sendParam: SendParams): Promise<BN> {
+async function quoteFee(oftAdapter: FAssetOFTAdapterInstance, sendParam: SendParams) {
     const result = await oftAdapter.quoteSend(sendParam, false);
-    const nativeFee = web3.utils.toBN(result.nativeFee.toString());
+    const nativeFee = BigInt(result.nativeFee.toString());
     console.log("\n3️⃣ LayerZero Fee:", formatUnits(nativeFee.toString(), 18), "C2FLR");
     return nativeFee;
 }
@@ -171,7 +179,7 @@ async function quoteFee(oftAdapter: FAssetOFTAdapterInstance, sendParam: SendPar
 async function executeBridge(
     oftAdapter: FAssetOFTAdapterInstance,
     sendParam: SendParams,
-    nativeFee: BN,
+    nativeFee: bigint,
     signerAddress: string
 ): Promise<void> {
     console.log("\n4️⃣ Sending FXRP to Hyperliquid EVM Testnet...");
@@ -190,25 +198,28 @@ async function executeBridge(
 }
 
 async function main() {
-    // 1. Get signer and display account info
-    const signerAddress = await getSigner();
+    // 1. Get fAsset address and amount from AssetManager
+    const { fAssetAddress, amountToBridge } = await getAssetManagerInfo(BigInt(CONFIG.BRIDGE_LOTS));
 
-    // 2. Prepare bridge parameters
-    const params = prepareBridgeParams(signerAddress);
+    // 2. Get signer and display account info
+    const signerAddress = await getSigner(fAssetAddress);
 
-    // 3. Check balance and get token contract
-    const fTestXRP = await checkBalance(params);
+    // 3. Prepare bridge parameters
+    const params = prepareBridgeParams(signerAddress, fAssetAddress, amountToBridge);
 
-    // 4. Approve tokens and get OFT adapter
-    const oftAdapter = await approveTokens(fTestXRP, params.amountToBridge, signerAddress);
+    // 4. Check balance and get token contract
+    const fAsset = await checkBalance(params);
 
-    // 5. Build send parameters
+    // 5. Approve tokens and get OFT adapter
+    const oftAdapter = await approveTokens(fAsset, params.amountToBridge, signerAddress, fAssetAddress);
+
+    // 6. Build send parameters
     const sendParam = buildSendParams(params);
 
-    // 6. Quote the fee
+    // 7. Quote the fee
     const nativeFee = await quoteFee(oftAdapter, sendParam);
 
-    // 7. Execute the bridge transaction
+    // 8. Execute the bridge transaction
     await executeBridge(oftAdapter, sendParam, nativeFee, signerAddress);
 }
 
