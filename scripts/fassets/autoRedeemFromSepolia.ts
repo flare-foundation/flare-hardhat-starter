@@ -3,10 +3,13 @@
  * yarn hardhat run scripts/fassets/autoRedeemFromSepolia.ts --network sepolia
  */
 
-import { ethers } from "hardhat";
-import { formatUnits, zeroPadValue, AbiCoder } from "ethers";
+import { web3 } from "hardhat";
+import { formatUnits } from "ethers";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
+import { FXRPOFTInstance } from "../../typechain-types";
+
+const FXRPOFT = artifacts.require("FXRPOFT");
 
 const CONFIG = {
     SEPOLIA_FXRP_OFT: process.env.SEPOLIA_FXRP_OFT || "0x81672c5d42F3573aD95A0bdfBE824faaC547d4E6",
@@ -28,21 +31,22 @@ type RedemptionParams = {
 type SendParams = {
     dstEid: EndpointId;
     to: string;
-    amountLD: bigint;
-    minAmountLD: bigint;
+    amountLD: string;
+    minAmountLD: string;
     extraOptions: string;
     composeMsg: string;
     oftCmd: string;
 };
 
 async function validateSetup() {
-    const [signer] = await ethers.getSigners();
-    console.log("Using account:", signer.address);
+    const accounts = await web3.eth.getAccounts();
+    const signerAddress = accounts[0];
+    console.log("Using account:", signerAddress);
 
     if (!CONFIG.COSTON2_COMPOSER) {
-        throw new Error("❌ COSTON2_COMPOSER not set in .env!");
+        throw new Error("COSTON2_COMPOSER not set in .env!");
     }
-    return signer;
+    return signerAddress;
 }
 
 function calculateAmountToSend(lots: bigint) {
@@ -51,8 +55,8 @@ function calculateAmountToSend(lots: bigint) {
     return lotSize * lots;
 }
 
-async function connectToOFT() {
-    return await ethers.getContractAt("FXRPOFT", CONFIG.SEPOLIA_FXRP_OFT);
+async function connectToOFT(): Promise<FXRPOFTInstance> {
+    return await FXRPOFT.at(CONFIG.SEPOLIA_FXRP_OFT);
 }
 
 function prepareRedemptionParams(signerAddress: string): RedemptionParams {
@@ -72,11 +76,9 @@ function prepareRedemptionParams(signerAddress: string): RedemptionParams {
 }
 
 function encodeComposeMessage(params: RedemptionParams): string {
-    const abiCoder = AbiCoder.defaultAbiCoder();
-
-    const composeMsg = abiCoder.encode(
+    const composeMsg = web3.eth.abi.encodeParameters(
         ["uint256", "string", "address"],
-        [params.amountToSend, params.underlyingAddress, params.redeemer]
+        [params.amountToSend.toString(), params.underlyingAddress, params.redeemer]
     );
 
     console.log("✓ Compose message encoded");
@@ -93,45 +95,55 @@ function buildComposeOptions(): string {
 function buildSendParams(params: RedemptionParams, composeMsg: string, options: string): SendParams {
     return {
         dstEid: CONFIG.COSTON2_EID,
-        to: zeroPadValue(CONFIG.COSTON2_COMPOSER, 32),
-        amountLD: params.amountToSend,
-        minAmountLD: params.amountToSend,
+        to: web3.utils.padLeft(CONFIG.COSTON2_COMPOSER, 64),
+        amountLD: params.amountToSend.toString(),
+        minAmountLD: params.amountToSend.toString(),
         extraOptions: options,
         composeMsg: composeMsg,
         oftCmd: "0x",
     };
 }
 
-async function checkBalance(oft: any, signerAddress: string, amountNeeded: bigint): Promise<void> {
+async function checkBalance(oft: FXRPOFTInstance, signerAddress: string, amountNeeded: bigint): Promise<void> {
     const balance = await oft.balanceOf(signerAddress);
-    if (balance < amountNeeded) {
-        throw new Error(`❌ Insufficient Balance. Have: ${balance}, Need: ${amountNeeded}`);
+    if (BigInt(balance.toString()) < amountNeeded) {
+        throw new Error(`Insufficient Balance. Have: ${balance.toString()}, Need: ${amountNeeded}`);
     }
     console.log("✓ Sufficient balance confirmed");
 }
 
-async function quoteFee(oft: any, sendParam: SendParams): Promise<{ nativeFee: bigint; lzTokenFee: bigint }> {
+async function quoteFee(oft: FXRPOFTInstance, sendParam: SendParams) {
     const result = await oft.quoteSend(sendParam, false);
-    console.log("\n💵 LayerZero Fee:", formatUnits(result.nativeFee, 18), "ETH");
-    return { nativeFee: result.nativeFee, lzTokenFee: result.lzTokenFee };
+    const nativeFee = BigInt(result.nativeFee.toString());
+    console.log("\n💵 LayerZero Fee:", formatUnits(nativeFee.toString(), 18), "ETH");
+    return nativeFee;
 }
 
-async function executeSendAndRedeem(oft: any, sendParam: SendParams, nativeFee: bigint, params: RedemptionParams) {
+async function executeSendAndRedeem(
+    oft: FXRPOFTInstance,
+    sendParam: SendParams,
+    nativeFee: bigint,
+    params: RedemptionParams
+) {
     console.log(`\n🚀 Sending ${formatUnits(params.amountToSend.toString(), 6)} FXRP to Coston2...`);
 
-    const tx = await oft.send(sendParam, { nativeFee, lzTokenFee: 0 }, params.signerAddress, { value: nativeFee });
+    const tx = await oft.send(
+        sendParam,
+        { nativeFee: nativeFee.toString(), lzTokenFee: "0" },
+        params.signerAddress,
+        { value: nativeFee.toString() }
+    );
 
-    console.log("✓ Tx Hash:", tx.hash);
-    await tx.wait();
-    console.log("✅ Transaction Confirmed.");
-    console.log(`\nhttps://testnet.layerzeroscan.com/tx/${tx.hash}`);
+    console.log("✓ Tx Hash:", tx.tx);
+    console.log("✅ Confirmed in block:", tx.receipt.blockNumber);
+    console.log(`\nhttps://testnet.layerzeroscan.com/tx/${tx.tx}`);
 }
 
 async function main() {
-    const signer = await validateSetup();
+    const signerAddress = await validateSetup();
     const oft = await connectToOFT();
 
-    const params = prepareRedemptionParams(signer.address);
+    const params = prepareRedemptionParams(signerAddress);
 
     const composeMsg = encodeComposeMessage(params);
 
@@ -140,12 +152,14 @@ async function main() {
 
     await checkBalance(oft, params.signerAddress, params.amountToSend);
 
-    const { nativeFee } = await quoteFee(oft, sendParam);
+    const nativeFee = await quoteFee(oft, sendParam);
 
     await executeSendAndRedeem(oft, sendParam, nativeFee, params);
 }
 
-main().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-});
+main()
+    .then(() => process.exit(0))
+    .catch((error) => {
+        console.error(error);
+        process.exit(1);
+    });

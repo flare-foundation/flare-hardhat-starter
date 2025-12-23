@@ -10,10 +10,13 @@
  * yarn hardhat run scripts/fassets/autoRedeemFromHyperEVM.ts --network hyperliquidTestnet
  */
 
-import { ethers } from "hardhat";
-import { formatUnits, zeroPadValue, AbiCoder } from "ethers";
+import { web3 } from "hardhat";
+import { formatUnits } from "ethers";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
+import { FXRPOFTInstance } from "../../typechain-types";
+
+const FXRPOFT = artifacts.require("FXRPOFT");
 
 // Configuration - using existing deployed contracts
 const CONFIG = {
@@ -37,8 +40,8 @@ type RedemptionParams = {
 type SendParams = {
     dstEid: EndpointId;
     to: string;
-    amountLD: bigint;
-    minAmountLD: bigint;
+    amountLD: string;
+    minAmountLD: string;
     extraOptions: string;
     composeMsg: string;
     oftCmd: string;
@@ -54,13 +57,14 @@ function calculateAmountToSend(lots: bigint) {
  * Gets the signer and validates composer is deployed
  */
 async function validateSetup() {
-    const [signer] = await ethers.getSigners();
+    const accounts = await web3.eth.getAccounts();
+    const signerAddress = accounts[0];
 
-    console.log("Using account:", signer.address);
+    console.log("Using account:", signerAddress);
 
     if (!CONFIG.COSTON2_COMPOSER) {
         throw new Error(
-            "❌ HYPERLIQUID_COMPOSER not set in .env!\n" +
+            "HYPERLIQUID_COMPOSER not set in .env!\n" +
                 "   Deploy FAssetRedeemComposer first on Hyperliquid:\n" +
                 "   npx hardhat deploy --network hyperliquid --tags FAssetRedeemComposer"
         );
@@ -68,7 +72,7 @@ async function validateSetup() {
 
     console.log("✓ Composer configured:", CONFIG.COSTON2_COMPOSER);
 
-    return signer;
+    return signerAddress;
 }
 
 /**
@@ -92,12 +96,12 @@ function prepareRedemptionParams(signerAddress: string): RedemptionParams {
 /**
  * Connects to the OFT contract on Hyperliquid EVM
  */
-async function connectToOFT() {
+async function connectToOFT(): Promise<FXRPOFTInstance> {
     console.log("Connecting to FXRP OFT on Hyperliquid EVM:", CONFIG.HYPERLIQUID_FXRP_OFT);
-    const oft = await ethers.getContractAt("FXRPOFT", CONFIG.HYPERLIQUID_FXRP_OFT);
+    const oft = await FXRPOFT.at(CONFIG.HYPERLIQUID_FXRP_OFT);
 
     console.log("\n✓ Connected to FXRP OFT:", CONFIG.HYPERLIQUID_FXRP_OFT);
-    console.log("OFT address:", oft.target);
+    console.log("OFT address:", oft.address);
 
     return oft;
 }
@@ -107,11 +111,10 @@ async function connectToOFT() {
  * Format: (amountToRedeem, underlyingAddress, redeemer)
  */
 function encodeComposeMessage(params: RedemptionParams): string {
-    const abiCoder = AbiCoder.defaultAbiCoder();
     // redeem(uint256 _lots, string memory _redeemerUnderlyingAddressString, executor address)
-    const composeMsg = abiCoder.encode(
+    const composeMsg = web3.eth.abi.encodeParameters(
         ["uint256", "string", "address"],
-        [params.amountToSend, params.underlyingAddress, params.redeemer]
+        [params.amountToSend.toString(), params.underlyingAddress, params.redeemer]
     );
 
     console.log("Compose message encoded");
@@ -136,9 +139,9 @@ function buildComposeOptions(): string {
 function buildSendParams(params: RedemptionParams, composeMsg: string, options: string): SendParams {
     return {
         dstEid: CONFIG.COSTON2_EID,
-        to: zeroPadValue(CONFIG.COSTON2_COMPOSER, 32),
-        amountLD: params.amountToSend,
-        minAmountLD: params.amountToSend,
+        to: web3.utils.padLeft(CONFIG.COSTON2_COMPOSER, 64),
+        amountLD: params.amountToSend.toString(),
+        minAmountLD: params.amountToSend.toString(),
         extraOptions: options,
         composeMsg: composeMsg,
         oftCmd: "0x",
@@ -148,17 +151,17 @@ function buildSendParams(params: RedemptionParams, composeMsg: string, options: 
 /**
  * Checks if user has sufficient FXRP balance
  */
-async function checkBalance(oft: any, signerAddress: string, amountToSend: bigint): Promise<void> {
+async function checkBalance(oft: FXRPOFTInstance, signerAddress: string, amountToSend: bigint): Promise<void> {
     console.log("signer address", signerAddress);
     console.log("oft.address", oft.address);
     const balance = await oft.balanceOf(signerAddress);
     console.log("signer address", signerAddress);
-    console.log("\n💰 Current FXRP balance:", formatUnits(balance, 6));
+    console.log("\n💰 Current FXRP balance:", formatUnits(balance.toString(), 6));
 
-    if (balance < amountToSend) {
+    if (BigInt(balance.toString()) < amountToSend) {
         console.error("\n❌ Insufficient FXRP balance!");
-        console.log("   Required:", formatUnits(amountToSend, 6), "FXRP");
-        console.log("   Available:", formatUnits(balance, 6), "FXRP");
+        console.log("   Required:", formatUnits(amountToSend.toString(), 6), "FXRP");
+        console.log("   Available:", formatUnits(balance.toString(), 6), "FXRP");
         throw new Error("Insufficient FXRP balance");
     }
 
@@ -168,12 +171,12 @@ async function checkBalance(oft: any, signerAddress: string, amountToSend: bigin
 /**
  * Quotes the LayerZero fee for the send transaction
  */
-async function quoteFee(oft: any, sendParam: SendParams): Promise<{ nativeFee: bigint; lzTokenFee: bigint }> {
+async function quoteFee(oft: FXRPOFTInstance, sendParam: SendParams) {
     const result = await oft.quoteSend(sendParam, false);
-    const nativeFee = result.nativeFee;
-    const lzTokenFee = result.lzTokenFee;
+    const nativeFee = BigInt(result.nativeFee.toString());
+    const lzTokenFee = BigInt(result.lzTokenFee.toString());
 
-    console.log("\n💵 LayerZero Fee:", formatUnits(nativeFee, 18), "HYPE");
+    console.log("\n💵 LayerZero Fee:", formatUnits(nativeFee.toString(), 18), "HYPE");
 
     return { nativeFee, lzTokenFee };
 }
@@ -182,37 +185,39 @@ async function quoteFee(oft: any, sendParam: SendParams): Promise<{ nativeFee: b
  * Executes the send with auto-redeem
  */
 async function executeSendAndRedeem(
-    oft: any,
+    oft: FXRPOFTInstance,
     sendParam: SendParams,
     nativeFee: bigint,
     lzTokenFee: bigint,
     params: RedemptionParams
 ): Promise<void> {
-    console.log("\n🚀 Sending", formatUnits(params.amountToSend, 6), "FXRP to Coston2 with auto-redeem...");
+    console.log("\n🚀 Sending", formatUnits(params.amountToSend.toString(), 6), "FXRP to Coston2 with auto-redeem...");
     console.log("Target composer:", CONFIG.COSTON2_COMPOSER);
     console.log("Underlying address:", params.underlyingAddress);
 
-    const tx = await oft.send(sendParam, { nativeFee, lzTokenFee }, params.signerAddress, { value: nativeFee });
+    const tx = await oft.send(
+        sendParam,
+        { nativeFee: nativeFee.toString(), lzTokenFee: lzTokenFee.toString() },
+        params.signerAddress,
+        { value: nativeFee.toString() }
+    );
 
-    console.log("\n✓ Transaction sent:", tx.hash);
-    console.log("Waiting for confirmation...");
-
-    const receipt = await tx.wait();
-    console.log("✅ Confirmed in block:", receipt?.blockNumber);
+    console.log("\n✓ Transaction sent:", tx.tx);
+    console.log("✅ Confirmed in block:", tx.receipt.blockNumber);
 
     console.log("\n🎉 Success! Your FXRP is on the way to Coston2!");
     console.log("\n📊 Track your cross-chain transaction:");
-    console.log(`https://testnet.layerzeroscan.com/tx/${tx.hash}`);
+    console.log(`https://testnet.layerzeroscan.com/tx/${tx.tx}`);
     console.log("\n⏳ The auto-redeem will execute once the message arrives on Coston2.");
     console.log("XRP will be sent to:", params.underlyingAddress);
 }
 
 async function main() {
     // 1. Validate setup and get signer
-    const signer = await validateSetup();
+    const signerAddress = await validateSetup();
 
     // 2. Prepare redemption parameters
-    const params = prepareRedemptionParams(signer.address);
+    const params = prepareRedemptionParams(signerAddress);
 
     // 3. Connect to OFT contract
     const oft = await connectToOFT();
@@ -238,7 +243,9 @@ async function main() {
     await executeSendAndRedeem(oft, sendParam, nativeFee, lzTokenFee, params);
 }
 
-main().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-});
+main()
+    .then(() => process.exit(0))
+    .catch((error) => {
+        console.error(error);
+        process.exit(1);
+    });
