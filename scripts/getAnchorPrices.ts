@@ -1,5 +1,5 @@
 import { Contract } from "ethers";
-import { initializeFtsoV2Contract, getDALayerUrl, getCurrentNetworkNamespace } from "../utils/network";
+import { initializeFtsoV2Contract, getDALayerUrl, getCurrentNetworkNamespace } from "./utils/network";
 import hre from "hardhat";
 
 interface VerificationResult {
