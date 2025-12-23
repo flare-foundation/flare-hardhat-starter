@@ -127,12 +127,9 @@ async function executeSendAndRedeem(
 ) {
     console.log(`\n🚀 Sending ${formatUnits(params.amountToSend.toString(), 6)} FXRP to Coston2...`);
 
-    const tx = await oft.send(
-        sendParam,
-        { nativeFee: nativeFee.toString(), lzTokenFee: "0" },
-        params.signerAddress,
-        { value: nativeFee.toString() }
-    );
+    const tx = await oft.send(sendParam, { nativeFee: nativeFee.toString(), lzTokenFee: "0" }, params.signerAddress, {
+        value: nativeFee.toString(),
+    });
 
     console.log("✓ Tx Hash:", tx.tx);
     console.log("✅ Confirmed in block:", tx.receipt.blockNumber);
