@@ -1,3 +1,7 @@
+<p align="center">
+  <a href="https://flare.network/" target="blank"><img src="https://content.flare.network/Flare-2.svg" width="400" height="300" alt="Flare Logo" /></a>
+</p>
+
 # Flare Hardhat Starter Kit
 
 This is a starter kit for interacting with Flare blockchain.
