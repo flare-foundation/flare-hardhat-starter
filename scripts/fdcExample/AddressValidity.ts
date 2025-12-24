@@ -26,14 +26,14 @@ async function prepareAttestationRequest(addressStr: string) {
         addressStr: addressStr,
     };
 
-    const url = `${verifierUrlBase}verifier/${urlTypeBase}/AddressValidity/prepareRequest`;
+    const url = `${verifierUrlBase}/verifier/${urlTypeBase}/AddressValidity/prepareRequest`;
     const apiKey = VERIFIER_API_KEY_TESTNET ?? "";
 
     return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, sourceIdBase, requestBody);
 }
 
 async function retrieveDataAndProof(abiEncodedRequest: string, roundId: number) {
-    const url = `${COSTON2_DA_LAYER_URL}api/v1/fdc/proof-by-request-round-raw`;
+    const url = `${COSTON2_DA_LAYER_URL}/api/v1/fdc/proof-by-request-round-raw`;
     console.log("Url:", url, "\n");
     return await retrieveDataAndProofBaseWithRetry(url, abiEncodedRequest, roundId);
 }
