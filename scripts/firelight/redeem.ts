@@ -1,6 +1,8 @@
-import { FIRELIGHT_VAULT_ADDRESS, IFirelightVault } from "./firelightVault";
-
 // yarn hardhat run scripts/firelight/redeem.ts --network coston2
+
+export const FIRELIGHT_VAULT_ADDRESS = "0x91Bfe6A68aB035DFebb6A770FFfB748C03C0E40B";
+
+export const IFirelightVault = artifacts.require("IFirelightVault");
 
 const SHARES_TO_REDEEM = 1; // Number of shares to redeem
 

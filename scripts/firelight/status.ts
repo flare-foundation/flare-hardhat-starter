@@ -1,40 +1,123 @@
+/**
+ * FirelightVault Status Script
+ * 
+ * This script displays information about a FirelightVault contract.
+ * It shows vault metrics, period configuration, user balances, and withdrawal information etc.
+ * 
+ * Usage:
+ *   yarn hardhat run scripts/firelight/status.ts --network coston2
+ */
+
 import { fmtTs } from "../utils/core";
 
-import { FIRELIGHT_VAULT_ADDRESS, IFirelightVault } from "./firelightVault";
-
 // yarn hardhat run scripts/firelight/status.ts --network coston2
+
+export const FIRELIGHT_VAULT_ADDRESS = "0x91Bfe6A68aB035DFebb6A770FFfB748C03C0E40B";
+
+export const IFirelightVault = artifacts.require("IFirelightVault");
+
+// @ts-expect-error - Type definitions issue, but works at runtime
+const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20");
 
 async function main() {
     const vault = await IFirelightVault.at(FIRELIGHT_VAULT_ADDRESS);
 
-    const [asset, totalAssets, currentPeriod, currentPeriodEnd, nextPeriodEnd, pcLen] = await Promise.all([
-        vault.asset(),
-        vault.totalAssets(),
-        vault.currentPeriod(),
-        vault.currentPeriodEnd(),
-        vault.nextPeriodEnd(),
-        vault.periodConfigurationsLength(),
-    ]);
+    // Get the first account
+    const accounts = await web3.eth.getAccounts();
+    const account = accounts[0];
 
-    console.log("=== FirelightVault status ===");
-    console.log("Vault:", FIRELIGHT_VAULT_ADDRESS);
-    console.log("Asset:", asset);
-    console.log("Total assets (excl. pending withdrawals):", totalAssets.toString());
-    console.log("Period configurations:", pcLen.toString());
+    // Get basic vault info
+    const asset = await vault.asset();
+    const totalAssets = await vault.totalAssets();
+    const totalSupply = await vault.totalSupply();
+    const currentPeriod = await vault.currentPeriod();
+    const currentPeriodStart = await vault.currentPeriodStart();
+    const currentPeriodEnd = await vault.currentPeriodEnd();
+    const nextPeriodEnd = await vault.nextPeriodEnd();
+    const pcLen = await vault.periodConfigurationsLength();
+    const currentPeriodConfig = await vault.currentPeriodConfiguration();
+
+    // Get asset token info
+    const assetToken = await IERC20.at(asset);
+    const assetSymbol = await assetToken.symbol();
+    const assetDecimals = await assetToken.decimals();
+    
+    console.log("\n=== Asset ===");
+    console.log("Asset address:", asset);
+    console.log("Asset symbol:", assetSymbol);
+    console.log("Asset decimals:", assetDecimals.toString());
+
+    console.log("\n=== Vault Balances ===");
+    const assetDecimalsNum = Number(assetDecimals);
+    const formattedTotalAssets = (Number(totalAssets.toString()) / Math.pow(10, assetDecimalsNum)).toFixed(assetDecimalsNum);
+    const formattedTotalSupply = (Number(totalSupply.toString()) / Math.pow(10, assetDecimalsNum)).toFixed(assetDecimalsNum);
+    console.log("Total assets (excl. pending withdrawals):", totalAssets.toString(), `(${formattedTotalAssets} ${assetSymbol})`);
+    console.log("Total supply (shares):", totalSupply.toString(), `(${formattedTotalSupply} shares)`);
+    
+    // Calculate exchange rate (assets per share)
+    const totalAssetsBN = web3.utils.toBN(totalAssets.toString());
+    const totalSupplyBN = web3.utils.toBN(totalSupply.toString());
+    if (!totalSupplyBN.isZero()) {
+        // Calculate: (totalAssets * 10^assetDecimals) / totalSupply for precision
+        const precision = web3.utils.toBN(10).pow(web3.utils.toBN(assetDecimalsNum));
+        const rateBN = totalAssetsBN.mul(precision).div(totalSupplyBN);
+        const formattedRate = (Number(rateBN.toString()) / Math.pow(10, assetDecimalsNum)).toFixed(assetDecimalsNum);
+        console.log("Exchange rate:", formattedRate, `${assetSymbol}/share`);
+    } else {
+        console.log("Exchange rate: N/A (no shares minted)");
+    }
+
+    console.log("\n=== Period Configuration ===");
+    console.log("Period configurations count:", pcLen.toString());
     console.log("Current period:", currentPeriod.toString());
+    console.log("Current period start:", fmtTs(currentPeriodStart));
     console.log("Current period end:", fmtTs(currentPeriodEnd));
     console.log("Next period end:", fmtTs(nextPeriodEnd));
+    console.log("Current period config:", {
+        epoch: currentPeriodConfig.epoch.toString(),
+        duration: currentPeriodConfig.duration.toString(),
+        startingPeriod: currentPeriodConfig.startingPeriod.toString(),
+    });
 
-    // Optional: show what the first configured account can claim for a past period.
-    const [me] = await web3.eth.getAccounts();
-    const currentPeriodBN = web3.utils.toBN(currentPeriod);
-    const prevPeriod = currentPeriodBN.isZero() ? currentPeriodBN : currentPeriodBN.subn(1);
-    if (prevPeriod.lt(currentPeriodBN)) {
+    console.log("\n=== User Info ===");
+    console.log("Account:", account);
+    
+    // Get user balance and related info
+    const userBalance = await vault.balanceOf(account);
+    const userMaxDeposit = await vault.maxDeposit(account);
+    const userMaxMint = await vault.maxMint(account);
+    const userMaxWithdraw = await vault.maxWithdraw(account);
+    const userMaxRedeem = await vault.maxRedeem(account);
+
+    const userBalanceAssets = await vault.convertToAssets(userBalance);
+    const formattedUserBalance = (Number(userBalance.toString()) / Math.pow(10, assetDecimalsNum)).toFixed(assetDecimalsNum);
+    const formattedUserBalanceAssets = (Number(userBalanceAssets.toString()) / Math.pow(10, assetDecimalsNum)).toFixed(assetDecimalsNum);
+    
+    console.log("User balance (shares):", userBalance.toString(), `(${formattedUserBalance} shares)`);
+    console.log("User balance (assets):", userBalanceAssets.toString(), `(${formattedUserBalanceAssets} ${assetSymbol})`);
+    console.log("Max deposit:", userMaxDeposit.toString());
+    console.log("Max mint:", userMaxMint.toString());
+    console.log("Max withdraw:", userMaxWithdraw.toString());
+    console.log("Max redeem:", userMaxRedeem.toString());
+
+    // Check withdrawals for current and previous periods
+    console.log("\n=== User Withdrawals ===");
+    const currentPeriodBN = web3.utils.toBN(currentPeriod.toString());
+    const periodsToCheck = [currentPeriodBN];
+    
+    if (!currentPeriodBN.isZero()) {
+        periodsToCheck.push(currentPeriodBN.subn(1));
+    }
+
+    for (const period of periodsToCheck) {
         try {
-            const claimable = await vault.withdrawalsOf(prevPeriod, me, { from: me });
-            console.log(`WithdrawalsOf(period=${prevPeriod.toString()}, me=${me}):`, claimable.toString());
-        } catch (e: any) {
-            console.log("withdrawalsOf() call failed:", e?.message ?? e);
+            const withdrawals = await vault.withdrawalsOf(period, account, { from: account });
+            if (!withdrawals.isZero()) {
+                const formattedWithdrawals = (Number(withdrawals.toString()) / Math.pow(10, assetDecimalsNum)).toFixed(assetDecimalsNum);
+                console.log(`Period ${period.toString()}: ${withdrawals.toString()} (${formattedWithdrawals} ${assetSymbol})`);
+            }
+        } catch {
+            // Silently skip if period doesn't exist or other error
         }
     }
 }

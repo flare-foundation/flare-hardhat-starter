@@ -22,7 +22,6 @@ interface IFirelightVault {
         address blocklister;
         address pauser;
         address periodConfigurationUpdater;
-        address rescuer;
         uint256 depositLimit;
         uint48 periodConfigurationDuration;
     }
@@ -70,6 +69,12 @@ interface IFirelightVault {
 
     function balanceOf(address account) external view returns (uint256);
 
+    function balanceOfAt(address account, uint48 timestamp) external view returns (uint256);
+
+    function totalSupplyAt(uint48 timestamp) external view returns (uint256);
+
+    function totalAssetsAt(uint48 timestamp) external view returns (uint256);
+
     function convertToShares(uint256 assets) external view returns (uint256);
 
     function convertToAssets(uint256 shares) external view returns (uint256);
@@ -83,6 +88,12 @@ interface IFirelightVault {
     function maxRedeem(address owner) external view returns (uint256);
 
     function previewMint(uint256 shares) external view returns (uint256);
+
+    function previewDeposit(uint256 assets) external view returns (uint256);
+
+    function previewWithdraw(uint256 assets) external view returns (uint256);
+
+    function previewRedeem(uint256 shares) external view returns (uint256);
 
     function deposit(uint256 assets, address receiver) external returns (uint256 shares);
 
