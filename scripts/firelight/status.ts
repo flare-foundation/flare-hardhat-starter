@@ -10,8 +10,6 @@
 
 import { fmtTs } from "../utils/core";
 
-// yarn hardhat run scripts/firelight/status.ts --network coston2
-
 export const FIRELIGHT_VAULT_ADDRESS = "0x91Bfe6A68aB035DFebb6A770FFfB748C03C0E40B";
 
 export const IFirelightVault = artifacts.require("IFirelightVault");

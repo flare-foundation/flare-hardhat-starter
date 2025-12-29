@@ -1,4 +1,12 @@
-// yarn hardhat run scripts/firelight/redeem.ts --network coston2
+/**
+ * FirelightVault Redeem Script
+ * 
+ * This script creates a redemption request from the FirelightVault (ERC-4626).
+ * Redeem burns shares to withdraw assets. Redemptions are delayed and must be claimed after the period ends.
+ * 
+ * Usage:
+ *   yarn hardhat run scripts/firelight/redeem.ts --network coston2
+ */
 
 export const FIRELIGHT_VAULT_ADDRESS = "0x91Bfe6A68aB035DFebb6A770FFfB748C03C0E40B";
 
@@ -7,7 +15,10 @@ export const IFirelightVault = artifacts.require("IFirelightVault");
 const SHARES_TO_REDEEM = 1; // Number of shares to redeem
 
 async function main() {
-    const [me] = await web3.eth.getAccounts();
+    // Get the first account
+    const accounts = await web3.eth.getAccounts();
+    const account = accounts[0];
+    
     const vault = await IFirelightVault.at(FIRELIGHT_VAULT_ADDRESS);
     
     // Get asset address from vault
@@ -19,16 +30,34 @@ async function main() {
 
     const symbol = await assetToken.symbol();
     const assetDecimals = await assetToken.decimals();
-    const sharesToRedeem = SHARES_TO_REDEEM * (10 ** assetDecimals);
+    const assetDecimalsNum = Number(assetDecimals);
+    const sharesToRedeem = SHARES_TO_REDEEM * (10 ** assetDecimalsNum);
 
     console.log("=== Redeem (ERC-4626) ===");
-    console.log("Sender:", me);
+    console.log("Sender:", account);
     console.log("Vault:", FIRELIGHT_VAULT_ADDRESS);
     console.log("Asset:", assetAddress, `(${symbol}, decimals=${assetDecimals})`);
     console.log("Shares to redeem:", sharesToRedeem.toString(), `(= ${SHARES_TO_REDEEM} share${SHARES_TO_REDEEM > 1 ? 's' : ''})`);
 
+    // Check max redeem capacity
+    const maxRedeem = await vault.maxRedeem(account);
+    console.log("Max redeem:", maxRedeem.toString());
+    if (web3.utils.toBN(sharesToRedeem.toString()).gt(web3.utils.toBN(maxRedeem.toString()))) {
+        console.error(`Cannot redeem ${sharesToRedeem.toString()} shares. Max allowed: ${maxRedeem.toString()}`);
+        process.exit(1);
+    }
+
+    // Check user balance
+    const userBalance = await vault.balanceOf(account);
+    const formattedUserBalance = (Number(userBalance.toString()) / Math.pow(10, assetDecimalsNum)).toFixed(assetDecimalsNum);
+    console.log("User balance (shares):", userBalance.toString(), `(= ${formattedUserBalance} shares)`);
+    if (web3.utils.toBN(userBalance.toString()).lt(web3.utils.toBN(sharesToRedeem.toString()))) {
+        console.error(`Insufficient balance. Need ${sharesToRedeem.toString()} shares, have ${userBalance.toString()}`);
+        process.exit(1);
+    }
+
     // Redeem creates a withdrawal request (no immediate asset transfer)
-    const redeemTx = await vault.redeem(sharesToRedeem, me, me, { from: me });
+    const redeemTx = await vault.redeem(sharesToRedeem, account, account, { from: account });
     console.log("Redeem tx:", redeemTx.tx);
 }
 

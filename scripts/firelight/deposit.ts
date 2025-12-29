@@ -42,7 +42,7 @@ async function main() {
     const maxDeposit = await vault.maxDeposit(account);
     console.log("Max deposit:", maxDeposit.toString());
     if (web3.utils.toBN(amount.toString()).gt(web3.utils.toBN(maxDeposit.toString()))) {
-        console.error(`❌ Cannot deposit ${amount.toString()} assets. Max allowed: ${maxDeposit.toString()}`);
+        console.error(`Cannot deposit ${amount.toString()} assets. Max allowed: ${maxDeposit.toString()}`);
         process.exit(1);
     }
 

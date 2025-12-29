@@ -43,7 +43,7 @@ async function main() {
     const maxMint = await vault.maxMint(account);
     console.log("Max mint:", maxMint.toString());
     if (web3.utils.toBN(sharesToMint).gt(web3.utils.toBN(maxMint.toString()))) {
-        console.error(`❌ Cannot mint ${sharesToMint.toString()} shares. Max allowed: ${maxMint.toString()}`);
+        console.error(`Cannot mint ${sharesToMint.toString()} shares. Max allowed: ${maxMint.toString()}`);
         process.exit(1);
     }
 
