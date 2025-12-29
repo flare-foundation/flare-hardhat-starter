@@ -42,7 +42,7 @@ async function main() {
     // Check max redeem capacity
     const maxRedeem = await vault.maxRedeem(account);
     console.log("Max redeem:", maxRedeem.toString());
-    if (web3.utils.toBN(sharesToRedeem.toString()).gt(web3.utils.toBN(maxRedeem.toString()))) {
+    if (BigInt(sharesToRedeem.toString()) > BigInt(maxRedeem.toString())) {
         console.error(`Cannot redeem ${sharesToRedeem.toString()} shares. Max allowed: ${maxRedeem.toString()}`);
         process.exit(1);
     }
@@ -51,7 +51,7 @@ async function main() {
     const userBalance = await vault.balanceOf(account);
     const formattedUserBalance = (Number(userBalance.toString()) / Math.pow(10, assetDecimalsNum)).toFixed(assetDecimalsNum);
     console.log("User balance (shares):", userBalance.toString(), `(= ${formattedUserBalance} shares)`);
-    if (web3.utils.toBN(userBalance.toString()).lt(web3.utils.toBN(sharesToRedeem.toString()))) {
+    if (BigInt(userBalance.toString()) < BigInt(sharesToRedeem.toString())) {
         console.error(`Insufficient balance. Need ${sharesToRedeem.toString()} shares, have ${userBalance.toString()}`);
         process.exit(1);
     }

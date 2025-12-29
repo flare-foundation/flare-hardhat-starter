@@ -42,7 +42,7 @@ async function main() {
     // Check max withdraw capacity
     const maxWithdraw = await vault.maxWithdraw(account);
     console.log("Max withdraw:", maxWithdraw.toString());
-    if (web3.utils.toBN(amount.toString()).gt(web3.utils.toBN(maxWithdraw.toString()))) {
+    if (BigInt(amount.toString()) > BigInt(maxWithdraw.toString())) {
         console.error(`Cannot withdraw ${amount.toString()} assets. Max allowed: ${maxWithdraw.toString()}`);
         process.exit(1);
     }
@@ -51,6 +51,13 @@ async function main() {
     const userBalance = await vault.balanceOf(account);
     const formattedUserBalance = (Number(userBalance.toString()) / Math.pow(10, assetDecimalsNum)).toFixed(assetDecimalsNum);
     console.log("User balance (shares):", userBalance.toString(), `(= ${formattedUserBalance} shares)`);
+    
+    // Use previewWithdraw to calculate how many shares are needed for this withdrawal
+    const sharesNeeded = await vault.previewWithdraw(amount);
+    if (BigInt(userBalance.toString()) < BigInt(sharesNeeded.toString())) {
+        console.error(`Insufficient balance. Need ${sharesNeeded.toString()} shares for withdrawal, have ${userBalance.toString()}`);
+        process.exit(1);
+    }
 
     // Withdraw creates a withdrawal request (no immediate asset transfer)
     const withdrawTx = await vault.withdraw(amount, account, account, { from: account });

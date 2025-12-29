@@ -53,12 +53,12 @@ async function main() {
     console.log("Total supply (shares):", totalSupply.toString(), `(${formattedTotalSupply} shares)`);
     
     // Calculate exchange rate (assets per share)
-    const totalAssetsBN = web3.utils.toBN(totalAssets.toString());
-    const totalSupplyBN = web3.utils.toBN(totalSupply.toString());
-    if (!totalSupplyBN.isZero()) {
+    const totalAssetsBN = BigInt(totalAssets.toString());
+    const totalSupplyBN = BigInt(totalSupply.toString());
+    if (totalSupplyBN !== 0n) {
         // Calculate: (totalAssets * 10^assetDecimals) / totalSupply for precision
-        const precision = web3.utils.toBN(10).pow(web3.utils.toBN(assetDecimalsNum));
-        const rateBN = totalAssetsBN.mul(precision).div(totalSupplyBN);
+        const precision = BigInt(10) ** BigInt(assetDecimalsNum);
+        const rateBN = (totalAssetsBN * precision) / totalSupplyBN;
         const formattedRate = (Number(rateBN.toString()) / Math.pow(10, assetDecimalsNum)).toFixed(assetDecimalsNum);
         console.log("Exchange rate:", formattedRate, `${assetSymbol}/share`);
     } else {
@@ -100,11 +100,11 @@ async function main() {
 
     // Check withdrawals for current and previous periods
     console.log("\n=== User Withdrawals ===");
-    const currentPeriodBN = web3.utils.toBN(currentPeriod.toString());
+    const currentPeriodBN = BigInt(currentPeriod.toString());
     const periodsToCheck = [currentPeriodBN];
     
-    if (!currentPeriodBN.isZero()) {
-        periodsToCheck.push(currentPeriodBN.subn(1));
+    if (currentPeriodBN !== 0n) {
+        periodsToCheck.push(currentPeriodBN - 1n);
     }
 
     for (const period of periodsToCheck) {
