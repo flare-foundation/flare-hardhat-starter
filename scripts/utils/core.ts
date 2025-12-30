@@ -73,3 +73,9 @@ export function replaceInFile(fileName: string, pattern: string, replace: string
     content.replace(pattern, replace);
     fs.writeFileSync(fileName, content);
 }
+
+export function fmtTs(ts: any) {
+    const s = ts?.toString?.() ?? String(ts);
+    const ms = Number(s) * 1000;
+    return `${s} (${new Date(ms).toISOString()})`;
+}
