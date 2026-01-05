@@ -8,57 +8,79 @@
  *   yarn hardhat run scripts/firelight/redeem.ts --network coston2
  */
 
+import { ethers } from "hardhat";
+
 export const FIRELIGHT_VAULT_ADDRESS = "0x91Bfe6A68aB035DFebb6A770FFfB748C03C0E40B";
 
 export const IFirelightVault = artifacts.require("IFirelightVault");
 
-const SHARES_TO_REDEEM = 1; // Number of shares to redeem
+const sharesToRedeem = 1; // Number of shares to redeem
 
-async function main() {
-    // Get the first account
-    const accounts = await web3.eth.getAccounts();
-    const account = accounts[0];
-    
+// @ts-expect-error - Type definitions issue, but works at runtime
+const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20");
+
+async function getAccount() {
+    const [signer] = await ethers.getSigners();
+    return { signer, account: signer.address };
+}
+
+async function getVaultAndAsset() {
     const vault = await IFirelightVault.at(FIRELIGHT_VAULT_ADDRESS);
-    
-    // Get asset address from vault
     const assetAddress = await vault.asset();
-    
-    // @ts-expect-error - Type definitions issue, but works at runtime
-    const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20");
     const assetToken = await IERC20.at(assetAddress);
+    return { vault, assetAddress, assetToken };
+}
 
+async function getAssetInfo(assetToken: any) {
     const symbol = await assetToken.symbol();
     const assetDecimals = await assetToken.decimals();
-    const assetDecimalsNum = Number(assetDecimals);
-    const sharesToRedeem = SHARES_TO_REDEEM * (10 ** assetDecimalsNum);
+    return { symbol, assetDecimals };
+}
 
+function logRedeemInfo(account: string, assetAddress: string, symbol: string, assetDecimals: any, sharesAmount: bigint) {
     console.log("=== Redeem (ERC-4626) ===");
     console.log("Sender:", account);
     console.log("Vault:", FIRELIGHT_VAULT_ADDRESS);
     console.log("Asset:", assetAddress, `(${symbol}, decimals=${assetDecimals})`);
-    console.log("Shares to redeem:", sharesToRedeem.toString(), `(= ${SHARES_TO_REDEEM} share${SHARES_TO_REDEEM > 1 ? 's' : ''})`);
+    console.log("Shares to redeem:", sharesAmount.toString(), `(= ${sharesToRedeem} share${sharesToRedeem > 1 ? 's' : ''})`);
+}
 
-    // Check max redeem capacity
+async function validateRedeem(vault: any, account: string, sharesAmount: bigint) {
     const maxRedeem = await vault.maxRedeem(account);
     console.log("Max redeem:", maxRedeem.toString());
-    if (BigInt(sharesToRedeem.toString()) > BigInt(maxRedeem.toString())) {
-        console.error(`Cannot redeem ${sharesToRedeem.toString()} shares. Max allowed: ${maxRedeem.toString()}`);
+    if (sharesAmount > BigInt(maxRedeem.toString())) {
+        console.error(`Cannot redeem ${sharesAmount.toString()} shares. Max allowed: ${maxRedeem.toString()}`);
         process.exit(1);
     }
+}
 
-    // Check user balance
+async function checkUserBalance(vault: any, account: string, sharesAmount: bigint, assetDecimals: bigint) {
     const userBalance = await vault.balanceOf(account);
-    const formattedUserBalance = (Number(userBalance.toString()) / Math.pow(10, assetDecimalsNum)).toFixed(assetDecimalsNum);
+    const formattedUserBalance = (Number(userBalance.toString()) / Math.pow(10, Number(assetDecimals))).toFixed(Number(assetDecimals));
     console.log("User balance (shares):", userBalance.toString(), `(= ${formattedUserBalance} shares)`);
-    if (BigInt(userBalance.toString()) < BigInt(sharesToRedeem.toString())) {
-        console.error(`Insufficient balance. Need ${sharesToRedeem.toString()} shares, have ${userBalance.toString()}`);
+    if (BigInt(userBalance.toString()) < sharesAmount) {
+        console.error(`Insufficient balance. Need ${sharesAmount.toString()} shares, have ${userBalance.toString()}`);
         process.exit(1);
     }
+}
 
-    // Redeem creates a withdrawal request (no immediate asset transfer)
-    const redeemTx = await vault.redeem(sharesToRedeem, account, account, { from: account });
+async function executeRedeem(vault: any, sharesAmount: bigint, account: string) {
+    const redeemTx = await vault.redeem(sharesAmount, account, account, { from: account });
     console.log("Redeem tx:", redeemTx.tx);
+}
+
+async function main() {
+    const { account } = await getAccount();
+    const { vault, assetAddress, assetToken } = await getVaultAndAsset();
+    const { symbol, assetDecimals } = await getAssetInfo(assetToken);
+
+    const sharesAmount = BigInt(sharesToRedeem * (10 ** Number(assetDecimals)));
+
+    logRedeemInfo(account, assetAddress, symbol, assetDecimals, sharesAmount);
+    
+    await validateRedeem(vault, account, sharesAmount);
+    await checkUserBalance(vault, account, sharesAmount, assetDecimals);
+    await executeRedeem(vault, sharesAmount, account);
 }
 
 main().catch((error) => {
