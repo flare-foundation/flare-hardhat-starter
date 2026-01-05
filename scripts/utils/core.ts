@@ -74,7 +74,7 @@ export function replaceInFile(fileName: string, pattern: string, replace: string
     fs.writeFileSync(fileName, content);
 }
 
-export function fmtTs(ts: any) {
+export function formatTimestamp(ts: any) {
     const s = ts?.toString?.() ?? String(ts);
     const ms = Number(s) * 1000;
     return `${s} (${new Date(ms).toISOString()})`;
