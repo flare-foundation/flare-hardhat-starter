@@ -16,6 +16,7 @@ import { formatUnits } from "ethers";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { IERC20Instance, FAssetOFTAdapterInstance } from "../../typechain-types";
+import { getFXRPTokenAddress } from "../utils/fassets";
 
 import BN from "bn.js";
 
@@ -24,7 +25,6 @@ const IERC20 = artifacts.require("IERC20");
 const FAssetOFTAdapter = artifacts.require("FAssetOFTAdapter");
 
 const CONFIG = {
-    COSTON2_FTESTXRP: "0x8b4abA9C4BD7DD961659b02129beE20c6286e17F", // OLD token that matches OFT Adapter
     COSTON2_OFT_ADAPTER: "0xCd3d2127935Ae82Af54Fc31cCD9D3440dbF46639",
     COSTON2_COMPOSER: process.env.COSTON2_COMPOSER || "",
     HYPERLIQUID_EID: EndpointId.HYPERLIQUID_V2_TESTNET, // Hyperliquid testnet EID
@@ -56,7 +56,6 @@ async function getSigner() {
     const signerAddress = accounts[0];
 
     console.log("Using account:", signerAddress);
-    console.log("Token address:", CONFIG.COSTON2_FTESTXRP);
 
     return signerAddress;
 }
@@ -82,14 +81,15 @@ function prepareBridgeParams(signerAddress: string): BridgeParams {
  * Checks if user has sufficient balance to bridge
  */
 async function checkBalance(params: BridgeParams): Promise<IERC20Instance> {
-    const fTestXRP: IERC20Instance = await IERC20.at(CONFIG.COSTON2_FTESTXRP);
+    const fxrpTokenAddress = await getFXRPTokenAddress();
+    const fTestXRP: IERC20Instance = await IERC20.at(fxrpTokenAddress);
 
     const balance = await fTestXRP.balanceOf(params.signerAddress);
     console.log("\nYour FTestXRP balance:", formatUnits(balance.toString(), 6));
 
     if (web3.utils.toBN(balance.toString()).lt(params.amountToBridge)) {
         console.error("\n❌ Insufficient FTestXRP balance!");
-        console.log("   Token address: " + CONFIG.COSTON2_FTESTXRP);
+        console.log("   Token address: " + fxrpTokenAddress);
         throw new Error("Insufficient balance");
     }
 
@@ -104,13 +104,14 @@ async function approveTokens(
     amountToBridge: BN,
     signerAddress: string
 ): Promise<FAssetOFTAdapterInstance> {
+    const fxrpTokenAddress = await getFXRPTokenAddress();
     const oftAdapter: FAssetOFTAdapterInstance = await FAssetOFTAdapter.at(CONFIG.COSTON2_OFT_ADAPTER);
 
     console.log("\n1️⃣ Checking OFT Adapter token address...");
     const innerToken = await oftAdapter.token();
     console.log("   OFT Adapter's inner token:", innerToken);
-    console.log("   Expected token:", CONFIG.COSTON2_FTESTXRP);
-    console.log("   Match:", innerToken.toLowerCase() === CONFIG.COSTON2_FTESTXRP.toLowerCase());
+    console.log("   Expected token:", fxrpTokenAddress);
+    console.log("   Match:", innerToken.toLowerCase() === fxrpTokenAddress);
 
     console.log("\n   Approving FTestXRP for OFT Adapter...");
     console.log("   OFT Adapter address:", oftAdapter.address);
