@@ -9,6 +9,7 @@
  */
 
 import { ethers } from "hardhat";
+import { IFirelightVaultInstance } from "../../typechain-types/contracts/firelight/IFirelightVault";
 
 export const FIRELIGHT_VAULT_ADDRESS = "0x91Bfe6A68aB035DFebb6A770FFfB748C03C0E40B";
 
@@ -25,7 +26,7 @@ async function getAccount() {
 }
 
 async function getVaultAndAsset() {
-    const vault = await IFirelightVault.at(FIRELIGHT_VAULT_ADDRESS);
+    const vault = await IFirelightVault.at(FIRELIGHT_VAULT_ADDRESS) as IFirelightVaultInstance;
     const assetAddress = await vault.asset();
     const assetToken = await IERC20.at(assetAddress);
     return { vault, assetAddress, assetToken };
@@ -45,8 +46,8 @@ function logDepositInfo(account: string, assetAddress: string, symbol: string, a
     console.log("Deposit amount:", amount.toString(), `(= ${tokensToDeposit} ${symbol})`);
 }
 
-async function validateDeposit(vault: any, account: string, amount: bigint) {
-    const maxDeposit = BigInt(await vault.maxDeposit(account));
+async function validateDeposit(vault: IFirelightVaultInstance, account: string, amount: bigint) {
+    const maxDeposit = BigInt((await vault.maxDeposit(account)).toString());
     console.log("Max deposit:", maxDeposit.toString());
     if (amount > maxDeposit) {
         console.error(`Cannot deposit ${amount.toString()} assets. Max allowed: ${maxDeposit.toString()}`);
