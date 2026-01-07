@@ -46,9 +46,9 @@ function logDepositInfo(account: string, assetAddress: string, symbol: string, a
 }
 
 async function validateDeposit(vault: any, account: string, amount: bigint) {
-    const maxDeposit = await vault.maxDeposit(account);
+    const maxDeposit = BigInt(await vault.maxDeposit(account));
     console.log("Max deposit:", maxDeposit.toString());
-    if (amount > BigInt(maxDeposit.toString())) {
+    if (amount > maxDeposit) {
         console.error(`Cannot deposit ${amount.toString()} assets. Max allowed: ${maxDeposit.toString()}`);
         process.exit(1);
     }
