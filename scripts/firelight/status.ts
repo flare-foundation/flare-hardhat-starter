@@ -10,6 +10,7 @@
 
 import { ethers } from "hardhat";
 import { formatTimestamp } from "../utils/core";
+import { IFirelightVaultInstance } from "../../typechain-types/contracts/firelight/IFirelightVault";
 
 export const FIRELIGHT_VAULT_ADDRESS = "0x91Bfe6A68aB035DFebb6A770FFfB748C03C0E40B";
 
@@ -24,10 +25,10 @@ async function getAccount() {
 }
 
 async function getVault() {
-    return await IFirelightVault.at(FIRELIGHT_VAULT_ADDRESS);
+    return await IFirelightVault.at(FIRELIGHT_VAULT_ADDRESS) as IFirelightVaultInstance;
 }
 
-async function getVaultInfo(vault: any) {
+async function getVaultInfo(vault: IFirelightVaultInstance) {
     const asset = await vault.asset();
     const totalAssets = await vault.totalAssets();
     const totalSupply = await vault.totalSupply();
@@ -106,7 +107,7 @@ function logPeriodConfiguration(
     });
 }
 
-async function getUserInfo(vault: any, account: string) {
+async function getUserInfo(vault: IFirelightVaultInstance, account: string) {
     const userBalance = await vault.balanceOf(account);
     const userMaxDeposit = await vault.maxDeposit(account);
     const userMaxMint = await vault.maxMint(account);
@@ -139,7 +140,7 @@ function logUserInfo(account: string, userInfo: any, assetSymbol: string, assetD
     console.log("Max redeem:", userInfo.userMaxRedeem.toString());
 }
 
-async function logUserWithdrawals(vault: any, account: string, currentPeriod: any, assetSymbol: string, assetDecimals: any) {
+async function logUserWithdrawals(vault: IFirelightVaultInstance, account: string, currentPeriod: any, assetSymbol: string, assetDecimals: any) {
     console.log("\n=== User Withdrawals ===");
     const currentPeriodBN = BigInt(currentPeriod.toString());
     const periodsToCheck = [currentPeriodBN];
@@ -151,7 +152,7 @@ async function logUserWithdrawals(vault: any, account: string, currentPeriod: an
     const assetDecimalsNum = Number(assetDecimals);
     for (const period of periodsToCheck) {
         try {
-            const withdrawals = await vault.withdrawalsOf(period, account, { from: account });
+            const withdrawals = await vault.withdrawalsOf(period.toString(), account, { from: account });
             if (!withdrawals.isZero()) {
                 const formattedWithdrawals = (Number(withdrawals.toString()) / Math.pow(10, assetDecimalsNum)).toFixed(assetDecimalsNum);
                 console.log(`Period ${period.toString()}: ${withdrawals.toString()} (${formattedWithdrawals} ${assetSymbol})`);

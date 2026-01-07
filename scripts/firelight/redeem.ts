@@ -9,6 +9,7 @@
  */
 
 import { ethers } from "hardhat";
+import { IFirelightVaultInstance } from "../../typechain-types/contracts/firelight/IFirelightVault";
 
 export const FIRELIGHT_VAULT_ADDRESS = "0x91Bfe6A68aB035DFebb6A770FFfB748C03C0E40B";
 
@@ -25,7 +26,7 @@ async function getAccount() {
 }
 
 async function getVaultAndAsset() {
-    const vault = await IFirelightVault.at(FIRELIGHT_VAULT_ADDRESS);
+    const vault = await IFirelightVault.at(FIRELIGHT_VAULT_ADDRESS) as IFirelightVaultInstance;
     const assetAddress = await vault.asset();
     const assetToken = await IERC20.at(assetAddress);
     return { vault, assetAddress, assetToken };
@@ -45,7 +46,7 @@ function logRedeemInfo(account: string, assetAddress: string, symbol: string, as
     console.log("Shares to redeem:", sharesAmount.toString(), `(= ${sharesToRedeem} share${sharesToRedeem > 1 ? 's' : ''})`);
 }
 
-async function validateRedeem(vault: any, account: string, sharesAmount: bigint) {
+async function validateRedeem(vault: IFirelightVaultInstance, account: string, sharesAmount: bigint) {
     const maxRedeem = await vault.maxRedeem(account);
     console.log("Max redeem:", maxRedeem.toString());
     if (sharesAmount > BigInt(maxRedeem.toString())) {
@@ -54,7 +55,7 @@ async function validateRedeem(vault: any, account: string, sharesAmount: bigint)
     }
 }
 
-async function checkUserBalance(vault: any, account: string, sharesAmount: bigint, assetDecimals: bigint) {
+async function checkUserBalance(vault: IFirelightVaultInstance, account: string, sharesAmount: bigint, assetDecimals: bigint) {
     const userBalance = await vault.balanceOf(account);
     const formattedUserBalance = (Number(userBalance.toString()) / Math.pow(10, Number(assetDecimals))).toFixed(Number(assetDecimals));
     console.log("User balance (shares):", userBalance.toString(), `(= ${formattedUserBalance} shares)`);
@@ -64,8 +65,8 @@ async function checkUserBalance(vault: any, account: string, sharesAmount: bigin
     }
 }
 
-async function executeRedeem(vault: any, sharesAmount: bigint, account: string) {
-    const redeemTx = await vault.redeem(sharesAmount, account, account, { from: account });
+async function executeRedeem(vault: IFirelightVaultInstance, sharesAmount: bigint, account: string) {
+    const redeemTx = await vault.redeem(sharesAmount.toString(), account, account, { from: account });
     console.log("Redeem tx:", redeemTx.tx);
 }
 

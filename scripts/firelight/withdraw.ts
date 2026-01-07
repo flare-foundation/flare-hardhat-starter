@@ -9,6 +9,7 @@
  */
 
 import { ethers } from "hardhat";
+import { IFirelightVaultInstance } from "../../typechain-types/contracts/firelight/IFirelightVault";
 
 export const FIRELIGHT_VAULT_ADDRESS = "0x91Bfe6A68aB035DFebb6A770FFfB748C03C0E40B";
 
@@ -25,7 +26,7 @@ async function getAccount() {
 }
 
 async function getVaultAndAsset() {
-    const vault = await IFirelightVault.at(FIRELIGHT_VAULT_ADDRESS);
+    const vault = await IFirelightVault.at(FIRELIGHT_VAULT_ADDRESS) as IFirelightVaultInstance;
     const assetAddress = await vault.asset();
     const assetToken = await IERC20.at(assetAddress);
     return { vault, assetAddress, assetToken };
@@ -45,7 +46,7 @@ function logWithdrawInfo(account: string, assetAddress: string, symbol: string, 
     console.log("Withdraw amount:", withdrawAmount.toString(), `(= ${tokensToWithdraw} ${symbol})`);
 }
 
-async function validateWithdraw(vault: any, account: string, withdrawAmount: bigint) {
+async function validateWithdraw(vault: IFirelightVaultInstance, account: string, withdrawAmount: bigint) {
     const maxWithdraw = await vault.maxWithdraw(account);
     console.log("Max withdraw:", maxWithdraw.toString());
     if (withdrawAmount > BigInt(maxWithdraw.toString())) {
@@ -54,22 +55,22 @@ async function validateWithdraw(vault: any, account: string, withdrawAmount: big
     }
 }
 
-async function checkUserBalance(vault: any, account: string, withdrawAmount: bigint, assetDecimals: any) {
+async function checkUserBalance(vault: IFirelightVaultInstance, account: string, withdrawAmount: bigint, assetDecimals: any) {
     const userBalance = await vault.balanceOf(account);
     const assetDecimalsNum = Number(assetDecimals);
     const formattedUserBalance = (Number(userBalance.toString()) / Math.pow(10, assetDecimalsNum)).toFixed(assetDecimalsNum);
     console.log("User balance (shares):", userBalance.toString(), `(= ${formattedUserBalance} shares)`);
     
     // Use previewWithdraw to calculate how many shares are needed for this withdrawal
-    const sharesNeeded = await vault.previewWithdraw(withdrawAmount);
+    const sharesNeeded = await vault.previewWithdraw(withdrawAmount.toString());
     if (BigInt(userBalance.toString()) < BigInt(sharesNeeded.toString())) {
         console.error(`Insufficient balance. Need ${sharesNeeded.toString()} shares for withdrawal, have ${userBalance.toString()}`);
         process.exit(1);
     }
 }
 
-async function executeWithdraw(vault: any, withdrawAmount: bigint, account: string) {
-    const withdrawTx = await vault.withdraw(withdrawAmount, account, account, { from: account });
+async function executeWithdraw(vault: IFirelightVaultInstance, withdrawAmount: bigint, account: string) {
+    const withdrawTx = await vault.withdraw(withdrawAmount.toString(), account, account, { from: account });
     console.log("Withdraw tx:", withdrawTx.tx);
 }
 
