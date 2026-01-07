@@ -10,6 +10,7 @@
 
 import { ethers } from "hardhat";
 import { IFirelightVaultInstance } from "../../typechain-types/contracts/firelight/IFirelightVault";
+import { bnToBigInt } from "../utils/core";
 
 export const FIRELIGHT_VAULT_ADDRESS = "0x91Bfe6A68aB035DFebb6A770FFfB748C03C0E40B";
 
@@ -47,7 +48,7 @@ function logDepositInfo(account: string, assetAddress: string, symbol: string, a
 }
 
 async function validateDeposit(vault: IFirelightVaultInstance, account: string, amount: bigint) {
-    const maxDeposit = BigInt((await vault.maxDeposit(account)).toString());
+    const maxDeposit = bnToBigInt(await vault.maxDeposit(account));
     console.log("Max deposit:", maxDeposit.toString());
     if (amount > maxDeposit) {
         console.error(`Cannot deposit ${amount.toString()} assets. Max allowed: ${maxDeposit.toString()}`);

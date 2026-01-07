@@ -1,4 +1,5 @@
 import fs from "fs";
+import BN from "bn.js";
 
 export function toHex(data: string) {
     let result = "";
@@ -79,3 +80,11 @@ export function formatTimestamp(ts: any) {
     const ms = Number(s) * 1000;
     return `${s} (${new Date(ms).toISOString()})`;
 }
+
+/**
+ * Convert a BN to a BigInt
+ */
+export function bnToBigInt(bn: BN): bigint {
+    return BigInt(bn.toString());
+}
+

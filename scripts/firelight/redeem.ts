@@ -10,6 +10,7 @@
 
 import { ethers } from "hardhat";
 import { IFirelightVaultInstance } from "../../typechain-types/contracts/firelight/IFirelightVault";
+import { bnToBigInt } from "../utils/core";
 
 export const FIRELIGHT_VAULT_ADDRESS = "0x91Bfe6A68aB035DFebb6A770FFfB748C03C0E40B";
 
@@ -47,9 +48,9 @@ function logRedeemInfo(account: string, assetAddress: string, symbol: string, as
 }
 
 async function validateRedeem(vault: IFirelightVaultInstance, account: string, sharesAmount: bigint) {
-    const maxRedeem = await vault.maxRedeem(account);
-    console.log("Max redeem:", maxRedeem.toString());
-    if (sharesAmount > BigInt(maxRedeem.toString())) {
+    const maxRedeem = bnToBigInt(await vault.maxRedeem(account));
+    console.log("Max redeem:", maxRedeem);
+    if (sharesAmount > maxRedeem) {
         console.error(`Cannot redeem ${sharesAmount.toString()} shares. Max allowed: ${maxRedeem.toString()}`);
         process.exit(1);
     }
@@ -59,7 +60,7 @@ async function checkUserBalance(vault: IFirelightVaultInstance, account: string,
     const userBalance = await vault.balanceOf(account);
     const formattedUserBalance = (Number(userBalance.toString()) / Math.pow(10, Number(assetDecimals))).toFixed(Number(assetDecimals));
     console.log("User balance (shares):", userBalance.toString(), `(= ${formattedUserBalance} shares)`);
-    if (BigInt(userBalance.toString()) < sharesAmount) {
+    if (bnToBigInt(userBalance) < sharesAmount) {
         console.error(`Insufficient balance. Need ${sharesAmount.toString()} shares, have ${userBalance.toString()}`);
         process.exit(1);
     }

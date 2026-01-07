@@ -9,6 +9,7 @@
  */
 
 import { ethers } from "hardhat";
+import { bnToBigInt } from "../utils/core";
 import { IFirelightVaultInstance } from "../../typechain-types/contracts/firelight/IFirelightVault";
 
 export const FIRELIGHT_VAULT_ADDRESS = "0x91Bfe6A68aB035DFebb6A770FFfB748C03C0E40B";
@@ -47,9 +48,9 @@ function logMintInfo(account: string, assetAddress: string, symbol: string, asse
 }
 
 async function validateMint(vault: IFirelightVaultInstance, account: string, sharesAmount: bigint) {
-    const maxMint = await vault.maxMint(account);
+    const maxMint = bnToBigInt(await vault.maxMint(account));
     console.log("Max mint:", maxMint.toString());
-    if (sharesAmount > BigInt(maxMint.toString())) {
+    if (sharesAmount > maxMint) {
         console.error(`Cannot mint ${sharesAmount.toString()} shares. Max allowed: ${maxMint.toString()}`);
         process.exit(1);
     }
@@ -82,7 +83,7 @@ async function main() {
     
     await validateMint(vault, account, sharesAmount);
     const assetsNeeded = await calculateAssetsNeeded(vault, sharesAmount);
-    await approveTokens(assetToken, vault, BigInt(assetsNeeded.toString()), account);
+    await approveTokens(assetToken, vault, bnToBigInt(assetsNeeded), account);
     await executeMint(vault, sharesAmount, account);
 }
 

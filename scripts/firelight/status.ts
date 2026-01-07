@@ -9,7 +9,7 @@
  */
 
 import { ethers } from "hardhat";
-import { formatTimestamp } from "../utils/core";
+import { formatTimestamp, bnToBigInt } from "../utils/core";
 import { IFirelightVaultInstance } from "../../typechain-types/contracts/firelight/IFirelightVault";
 
 export const FIRELIGHT_VAULT_ADDRESS = "0x91Bfe6A68aB035DFebb6A770FFfB748C03C0E40B";
@@ -73,8 +73,8 @@ function logVaultBalances(totalAssets: any, totalSupply: any, assetSymbol: strin
     console.log("Total supply (shares):", totalSupply.toString(), `(${formattedTotalSupply} shares)`);
     
     // Calculate exchange rate (assets per share)
-    const totalAssetsBN = BigInt(totalAssets.toString());
-    const totalSupplyBN = BigInt(totalSupply.toString());
+    const totalAssetsBN = bnToBigInt(totalAssets);
+    const totalSupplyBN = bnToBigInt(totalSupply);
     if (totalSupplyBN !== 0n) {
         // Calculate: (totalAssets * 10^assetDecimals) / totalSupply for precision
         const precision = BigInt(10) ** BigInt(assetDecimalsNum);
@@ -108,12 +108,13 @@ function logPeriodConfiguration(
 }
 
 async function getUserInfo(vault: IFirelightVaultInstance, account: string) {
-    const userBalance = await vault.balanceOf(account);
-    const userMaxDeposit = await vault.maxDeposit(account);
-    const userMaxMint = await vault.maxMint(account);
-    const userMaxWithdraw = await vault.maxWithdraw(account);
-    const userMaxRedeem = await vault.maxRedeem(account);
-    const userBalanceAssets = await vault.convertToAssets(userBalance);
+    const userBalanceBN = await vault.balanceOf(account);
+    const userBalance = bnToBigInt(userBalanceBN);
+    const userMaxDeposit = bnToBigInt(await vault.maxDeposit(account));
+    const userMaxMint = bnToBigInt(await vault.maxMint(account));
+    const userMaxWithdraw = bnToBigInt(await vault.maxWithdraw(account));
+    const userMaxRedeem = bnToBigInt(await vault.maxRedeem(account));
+    const userBalanceAssets = bnToBigInt(await vault.convertToAssets(userBalanceBN));
     return {
         userBalance,
         userMaxDeposit,
@@ -142,7 +143,7 @@ function logUserInfo(account: string, userInfo: any, assetSymbol: string, assetD
 
 async function logUserWithdrawals(vault: IFirelightVaultInstance, account: string, currentPeriod: any, assetSymbol: string, assetDecimals: any) {
     console.log("\n=== User Withdrawals ===");
-    const currentPeriodBN = BigInt(currentPeriod.toString());
+    const currentPeriodBN = bnToBigInt(currentPeriod);
     const periodsToCheck = [currentPeriodBN];
     
     if (currentPeriodBN !== 0n) {
@@ -152,8 +153,9 @@ async function logUserWithdrawals(vault: IFirelightVaultInstance, account: strin
     const assetDecimalsNum = Number(assetDecimals);
     for (const period of periodsToCheck) {
         try {
-            const withdrawals = await vault.withdrawalsOf(period.toString(), account, { from: account });
-            if (!withdrawals.isZero()) {
+            const withdrawalsBN = await vault.withdrawalsOf(period.toString(), account, { from: account });
+            const withdrawals = bnToBigInt(withdrawalsBN);
+            if (withdrawals !== 0n) {
                 const formattedWithdrawals = (Number(withdrawals.toString()) / Math.pow(10, assetDecimalsNum)).toFixed(assetDecimalsNum);
                 console.log(`Period ${period.toString()}: ${withdrawals.toString()} (${formattedWithdrawals} ${assetSymbol})`);
             }

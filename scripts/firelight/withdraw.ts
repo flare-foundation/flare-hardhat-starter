@@ -9,6 +9,7 @@
  */
 
 import { ethers } from "hardhat";
+import { bnToBigInt } from "../utils/core";
 import { IFirelightVaultInstance } from "../../typechain-types/contracts/firelight/IFirelightVault";
 
 export const FIRELIGHT_VAULT_ADDRESS = "0x91Bfe6A68aB035DFebb6A770FFfB748C03C0E40B";
@@ -47,9 +48,9 @@ function logWithdrawInfo(account: string, assetAddress: string, symbol: string, 
 }
 
 async function validateWithdraw(vault: IFirelightVaultInstance, account: string, withdrawAmount: bigint) {
-    const maxWithdraw = await vault.maxWithdraw(account);
-    console.log("Max withdraw:", maxWithdraw.toString());
-    if (withdrawAmount > BigInt(maxWithdraw.toString())) {
+    const maxWithdraw = bnToBigInt(await vault.maxWithdraw(account));
+    console.log("Max withdraw:", maxWithdraw);
+    if (withdrawAmount > maxWithdraw) {
         console.error(`Cannot withdraw ${withdrawAmount.toString()} assets. Max allowed: ${maxWithdraw.toString()}`);
         process.exit(1);
     }
@@ -63,7 +64,7 @@ async function checkUserBalance(vault: IFirelightVaultInstance, account: string,
     
     // Use previewWithdraw to calculate how many shares are needed for this withdrawal
     const sharesNeeded = await vault.previewWithdraw(withdrawAmount.toString());
-    if (BigInt(userBalance.toString()) < BigInt(sharesNeeded.toString())) {
+    if (bnToBigInt(userBalance) < bnToBigInt(sharesNeeded)) {
         console.error(`Insufficient balance. Need ${sharesNeeded.toString()} shares for withdrawal, have ${userBalance.toString()}`);
         process.exit(1);
     }
