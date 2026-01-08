@@ -1,4 +1,32 @@
 # .husky/pre-commit
 
-yarn format:check
-yarn lint:check
+set -e
+
+# Get staged files by type
+STAGED_TS_JS_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(ts|js|mjs)$' || true)
+STAGED_SOL_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(sol)$' || true)
+STAGED_PRETTIER_FILES=$(git diff --cached --name-only --diff-filter=ACM | grep -E '\.(json|md|yml|yaml)$' || true)
+
+# Format check (equivalent to yarn format:check but only on staged files)
+if [ -n "$STAGED_TS_JS_FILES" ]; then
+  echo "Format checking TypeScript/JavaScript files..."
+  echo "$STAGED_TS_JS_FILES" | xargs npx prettier --check
+fi
+if [ -n "$STAGED_SOL_FILES" ]; then
+  echo "Format checking Solidity files..."
+  echo "$STAGED_SOL_FILES" | xargs npx prettier --check --plugin=prettier-plugin-solidity
+fi
+if [ -n "$STAGED_PRETTIER_FILES" ]; then
+  echo "Format checking other files..."
+  echo "$STAGED_PRETTIER_FILES" | xargs npx prettier --check
+fi
+
+# Lint check (equivalent to yarn lint:check but only on staged files)
+if [ -n "$STAGED_TS_JS_FILES" ]; then
+  echo "Linting TypeScript/JavaScript files..."
+  echo "$STAGED_TS_JS_FILES" | xargs npx eslint
+fi
+if [ -n "$STAGED_SOL_FILES" ]; then
+  echo "Linting Solidity files..."
+  echo "$STAGED_SOL_FILES" | xargs npx solhint
+fi
