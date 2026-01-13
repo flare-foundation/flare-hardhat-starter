@@ -59,11 +59,11 @@ async function connectToOFT(): Promise<FXRPOFTInstance> {
     return await FXRPOFT.at(CONFIG.SEPOLIA_FXRP_OFT);
 }
 
-function prepareRedemptionParams(signerAddress: string): RedemptionParams {
+function prepareRedemptionParams(signerAddress: string, decimals: number): RedemptionParams {
     const amountToSend = calculateAmountToSend(BigInt(CONFIG.SEND_LOTS));
 
     console.log("\n📋 Redemption Parameters:");
-    console.log("   Amount:", formatUnits(amountToSend.toString(), 6), "FXRP");
+    console.log("   Amount:", formatUnits(amountToSend.toString(), decimals), "FXRP");
     console.log("   XRP Address:", CONFIG.XRP_ADDRESS);
     console.log("   Redeemer:", signerAddress);
 
@@ -123,9 +123,10 @@ async function executeSendAndRedeem(
     oft: FXRPOFTInstance,
     sendParam: SendParams,
     nativeFee: bigint,
-    params: RedemptionParams
+    params: RedemptionParams,
+    decimals: number
 ) {
-    console.log(`\n🚀 Sending ${formatUnits(params.amountToSend.toString(), 6)} FXRP to Coston2...`);
+    console.log(`\n🚀 Sending ${formatUnits(params.amountToSend.toString(), decimals)} FXRP to Coston2...`);
 
     const tx = await oft.send(sendParam, { nativeFee: nativeFee.toString(), lzTokenFee: "0" }, params.signerAddress, {
         value: nativeFee.toString(),
@@ -140,7 +141,10 @@ async function main() {
     const signerAddress = await validateSetup();
     const oft = await connectToOFT();
 
-    const params = prepareRedemptionParams(signerAddress);
+    const decimals = Number(await oft.decimals());
+    console.log("Token decimals:", decimals);
+
+    const params = prepareRedemptionParams(signerAddress, decimals);
 
     const composeMsg = encodeComposeMessage(params);
 
@@ -151,7 +155,7 @@ async function main() {
 
     const nativeFee = await quoteFee(oft, sendParam);
 
-    await executeSendAndRedeem(oft, sendParam, nativeFee, params);
+    await executeSendAndRedeem(oft, sendParam, nativeFee, params, decimals);
 }
 
 main()

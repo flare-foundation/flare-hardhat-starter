@@ -15,10 +15,10 @@ import { web3 } from "hardhat";
 import { formatUnits } from "ethers";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
-import { IERC20Instance, FAssetOFTAdapterInstance } from "../../typechain-types";
+import { IERC20MetadataInstance, FAssetOFTAdapterInstance } from "../../typechain-types";
 import { getAssetManagerFXRP } from "../utils/getters";
 
-const IERC20 = artifacts.require("IERC20");
+const IERC20Metadata = artifacts.require("IERC20Metadata");
 const FAssetOFTAdapter = artifacts.require("FAssetOFTAdapter");
 
 const CONFIG = {
@@ -75,13 +75,18 @@ async function getSigner(fAssetAddress: string) {
 /**
  * Prepares bridge parameters
  */
-function prepareBridgeParams(signerAddress: string, fAssetAddress: string, amountToBridge: bigint): BridgeParams {
+function prepareBridgeParams(
+    signerAddress: string,
+    fAssetAddress: string,
+    amountToBridge: bigint,
+    decimals: number
+): BridgeParams {
     const recipientAddress = signerAddress;
 
     console.log("\n📋 Bridge Details:");
     console.log("From: Coston2");
     console.log("To: Hyperliquid EVM Testnet");
-    console.log("Amount:", formatUnits(amountToBridge.toString(), 6), "FXRP");
+    console.log("Amount:", formatUnits(amountToBridge.toString(), decimals), "FXRP");
     console.log("Recipient:", recipientAddress);
 
     return { amountToBridge, recipientAddress, signerAddress, fAssetAddress };
@@ -90,11 +95,11 @@ function prepareBridgeParams(signerAddress: string, fAssetAddress: string, amoun
 /**
  * Checks if user has sufficient balance to bridge
  */
-async function checkBalance(params: BridgeParams): Promise<IERC20Instance> {
-    const fAsset: IERC20Instance = await IERC20.at(params.fAssetAddress);
+async function checkBalance(params: BridgeParams, decimals: number): Promise<IERC20MetadataInstance> {
+    const fAsset: IERC20MetadataInstance = await IERC20Metadata.at(params.fAssetAddress);
 
     const balance = await fAsset.balanceOf(params.signerAddress);
-    console.log("\nYour FTestXRP balance:", formatUnits(balance.toString(), 6));
+    console.log("\nYour FTestXRP balance:", formatUnits(balance.toString(), decimals));
 
     if (BigInt(balance.toString()) < params.amountToBridge) {
         console.error("\n❌ Insufficient FTestXRP balance!");
@@ -109,10 +114,11 @@ async function checkBalance(params: BridgeParams): Promise<IERC20Instance> {
  * Approves OFT Adapter AND Composer to spend FTestXRP
  */
 async function approveTokens(
-    fAsset: IERC20Instance,
+    fAsset: IERC20MetadataInstance,
     amountToBridge: bigint,
     signerAddress: string,
-    fAssetAddress: string
+    fAssetAddress: string,
+    decimals: number
 ): Promise<FAssetOFTAdapterInstance> {
     const oftAdapter: FAssetOFTAdapterInstance = await FAssetOFTAdapter.at(CONFIG.COSTON2_OFT_ADAPTER);
 
@@ -124,7 +130,7 @@ async function approveTokens(
 
     console.log("\n   Approving FTestXRP for OFT Adapter...");
     console.log("   OFT Adapter address:", oftAdapter.address);
-    console.log("   Amount:", formatUnits(amountToBridge.toString(), 6), "FXRP");
+    console.log("   Amount:", formatUnits(amountToBridge.toString(), decimals), "FXRP");
 
     const amount = amountToBridge;
     await fAsset.approve(oftAdapter.address, amount.toString());
@@ -132,7 +138,7 @@ async function approveTokens(
 
     // Verify the allowance
     const allowance1 = await fAsset.allowance(signerAddress, oftAdapter.address);
-    console.log("   Verified allowance:", formatUnits(allowance1.toString(), 6), "FXRP");
+    console.log("   Verified allowance:", formatUnits(allowance1.toString(), decimals), "FXRP");
 
     console.log("\n2️⃣ Approving FTestXRP for Composer...");
     console.log("   Composer address:", CONFIG.COSTON2_COMPOSER);
@@ -141,7 +147,7 @@ async function approveTokens(
 
     // Verify the allowance
     const allowance2 = await fAsset.allowance(signerAddress, CONFIG.COSTON2_COMPOSER);
-    console.log("   Verified allowance:", formatUnits(allowance2.toString(), 6), "FXRP");
+    console.log("   Verified allowance:", formatUnits(allowance2.toString(), decimals), "FXRP");
 
     return oftAdapter;
 }
@@ -204,22 +210,27 @@ async function main() {
     // 2. Get signer and display account info
     const signerAddress = await getSigner(fAssetAddress);
 
-    // 3. Prepare bridge parameters
-    const params = prepareBridgeParams(signerAddress, fAssetAddress, amountToBridge);
+    // 3. Get token decimals
+    const fAssetToken: IERC20MetadataInstance = await IERC20Metadata.at(fAssetAddress);
+    const decimals = Number(await fAssetToken.decimals());
+    console.log("Token decimals:", decimals);
 
-    // 4. Check balance and get token contract
-    const fAsset = await checkBalance(params);
+    // 4. Prepare bridge parameters
+    const params = prepareBridgeParams(signerAddress, fAssetAddress, amountToBridge, decimals);
 
-    // 5. Approve tokens and get OFT adapter
-    const oftAdapter = await approveTokens(fAsset, params.amountToBridge, signerAddress, fAssetAddress);
+    // 5. Check balance and get token contract
+    const fAsset = await checkBalance(params, decimals);
 
-    // 6. Build send parameters
+    // 6. Approve tokens and get OFT adapter
+    const oftAdapter = await approveTokens(fAsset, params.amountToBridge, signerAddress, fAssetAddress, decimals);
+
+    // 7. Build send parameters
     const sendParam = buildSendParams(params);
 
-    // 7. Quote the fee
+    // 8. Quote the fee
     const nativeFee = await quoteFee(oftAdapter, sendParam);
 
-    // 8. Execute the bridge transaction
+    // 9. Execute the bridge transaction
     await executeBridge(oftAdapter, sendParam, nativeFee, signerAddress);
 }
 

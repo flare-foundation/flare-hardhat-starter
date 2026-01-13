@@ -78,13 +78,13 @@ async function validateSetup() {
 /**
  * Prepares redemption parameters
  */
-function prepareRedemptionParams(signerAddress: string): RedemptionParams {
+function prepareRedemptionParams(signerAddress: string, decimals: number): RedemptionParams {
     const amountToSend = calculateAmountToSend(BigInt(CONFIG.SEND_LOTS));
     const underlyingAddress = CONFIG.XRP_ADDRESS;
     const redeemer = signerAddress;
 
     console.log("\n📋 Redemption Parameters:");
-    console.log("Amount:", formatUnits(amountToSend.toString(), 6), "FXRP");
+    console.log("Amount:", formatUnits(amountToSend.toString(), decimals), "FXRP");
     console.log("XRP Address:", underlyingAddress);
     console.log("Redeemer:", redeemer);
 
@@ -151,17 +151,19 @@ function buildSendParams(params: RedemptionParams, composeMsg: string, options: 
 /**
  * Checks if user has sufficient FXRP balance
  */
-async function checkBalance(oft: FXRPOFTInstance, signerAddress: string, amountToSend: bigint): Promise<void> {
-    console.log("signer address", signerAddress);
-    console.log("oft.address", oft.address);
+async function checkBalance(
+    oft: FXRPOFTInstance,
+    signerAddress: string,
+    amountToSend: bigint,
+    decimals: number
+): Promise<void> {
     const balance = await oft.balanceOf(signerAddress);
-    console.log("signer address", signerAddress);
-    console.log("\n💰 Current FXRP balance:", formatUnits(balance.toString(), 6));
+    console.log("\n💰 Current FXRP balance:", formatUnits(balance.toString(), decimals));
 
     if (BigInt(balance.toString()) < amountToSend) {
         console.error("\n❌ Insufficient FXRP balance!");
-        console.log("   Required:", formatUnits(amountToSend.toString(), 6), "FXRP");
-        console.log("   Available:", formatUnits(balance.toString(), 6), "FXRP");
+        console.log("   Required:", formatUnits(amountToSend.toString(), decimals), "FXRP");
+        console.log("   Available:", formatUnits(balance.toString(), decimals), "FXRP");
         throw new Error("Insufficient FXRP balance");
     }
 
@@ -189,9 +191,14 @@ async function executeSendAndRedeem(
     sendParam: SendParams,
     nativeFee: bigint,
     lzTokenFee: bigint,
-    params: RedemptionParams
+    params: RedemptionParams,
+    decimals: number
 ): Promise<void> {
-    console.log("\n🚀 Sending", formatUnits(params.amountToSend.toString(), 6), "FXRP to Coston2 with auto-redeem...");
+    console.log(
+        "\n🚀 Sending",
+        formatUnits(params.amountToSend.toString(), decimals),
+        "FXRP to Coston2 with auto-redeem..."
+    );
     console.log("Target composer:", CONFIG.COSTON2_COMPOSER);
     console.log("Underlying address:", params.underlyingAddress);
 
@@ -216,31 +223,33 @@ async function main() {
     // 1. Validate setup and get signer
     const signerAddress = await validateSetup();
 
-    // 2. Prepare redemption parameters
-    const params = prepareRedemptionParams(signerAddress);
-
-    // 3. Connect to OFT contract
+    // 2. Connect to OFT contract
     const oft = await connectToOFT();
-    console.log("3. oft.address", oft.address);
 
-    // 4. Encode compose message
+    // 3. Get token decimals
+    const decimals = Number(await oft.decimals());
+    console.log("Token decimals:", decimals);
+
+    // 4. Prepare redemption parameters
+    const params = prepareRedemptionParams(signerAddress, decimals);
+
+    // 5. Encode compose message
     const composeMsg = encodeComposeMessage(params);
 
-    // 5. Build LayerZero options
+    // 6. Build LayerZero options
     const options = buildComposeOptions();
 
-    // 6. Build send parameters
+    // 7. Build send parameters
     const sendParam = buildSendParams(params, composeMsg, options);
 
-    console.log("7. oft.address", oft.address);
-    // 7. Check balance
-    await checkBalance(oft, params.signerAddress, params.amountToSend);
+    // 8. Check balance
+    await checkBalance(oft, params.signerAddress, params.amountToSend, decimals);
 
-    // 8. Quote fee
+    // 9. Quote fee
     const { nativeFee, lzTokenFee } = await quoteFee(oft, sendParam);
 
-    // 9. Execute send with auto-redeem
-    await executeSendAndRedeem(oft, sendParam, nativeFee, lzTokenFee, params);
+    // 10. Execute send with auto-redeem
+    await executeSendAndRedeem(oft, sendParam, nativeFee, lzTokenFee, params, decimals);
 }
 
 main()
