@@ -10,7 +10,8 @@
 
 import { ethers } from "hardhat";
 import { bnToBigInt } from "../utils/core";
-import { IFirelightVaultInstance } from "../../typechain-types/contracts/firelight/IFirelightVault";
+import type { IFirelightVaultInstance } from "../../typechain-types/contracts/firelight/IFirelightVault";
+import type { ERC20Instance } from "../../typechain-types/@openzeppelin/contracts/token/ERC20/ERC20";
 
 export const FIRELIGHT_VAULT_ADDRESS = "0x91Bfe6A68aB035DFebb6A770FFfB748C03C0E40B";
 
@@ -29,17 +30,17 @@ async function getAccount() {
 async function getVaultAndAsset() {
     const vault = await IFirelightVault.at(FIRELIGHT_VAULT_ADDRESS) as IFirelightVaultInstance;
     const assetAddress = await vault.asset();
-    const assetToken = await IERC20.at(assetAddress);
+    const assetToken = await IERC20.at(assetAddress) as ERC20Instance;
     return { vault, assetAddress, assetToken };
 }
 
-async function getAssetInfo(assetToken: any) {
+async function getAssetInfo(assetToken: ERC20Instance) {
     const symbol = await assetToken.symbol();
-    const assetDecimals = await assetToken.decimals();
+    const assetDecimals = (await assetToken.decimals()).toNumber();
     return { symbol, assetDecimals };
 }
 
-function logWithdrawInfo(account: string, assetAddress: string, symbol: string, assetDecimals: any, withdrawAmount: bigint) {
+function logWithdrawInfo(account: string, assetAddress: string, symbol: string, assetDecimals: number, withdrawAmount: bigint) {
     console.log("=== Withdraw (ERC-4626) ===");
     console.log("Sender:", account);
     console.log("Vault:", FIRELIGHT_VAULT_ADDRESS);
@@ -56,10 +57,9 @@ async function validateWithdraw(vault: IFirelightVaultInstance, account: string,
     }
 }
 
-async function checkUserBalance(vault: IFirelightVaultInstance, account: string, withdrawAmount: bigint, assetDecimals: any) {
+async function checkUserBalance(vault: IFirelightVaultInstance, account: string, withdrawAmount: bigint, assetDecimals: number) {
     const userBalance = await vault.balanceOf(account);
-    const assetDecimalsNum = Number(assetDecimals);
-    const formattedUserBalance = (Number(userBalance.toString()) / Math.pow(10, assetDecimalsNum)).toFixed(assetDecimalsNum);
+    const formattedUserBalance = (Number(userBalance.toString()) / Math.pow(10, assetDecimals)).toFixed(assetDecimals);
     console.log("User balance (shares):", userBalance.toString(), `(= ${formattedUserBalance} shares)`);
     
     // Use previewWithdraw to calculate how many shares are needed for this withdrawal
@@ -80,7 +80,7 @@ async function main() {
     const { vault, assetAddress, assetToken } = await getVaultAndAsset();
     const { symbol, assetDecimals } = await getAssetInfo(assetToken);
 
-    const withdrawAmount = BigInt(tokensToWithdraw * (10 ** Number(assetDecimals)));
+    const withdrawAmount = BigInt(tokensToWithdraw * (10 ** assetDecimals));
 
     logWithdrawInfo(account, assetAddress, symbol, assetDecimals, withdrawAmount);
     

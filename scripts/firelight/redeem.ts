@@ -9,7 +9,8 @@
  */
 
 import { ethers } from "hardhat";
-import { IFirelightVaultInstance } from "../../typechain-types/contracts/firelight/IFirelightVault";
+import type { IFirelightVaultInstance } from "../../typechain-types/contracts/firelight/IFirelightVault";
+import type { ERC20Instance } from "../../typechain-types/@openzeppelin/contracts/token/ERC20/ERC20";
 import { bnToBigInt } from "../utils/core";
 
 export const FIRELIGHT_VAULT_ADDRESS = "0x91Bfe6A68aB035DFebb6A770FFfB748C03C0E40B";
@@ -29,17 +30,17 @@ async function getAccount() {
 async function getVaultAndAsset() {
     const vault = await IFirelightVault.at(FIRELIGHT_VAULT_ADDRESS) as IFirelightVaultInstance;
     const assetAddress = await vault.asset();
-    const assetToken = await IERC20.at(assetAddress);
+    const assetToken = await IERC20.at(assetAddress) as ERC20Instance;
     return { vault, assetAddress, assetToken };
 }
 
-async function getAssetInfo(assetToken: any) {
+async function getAssetInfo(assetToken: ERC20Instance) {
     const symbol = await assetToken.symbol();
-    const assetDecimals = await assetToken.decimals();
+    const assetDecimals = (await assetToken.decimals()).toNumber();
     return { symbol, assetDecimals };
 }
 
-function logRedeemInfo(account: string, assetAddress: string, symbol: string, assetDecimals: any, sharesAmount: bigint) {
+function logRedeemInfo(account: string, assetAddress: string, symbol: string, assetDecimals: number, sharesAmount: bigint) {
     console.log("=== Redeem (ERC-4626) ===");
     console.log("Sender:", account);
     console.log("Vault:", FIRELIGHT_VAULT_ADDRESS);
@@ -56,9 +57,9 @@ async function validateRedeem(vault: IFirelightVaultInstance, account: string, s
     }
 }
 
-async function checkUserBalance(vault: IFirelightVaultInstance, account: string, sharesAmount: bigint, assetDecimals: bigint) {
+async function checkUserBalance(vault: IFirelightVaultInstance, account: string, sharesAmount: bigint, assetDecimals: number) {
     const userBalance = await vault.balanceOf(account);
-    const formattedUserBalance = (Number(userBalance.toString()) / Math.pow(10, Number(assetDecimals))).toFixed(Number(assetDecimals));
+    const formattedUserBalance = (Number(userBalance.toString()) / Math.pow(10, assetDecimals)).toFixed(assetDecimals);
     console.log("User balance (shares):", userBalance.toString(), `(= ${formattedUserBalance} shares)`);
     if (bnToBigInt(userBalance) < sharesAmount) {
         console.error(`Insufficient balance. Need ${sharesAmount.toString()} shares, have ${userBalance.toString()}`);
@@ -76,7 +77,7 @@ async function main() {
     const { vault, assetAddress, assetToken } = await getVaultAndAsset();
     const { symbol, assetDecimals } = await getAssetInfo(assetToken);
 
-    const sharesAmount = BigInt(sharesToRedeem * (10 ** Number(assetDecimals)));
+    const sharesAmount = BigInt(sharesToRedeem * (10 ** assetDecimals));
 
     logRedeemInfo(account, assetAddress, symbol, assetDecimals, sharesAmount);
     
