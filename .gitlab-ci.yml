@@ -1,0 +1,12 @@
+stages:
+    - format
+
+format:check:
+    stage: format
+    image: node:18
+    before_script:
+        - yarn install --frozen-lockfile
+    script:
+        - yarn run format:check
+    only:
+        - merge_requests
