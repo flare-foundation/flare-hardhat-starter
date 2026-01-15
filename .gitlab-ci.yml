@@ -3,7 +3,7 @@ stages:
 
 format:check:
     stage: format
-    image: node:18
+    image: node:22
     before_script:
         - yarn install --frozen-lockfile
     script:
