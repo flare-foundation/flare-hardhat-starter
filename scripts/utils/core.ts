@@ -87,4 +87,3 @@ export function formatTimestamp(ts: any) {
 export function bnToBigInt(bn: BN): bigint {
     return BigInt(bn.toString());
 }
-

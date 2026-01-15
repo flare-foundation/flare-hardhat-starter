@@ -1,9 +1,9 @@
 /**
  * FirelightVault Status Script
- * 
+ *
  * This script displays information about a FirelightVault contract.
  * It shows vault metrics, period configuration, user balances, and withdrawal information etc.
- * 
+ *
  * Usage:
  *   yarn hardhat run scripts/firelight/status.ts --network coston2
  */
@@ -53,7 +53,7 @@ async function getAccount() {
 }
 
 async function getVault() {
-    return await IFirelightVault.at(FIRELIGHT_VAULT_ADDRESS) as IFirelightVaultInstance;
+    return (await IFirelightVault.at(FIRELIGHT_VAULT_ADDRESS)) as IFirelightVaultInstance;
 }
 
 async function getVaultInfo(vault: IFirelightVaultInstance): Promise<VaultInfo> {
@@ -101,7 +101,11 @@ function logVaultBalances(totalAssets: bigint, totalSupply: bigint, assetSymbol:
     console.log("\n=== Vault Balances ===");
     const formattedTotalAssets = (Number(totalAssets) / Math.pow(10, assetDecimals)).toFixed(assetDecimals);
     const formattedTotalSupply = (Number(totalSupply) / Math.pow(10, assetDecimals)).toFixed(assetDecimals);
-    console.log("Total assets (excl. pending withdrawals):", totalAssets.toString(), `(${formattedTotalAssets} ${assetSymbol})`);
+    console.log(
+        "Total assets (excl. pending withdrawals):",
+        totalAssets.toString(),
+        `(${formattedTotalAssets} ${assetSymbol})`
+    );
     console.log("Total supply (shares):", totalSupply.toString(), `(${formattedTotalSupply} shares)`);
 
     // Calculate exchange rate (assets per share)
@@ -159,18 +163,32 @@ function logUserInfo(account: string, userInfo: UserInfo, assetSymbol: string, a
     console.log("\n=== User Info ===");
     console.log("Account:", account);
 
-    const formattedUserBalance = (Number(userInfo.userBalance.toString()) / Math.pow(10, assetDecimals)).toFixed(assetDecimals);
-    const formattedUserBalanceAssets = (Number(userInfo.userBalanceAssets.toString()) / Math.pow(10, assetDecimals)).toFixed(assetDecimals);
-    
+    const formattedUserBalance = (Number(userInfo.userBalance.toString()) / Math.pow(10, assetDecimals)).toFixed(
+        assetDecimals
+    );
+    const formattedUserBalanceAssets = (
+        Number(userInfo.userBalanceAssets.toString()) / Math.pow(10, assetDecimals)
+    ).toFixed(assetDecimals);
+
     console.log("User balance (shares):", userInfo.userBalance.toString(), `(${formattedUserBalance} shares)`);
-    console.log("User balance (assets):", userInfo.userBalanceAssets.toString(), `(${formattedUserBalanceAssets} ${assetSymbol})`);
+    console.log(
+        "User balance (assets):",
+        userInfo.userBalanceAssets.toString(),
+        `(${formattedUserBalanceAssets} ${assetSymbol})`
+    );
     console.log("Max deposit:", userInfo.userMaxDeposit.toString());
     console.log("Max mint:", userInfo.userMaxMint.toString());
     console.log("Max withdraw:", userInfo.userMaxWithdraw.toString());
     console.log("Max redeem:", userInfo.userMaxRedeem.toString());
 }
 
-async function logUserWithdrawals(vault: IFirelightVaultInstance, account: string, currentPeriod: bigint, assetSymbol: string, assetDecimals: number) {
+async function logUserWithdrawals(
+    vault: IFirelightVaultInstance,
+    account: string,
+    currentPeriod: bigint,
+    assetSymbol: string,
+    assetDecimals: number
+) {
     console.log("\n=== User Withdrawals ===");
     const periodsToCheck = [currentPeriod];
 
@@ -180,10 +198,18 @@ async function logUserWithdrawals(vault: IFirelightVaultInstance, account: strin
 
     for (const period of periodsToCheck) {
         try {
-            const withdrawals = bnToBigInt(await vault.withdrawalsOf(period.toString(), account, { from: account }));
+            const withdrawals = bnToBigInt(
+                await vault.withdrawalsOf(period.toString(), account, {
+                    from: account,
+                })
+            );
             if (withdrawals !== 0n) {
-                const formattedWithdrawals = (Number(withdrawals.toString()) / Math.pow(10, assetDecimals)).toFixed(assetDecimals);
-                console.log(`Period ${period.toString()}: ${withdrawals.toString()} (${formattedWithdrawals} ${assetSymbol})`);
+                const formattedWithdrawals = (Number(withdrawals.toString()) / Math.pow(10, assetDecimals)).toFixed(
+                    assetDecimals
+                );
+                console.log(
+                    `Period ${period.toString()}: ${withdrawals.toString()} (${formattedWithdrawals} ${assetSymbol})`
+                );
             }
         } catch {
             // Silently skip if period doesn't exist or other error
@@ -192,15 +218,24 @@ async function logUserWithdrawals(vault: IFirelightVaultInstance, account: strin
 }
 
 async function main() {
+    // 1. Get the account and vault instance
     const { account } = await getAccount();
     const vault = await getVault();
+
+    // 2. Get vault information (asset, balances, period config)
     const vaultInfo = await getVaultInfo(vault);
-    
-    const assetToken = await IERC20.at(vaultInfo.asset) as ERC20Instance;
+
+    // 3. Get asset token information (symbol, decimals)
+    const assetToken = (await IERC20.at(vaultInfo.asset)) as ERC20Instance;
     const { symbol: assetSymbol, assetDecimals } = await getAssetInfo(assetToken);
 
+    // 4. Log asset information
     logAssetInfo(vaultInfo.asset, assetSymbol, assetDecimals);
+
+    // 5. Log vault balances and exchange rate
     logVaultBalances(vaultInfo.totalAssets, vaultInfo.totalSupply, assetSymbol, assetDecimals);
+
+    // 6. Log period configuration
     logPeriodConfiguration(
         vaultInfo.pcLen,
         vaultInfo.currentPeriod,
@@ -209,9 +244,12 @@ async function main() {
         vaultInfo.nextPeriodEnd,
         vaultInfo.currentPeriodConfig
     );
-    
+
+    // 7. Get and log user information (balances and limits)
     const userInfo = await getUserInfo(vault, account);
     logUserInfo(account, userInfo, assetSymbol, assetDecimals);
+
+    // 8. Log user withdrawals for current and previous periods
     await logUserWithdrawals(vault, account, vaultInfo.currentPeriod, assetSymbol, assetDecimals);
 }
 
