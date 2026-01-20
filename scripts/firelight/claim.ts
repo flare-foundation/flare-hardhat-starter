@@ -65,6 +65,23 @@ async function getClaimableAssets(
     }
 }
 
+/**
+ * Checks if a withdrawal for a specific period has been claimed.
+ *
+ * @param vault - The FirelightVault instance
+ * @param period - The period number to check
+ * @param account - The account address to check
+ * @returns true if the withdrawal has been claimed (no pending withdrawals), false if still pending
+ */
+export async function isWithdrawClaimed(
+    vault: IFirelightVaultInstance,
+    period: bigint,
+    account: string
+): Promise<boolean> {
+    const withdrawals = bnToBigInt(await vault.withdrawalsOf(period.toString(), account));
+    return withdrawals === 0n;
+}
+
 async function findClaimablePeriods(vault: IFirelightVaultInstance, account: string, currentPeriod: bigint) {
     const claimablePeriods: { period: bigint; claimableAssets: bigint }[] = [];
 
