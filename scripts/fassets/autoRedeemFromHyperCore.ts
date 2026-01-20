@@ -58,12 +58,14 @@ type SendParams = {
 };
 
 /**
- * EIP-712 domain for Hyperliquid signing
+ * EIP-712 domain for Hyperliquid signing.
+ * Note: Hyperliquid's API requires Arbitrum's chainId (42161) for all EIP-712 signatures,
+ * regardless of the actual chain. This is a legacy requirement from when Hyperliquid settled on Arbitrum.
  */
 const EIP712_DOMAIN = {
     name: "HyperliquidSignTransaction",
     version: "1",
-    chainId: 42161, // Arbitrum chainId used for signing
+    chainId: 42161,
     verifyingContract: "0x0000000000000000000000000000000000000000",
 };
 
@@ -170,7 +172,7 @@ async function transferFromHyperCoreToHyperEVM(signerAddress: string, amount: st
     const action = {
         type: "spotSend",
         hyperliquidChain: CONFIG.HYPERLIQUID_CHAIN,
-        signatureChainId: "0xa4b1", // 42161 in hex
+        signatureChainId: "0xa4b1", // Arbitrum chainId (42161) in hex - required by Hyperliquid API
         destination: CONFIG.FXRP_SYSTEM_ADDRESS.toLowerCase(),
         token: CONFIG.FXRP_TOKEN_ID,
         amount: amount,
