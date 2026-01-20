@@ -20,6 +20,7 @@ import { formatUnits } from "ethers";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
 import { FXRPOFTInstance } from "../../typechain-types";
+import { calculateAmountToSend } from "../utils/fassets";
 
 const FXRPOFT = artifacts.require("FXRPOFT");
 
@@ -81,12 +82,6 @@ const SPOT_SEND_TYPES = {
         { name: "time", type: "uint64" },
     ],
 };
-
-function calculateAmountToSend(lots: bigint) {
-    // 1 lot = 10 FXRP (10_000_000 in 6 decimals)
-    const lotSize = BigInt(10_000_000);
-    return lotSize * lots;
-}
 
 /**
  * Validates the setup
