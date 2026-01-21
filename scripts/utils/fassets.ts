@@ -9,3 +9,12 @@ export async function getFXRPTokenAddress() {
 
     return fasset;
 }
+
+/**
+ * Calculates the amount to send based on lots.
+ * 1 lot = 10 FXRP (10_000_000 in 6 decimals)
+ */
+export function calculateAmountToSend(lots: bigint) {
+    const lotSize = BigInt(10_000_000);
+    return lotSize * lots;
+}

@@ -7,23 +7,27 @@
  * 3. Redeem the underlying asset (XRP) to a specified address
  *
  * Usage:
- * yarn hardhat run scripts/fassets/autoRedeemHyperEVM.ts --network hyperliquidTestnet
+ * yarn hardhat run scripts/fassets/autoRedeemFromHyperEVM.ts --network hyperliquidTestnet
  */
 
-import { ethers } from "hardhat";
-import { formatUnits, parseUnits, zeroPadValue, AbiCoder } from "ethers";
+import { web3 } from "hardhat";
+import { formatUnits } from "ethers";
 import { Options } from "@layerzerolabs/lz-v2-utilities";
 import { EndpointId } from "@layerzerolabs/lz-definitions";
+import { FXRPOFTInstance } from "../../typechain-types";
+import { calculateAmountToSend } from "../utils/fassets";
+
+const FXRPOFT = artifacts.require("FXRPOFT");
 
 // Configuration - using existing deployed contracts
 const CONFIG = {
     HYPERLIQUID_FXRP_OFT: process.env.HYPERLIQUID_FXRP_OFT || "0x14bfb521e318fc3d5e92A8462C65079BC7d4284c",
-    COSTON2_COMPOSER: process.env.COSTON2_COMPOSER || "",
-    COSTON2_EID: EndpointId.FLARE_V2_TESTNET, // Coston2 EID (destination)
-    EXECUTOR_GAS: 400_000,
-    COMPOSE_GAS: 700_000,
-    SEND_AMOUNT: "10", // 10 FXRP = 1 lot
-    XRP_ADDRESS: "rpHuw4bKSjonKRrKKVYUZYYVedg1jyPrmp", // Default XRP address we are auto-redeeming to
+    COSTON2_COMPOSER: process.env.COSTON2_COMPOSER || "0x5051E8db650E9e0E2a3f03010Ee5c60e79CF583E",
+    COSTON2_EID: EndpointId.FLARE_V2_TESTNET,
+    EXECUTOR_GAS: 1_000_000,
+    COMPOSE_GAS: 1_000_000,
+    SEND_LOTS: "1",
+    XRP_ADDRESS: "rpHuw4bKSjonKRrKKVYUZYYVedg1jyPrmp",
 } as const;
 
 type RedemptionParams = {
@@ -37,8 +41,8 @@ type RedemptionParams = {
 type SendParams = {
     dstEid: EndpointId;
     to: string;
-    amountLD: bigint;
-    minAmountLD: bigint;
+    amountLD: string;
+    minAmountLD: string;
     extraOptions: string;
     composeMsg: string;
     oftCmd: string;
@@ -48,13 +52,14 @@ type SendParams = {
  * Gets the signer and validates composer is deployed
  */
 async function validateSetup() {
-    const [signer] = await ethers.getSigners();
+    const accounts = await web3.eth.getAccounts();
+    const signerAddress = accounts[0];
 
-    console.log("Using account:", signer.address);
+    console.log("Using account:", signerAddress);
 
     if (!CONFIG.COSTON2_COMPOSER) {
         throw new Error(
-            "❌ HYPERLIQUID_COMPOSER not set in .env!\n" +
+            "HYPERLIQUID_COMPOSER not set in .env!\n" +
                 "   Deploy FAssetRedeemComposer first on Hyperliquid:\n" +
                 "   npx hardhat deploy --network hyperliquid --tags FAssetRedeemComposer"
         );
@@ -62,19 +67,19 @@ async function validateSetup() {
 
     console.log("✓ Composer configured:", CONFIG.COSTON2_COMPOSER);
 
-    return signer;
+    return signerAddress;
 }
 
 /**
  * Prepares redemption parameters
  */
-function prepareRedemptionParams(signerAddress: string): RedemptionParams {
-    const amountToSend = parseUnits(CONFIG.SEND_AMOUNT, 6);
+function prepareRedemptionParams(signerAddress: string, decimals: number): RedemptionParams {
+    const amountToSend = calculateAmountToSend(BigInt(CONFIG.SEND_LOTS));
     const underlyingAddress = CONFIG.XRP_ADDRESS;
     const redeemer = signerAddress;
 
     console.log("\n📋 Redemption Parameters:");
-    console.log("Amount:", formatUnits(amountToSend, 6), "FXRP");
+    console.log("Amount:", formatUnits(amountToSend.toString(), decimals), "FXRP");
     console.log("XRP Address:", underlyingAddress);
     console.log("Redeemer:", redeemer);
 
@@ -86,12 +91,12 @@ function prepareRedemptionParams(signerAddress: string): RedemptionParams {
 /**
  * Connects to the OFT contract on Hyperliquid EVM
  */
-async function connectToOFT() {
+async function connectToOFT(): Promise<FXRPOFTInstance> {
     console.log("Connecting to FXRP OFT on Hyperliquid EVM:", CONFIG.HYPERLIQUID_FXRP_OFT);
-    const oft = await ethers.getContractAt("FXRPOFT", CONFIG.HYPERLIQUID_FXRP_OFT);
+    const oft = await FXRPOFT.at(CONFIG.HYPERLIQUID_FXRP_OFT);
 
     console.log("\n✓ Connected to FXRP OFT:", CONFIG.HYPERLIQUID_FXRP_OFT);
-    console.log("OFT address:", oft.target);
+    console.log("OFT address:", oft.address);
 
     return oft;
 }
@@ -101,11 +106,10 @@ async function connectToOFT() {
  * Format: (amountToRedeem, underlyingAddress, redeemer)
  */
 function encodeComposeMessage(params: RedemptionParams): string {
-    const abiCoder = AbiCoder.defaultAbiCoder();
     // redeem(uint256 _lots, string memory _redeemerUnderlyingAddressString, executor address)
-    const composeMsg = abiCoder.encode(
+    const composeMsg = web3.eth.abi.encodeParameters(
         ["uint256", "string", "address"],
-        [params.amountToSend, params.underlyingAddress, params.redeemer]
+        [params.amountToSend.toString(), params.underlyingAddress, params.redeemer]
     );
 
     console.log("Compose message encoded");
@@ -130,9 +134,9 @@ function buildComposeOptions(): string {
 function buildSendParams(params: RedemptionParams, composeMsg: string, options: string): SendParams {
     return {
         dstEid: CONFIG.COSTON2_EID,
-        to: zeroPadValue(CONFIG.COSTON2_COMPOSER, 32),
-        amountLD: params.amountToSend,
-        minAmountLD: params.amountToSend,
+        to: web3.utils.padLeft(CONFIG.COSTON2_COMPOSER, 64),
+        amountLD: params.amountToSend.toString(),
+        minAmountLD: params.amountToSend.toString(),
         extraOptions: options,
         composeMsg: composeMsg,
         oftCmd: "0x",
@@ -142,17 +146,19 @@ function buildSendParams(params: RedemptionParams, composeMsg: string, options: 
 /**
  * Checks if user has sufficient FXRP balance
  */
-async function checkBalance(oft: any, signerAddress: string, amountToSend: bigint): Promise<void> {
-    console.log("signer address", signerAddress);
-    console.log("oft.address", oft.address);
+async function checkBalance(
+    oft: FXRPOFTInstance,
+    signerAddress: string,
+    amountToSend: bigint,
+    decimals: number
+): Promise<void> {
     const balance = await oft.balanceOf(signerAddress);
-    console.log("signer address", signerAddress);
-    console.log("\n💰 Current FXRP balance:", formatUnits(balance, 6));
+    console.log("\n💰 Current FXRP balance:", formatUnits(balance.toString(), decimals));
 
-    if (balance < amountToSend) {
+    if (BigInt(balance.toString()) < amountToSend) {
         console.error("\n❌ Insufficient FXRP balance!");
-        console.log("   Required:", formatUnits(amountToSend, 6), "FXRP");
-        console.log("   Available:", formatUnits(balance, 6), "FXRP");
+        console.log("   Required:", formatUnits(amountToSend.toString(), decimals), "FXRP");
+        console.log("   Available:", formatUnits(balance.toString(), decimals), "FXRP");
         throw new Error("Insufficient FXRP balance");
     }
 
@@ -162,12 +168,12 @@ async function checkBalance(oft: any, signerAddress: string, amountToSend: bigin
 /**
  * Quotes the LayerZero fee for the send transaction
  */
-async function quoteFee(oft: any, sendParam: SendParams): Promise<{ nativeFee: bigint; lzTokenFee: bigint }> {
+async function quoteFee(oft: FXRPOFTInstance, sendParam: SendParams) {
     const result = await oft.quoteSend(sendParam, false);
-    const nativeFee = result.nativeFee;
-    const lzTokenFee = result.lzTokenFee;
+    const nativeFee = BigInt(result.nativeFee.toString());
+    const lzTokenFee = BigInt(result.lzTokenFee.toString());
 
-    console.log("\n💵 LayerZero Fee:", formatUnits(nativeFee, 18), "HYPE");
+    console.log("\n💵 LayerZero Fee:", formatUnits(nativeFee.toString(), 18), "HYPE");
 
     return { nativeFee, lzTokenFee };
 }
@@ -176,63 +182,74 @@ async function quoteFee(oft: any, sendParam: SendParams): Promise<{ nativeFee: b
  * Executes the send with auto-redeem
  */
 async function executeSendAndRedeem(
-    oft: any,
+    oft: FXRPOFTInstance,
     sendParam: SendParams,
     nativeFee: bigint,
     lzTokenFee: bigint,
-    params: RedemptionParams
+    params: RedemptionParams,
+    decimals: number
 ): Promise<void> {
-    console.log("\n🚀 Sending", formatUnits(params.amountToSend, 6), "FXRP to Coston2 with auto-redeem...");
+    console.log(
+        "\n🚀 Sending",
+        formatUnits(params.amountToSend.toString(), decimals),
+        "FXRP to Coston2 with auto-redeem..."
+    );
     console.log("Target composer:", CONFIG.COSTON2_COMPOSER);
     console.log("Underlying address:", params.underlyingAddress);
 
-    const tx = await oft.send(sendParam, { nativeFee, lzTokenFee }, params.signerAddress, { value: nativeFee });
+    const tx = await oft.send(
+        sendParam,
+        { nativeFee: nativeFee.toString(), lzTokenFee: lzTokenFee.toString() },
+        params.signerAddress,
+        { value: nativeFee.toString() }
+    );
 
-    console.log("\n✓ Transaction sent:", tx.hash);
-    console.log("Waiting for confirmation...");
-
-    const receipt = await tx.wait();
-    console.log("✅ Confirmed in block:", receipt?.blockNumber);
+    console.log("\n✓ Transaction sent:", tx.tx);
+    console.log("✅ Confirmed in block:", tx.receipt.blockNumber);
 
     console.log("\n🎉 Success! Your FXRP is on the way to Coston2!");
     console.log("\n📊 Track your cross-chain transaction:");
-    console.log(`https://testnet.layerzeroscan.com/tx/${tx.hash}`);
+    console.log(`https://testnet.layerzeroscan.com/tx/${tx.tx}`);
     console.log("\n⏳ The auto-redeem will execute once the message arrives on Coston2.");
     console.log("XRP will be sent to:", params.underlyingAddress);
 }
 
 async function main() {
     // 1. Validate setup and get signer
-    const signer = await validateSetup();
+    const signerAddress = await validateSetup();
 
-    // 2. Prepare redemption parameters
-    const params = prepareRedemptionParams(signer.address);
-
-    // 3. Connect to OFT contract
+    // 2. Connect to OFT contract
     const oft = await connectToOFT();
-    console.log("3. oft.address", oft.address);
 
-    // 4. Encode compose message
+    // 3. Get token decimals
+    const decimals = Number(await oft.decimals());
+    console.log("Token decimals:", decimals);
+
+    // 4. Prepare redemption parameters
+    const params = prepareRedemptionParams(signerAddress, decimals);
+
+    // 5. Encode compose message
     const composeMsg = encodeComposeMessage(params);
 
-    // 5. Build LayerZero options
+    // 6. Build LayerZero options
     const options = buildComposeOptions();
 
-    // 6. Build send parameters
+    // 7. Build send parameters
     const sendParam = buildSendParams(params, composeMsg, options);
 
-    console.log("7. oft.address", oft.address);
-    // 7. Check balance
-    await checkBalance(oft, params.signerAddress, params.amountToSend);
+    // 8. Check balance
+    await checkBalance(oft, params.signerAddress, params.amountToSend, decimals);
 
-    // 8. Quote fee
+    // 9. Quote fee
     const { nativeFee, lzTokenFee } = await quoteFee(oft, sendParam);
 
-    // 9. Execute send with auto-redeem
-    await executeSendAndRedeem(oft, sendParam, nativeFee, lzTokenFee, params);
+    // 10. Execute send with auto-redeem
+    await executeSendAndRedeem(oft, sendParam, nativeFee, lzTokenFee, params, decimals);
 }
 
-main().catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-});
+main()
+    .then(() => process.exit(0))
+    .catch((error) => {
+        console.error(error);
+        process.exit(1);
+    });
