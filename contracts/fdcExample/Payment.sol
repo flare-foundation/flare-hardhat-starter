@@ -42,7 +42,7 @@ contract PaymentRegistry is IPaymentRegistry {
     }
 
     function isPaymentProofValid(IPayment.Proof calldata transaction) public view returns (bool) {
-        // Use the library to get the verifier contract and verify that this transaction was proved by state connector
+        // Use the library to get the verifier contract and verify that this transaction was proved by FDC
         IFdcVerification fdc = ContractRegistry.getFdcVerification();
         // return true;
         return fdc.verifyPayment(transaction);
