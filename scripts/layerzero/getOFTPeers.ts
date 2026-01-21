@@ -22,25 +22,20 @@ const OAPP_ABI = [
     },
 ];
 
-// Get ALL V2 Testnet endpoints dynamically from the EndpointId enum
+// Get ALL V2 Testnet endpoints dynamically from the EndpointId enum.
+// An OFT peer is the trusted counterpart contract address on another chain.
 function getAllV2TestnetEndpoints(): { name: string; eid: number }[] {
-    const endpoints: { name: string; eid: number }[] = [];
-
-    for (const [key, value] of Object.entries(EndpointId)) {
-        // Only include V2 testnet endpoints (they end with _V2_TESTNET and have numeric values)
-        if (key.endsWith("_V2_TESTNET") && typeof value === "number") {
-            // Convert key like "SEPOLIA_V2_TESTNET" to "Sepolia"
-            const name = key
+    return Object.entries(EndpointId)
+        .filter(([key, value]) => key.endsWith("_V2_TESTNET") && typeof value === "number")
+        .map(([key, value]) => ({
+            eid: value as number,
+            name: key
                 .replace("_V2_TESTNET", "")
                 .split("_")
                 .map((word) => word.charAt(0) + word.slice(1).toLowerCase())
-                .join(" ");
-            endpoints.push({ name, eid: value });
-        }
-    }
-
-    // Sort by EID for consistent output
-    return endpoints.sort((a, b) => a.eid - b.eid);
+                .join(" "),
+        }))
+        .sort((a, b) => a.eid - b.eid);
 }
 
 const V2_TESTNET_ENDPOINTS = getAllV2TestnetEndpoints();

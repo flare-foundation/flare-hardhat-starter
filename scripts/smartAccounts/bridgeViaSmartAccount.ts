@@ -51,6 +51,8 @@ const CONFIG = {
 async function getAssetManagerInfo(lots: number) {
     const assetManager = await getAssetManagerFXRP();
     const fxrpAddress = await assetManager.fAsset();
+    const fxrp: IERC20Instance = await IERC20.at(fxrpAddress);
+    const decimals = Number(await fxrp.decimals());
     const lotSizeBN = await assetManager.lotSize();
     const lotSize = BigInt(lotSizeBN.toString());
     const amountToBridge = lotSize * BigInt(lots);
@@ -58,6 +60,7 @@ async function getAssetManagerInfo(lots: number) {
     return {
         fxrpAddress,
         amountToBridge,
+        decimals,
     };
 }
 
@@ -131,11 +134,13 @@ async function registerBridgeInstruction(recipientAddress: string, amountToBridg
     await masterController.methods.registerCustomInstruction(atomicInstruction).send({ from: accounts[0] });
 
     const encodedInstructionBN = await masterController.methods.encodeCustomInstruction(atomicInstruction).call();
+    // Convert contract's encoded instruction to hex string
     let instructionHash = BigInt(encodedInstructionBN).toString(16);
+    // Ensure even length (hex bytes must be pairs)
     if (instructionHash.length % 2 !== 0) instructionHash = "0" + instructionHash;
 
     console.log("✅ Instruction Registered.");
-
+    // Build final memo: "99" (custom instruction code) + hash padded to 60 chars
     const finalMemo = "99" + instructionHash.padStart(60, "0");
     console.log("Final XRPL Memo:", finalMemo);
 
@@ -297,8 +302,8 @@ async function main() {
     const { signerAddress, xrplWallet } = await getWallets();
 
     // Get FXRP address and calculate bridge amount from lots
-    const { fxrpAddress, amountToBridge } = await getAssetManagerInfo(CONFIG.BRIDGE_LOTS);
-    console.log(`\nBridging ${CONFIG.BRIDGE_LOTS} lot(s) = ${formatUnits(amountToBridge, 6)} FXRP`);
+    const { fxrpAddress, amountToBridge, decimals } = await getAssetManagerInfo(CONFIG.BRIDGE_LOTS);
+    console.log(`\nBridging ${CONFIG.BRIDGE_LOTS} lot(s) = ${formatUnits(amountToBridge, decimals)} FXRP`);
 
     // 1. Register custom instruction
     const { memo: bridgeMemo, requiredGas } = await registerBridgeInstruction(
