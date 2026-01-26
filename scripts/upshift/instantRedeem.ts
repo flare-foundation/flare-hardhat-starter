@@ -20,6 +20,86 @@ const ITokenizedVault = artifacts.require("ITokenizedVault");
 const IERC20 = artifacts.require("IERC20");
 const IFAsset = artifacts.require("IFAsset");
 
+async function getReferenceAssetInfo(vault: ITokenizedVaultInstance) {
+    const referenceAsset = await vault.asset();
+    const refAsset = await IFAsset.at(referenceAsset);
+    const decimals = Number(await refAsset.decimals());
+    const symbol = await refAsset.symbol();
+
+    console.log("Reference Asset (asset receiving):", referenceAsset);
+
+    return { referenceAsset, refAsset, decimals, symbol };
+}
+
+async function getLPTokenInfo(vault: ITokenizedVaultInstance, userAddress: string, decimals: number) {
+    const lpTokenAddress = await vault.lpTokenAddress();
+    const lpToken: IERC20Instance = await IERC20.at(lpTokenAddress);
+    const lpBalance = await lpToken.balanceOf(userAddress);
+
+    console.log(`\nLP Balance: ${formatUnits(lpBalance.toString(), decimals)}`);
+
+    return { lpToken, lpBalance };
+}
+
+function checkLPBalance(lpBalance: any, sharesToRedeem: bigint) {
+    if (BigInt(lpBalance.toString()) < sharesToRedeem) {
+        console.log("Insufficient LP balance!");
+        return false;
+    }
+    return true;
+}
+
+async function previewRedemption(
+    vault: ITokenizedVaultInstance,
+    sharesToRedeem: bigint,
+    decimals: number,
+    symbol: string
+) {
+    const instantRedemptionFee = await vault.instantRedemptionFee();
+    console.log(`\nInstant Redemption Fee: ${formatUnits(instantRedemptionFee.toString(), 16)}%`);
+
+    const preview = await vault.previewRedemption(sharesToRedeem.toString(), true);
+    const assetsAmount = preview[0];
+    const assetsAfterFee = preview[1];
+
+    console.log(`Expected Assets (before fee): ${formatUnits(assetsAmount.toString(), decimals)} ${symbol}`);
+    console.log(`Expected Assets (after fee): ${formatUnits(assetsAfterFee.toString(), decimals)} ${symbol}`);
+}
+
+async function getAssetBalanceBefore(refAsset: any, userAddress: string, decimals: number, symbol: string) {
+    const assetBalanceBefore = await refAsset.balanceOf(userAddress);
+    console.log(`\nAsset Balance Before: ${formatUnits(assetBalanceBefore.toString(), decimals)} ${symbol}`);
+
+    return { assetBalanceBefore };
+}
+
+async function executeInstantRedeem(vault: ITokenizedVaultInstance, sharesToRedeem: bigint, userAddress: string) {
+    const redeemTx = await vault.instantRedeem(sharesToRedeem.toString(), userAddress);
+    console.log("\nInstant Redeem: (tx:", redeemTx.tx, ", block:", redeemTx.receipt.blockNumber, ")");
+}
+
+async function verifyRedemption(
+    lpToken: IERC20Instance,
+    refAsset: any,
+    userAddress: string,
+    lpBalanceBefore: any,
+    assetBalanceBefore: any,
+    decimals: number,
+    symbol: string
+) {
+    console.log("\nVerifying redemption...");
+
+    const lpBalanceAfter = await lpToken.balanceOf(userAddress);
+    const assetBalanceAfter = await refAsset.balanceOf(userAddress);
+
+    const sharesRedeemed = BigInt(lpBalanceBefore.toString()) - BigInt(lpBalanceAfter.toString());
+    const assetsReceived = BigInt(assetBalanceAfter.toString()) - BigInt(assetBalanceBefore.toString());
+
+    console.log(`LP Balance After: ${formatUnits(lpBalanceAfter.toString(), decimals)}`);
+    console.log(`Shares Redeemed: ${formatUnits(sharesRedeemed.toString(), decimals)}`);
+    console.log(`Assets Received: ${formatUnits(assetsReceived.toString(), decimals)} ${symbol}`);
+}
+
 async function main() {
     // 1. Initialize: Get user account from Hardhat network
     const accounts = await web3.eth.getAccounts();
@@ -32,62 +112,30 @@ async function main() {
     // 2. Connect to the vault contract instance
     const vault: ITokenizedVaultInstance = await ITokenizedVault.at(VAULT_ADDRESS);
 
-    // 3. Get reference asset (the token we'll receive)
-    const referenceAsset = await vault.asset();
-    console.log("Reference Asset (asset receiving):", referenceAsset);
+    // 3. Get reference asset info
+    const { refAsset, decimals, symbol } = await getReferenceAssetInfo(vault);
 
-    // 4. Get token metadata (decimals and symbol) for formatting
-    const refAsset = await IFAsset.at(referenceAsset);
-    const decimals = Number(await refAsset.decimals());
-    const symbol = await refAsset.symbol();
+    // 4. Get LP token info
+    const { lpToken, lpBalance } = await getLPTokenInfo(vault, userAddress, decimals);
 
-    // 5. Get LP token and check user's LP balance
-    const lpTokenAddress = await vault.lpTokenAddress();
-    const lpToken: IERC20Instance = await IERC20.at(lpTokenAddress);
-
-    const lpBalance = await lpToken.balanceOf(userAddress);
-    console.log(`\nLP Balance: ${formatUnits(lpBalance.toString(), decimals)}`);
-
-    // 6. Convert shares amount from human-readable to token units
+    // 5. Convert shares amount and validate balance
     const sharesToRedeem = parseUnits(SHARES_TO_REDEEM, decimals);
     console.log(`Shares to Redeem: ${SHARES_TO_REDEEM} (${sharesToRedeem.toString()})`);
 
-    // 7. Validate LP balance is sufficient for redemption
-    if (BigInt(lpBalance.toString()) < sharesToRedeem) {
-        console.log("Insufficient LP balance!");
-        return;
-    }
+    const hasBalance = checkLPBalance(lpBalance, sharesToRedeem);
+    if (!hasBalance) return;
 
-    // 8. Check instant redemption fee
-    const instantRedemptionFee = await vault.instantRedemptionFee();
-    console.log(`\nInstant Redemption Fee: ${formatUnits(instantRedemptionFee.toString(), 16)}%`);
+    // 6. Preview redemption
+    await previewRedemption(vault, sharesToRedeem, decimals, symbol);
 
-    // 9. Preview redemption to see expected assets
-    const preview = await vault.previewRedemption(sharesToRedeem.toString(), true);
-    const assetsAmount = preview[0];
-    const assetsAfterFee = preview[1];
-    console.log(`Expected Assets (before fee): ${formatUnits(assetsAmount.toString(), decimals)} ${symbol}`);
-    console.log(`Expected Assets (after fee): ${formatUnits(assetsAfterFee.toString(), decimals)} ${symbol}`);
+    // 7. Get asset balance before redemption
+    const { assetBalanceBefore } = await getAssetBalanceBefore(refAsset, userAddress, decimals, symbol);
 
-    // 10. Check reference asset balance before redemption
-    const assetBalanceBefore = await refAsset.balanceOf(userAddress);
-    console.log(`\nAsset Balance Before: ${formatUnits(assetBalanceBefore.toString(), decimals)} ${symbol}`);
+    // 8. Execute instant redemption
+    await executeInstantRedeem(vault, sharesToRedeem, userAddress);
 
-    // 11. Execute the instant redemption
-    const redeemTx = await vault.instantRedeem(sharesToRedeem.toString(), userAddress);
-    console.log("\nInstant Redeem: (tx:", redeemTx.tx, ", block:", redeemTx.receipt.blockNumber, ")");
-
-    // 12. Verify redemption by comparing balances
-    console.log("\nVerifying redemption...");
-    const lpBalanceAfter = await lpToken.balanceOf(userAddress);
-    const assetBalanceAfter = await refAsset.balanceOf(userAddress);
-
-    const sharesRedeemed = BigInt(lpBalance.toString()) - BigInt(lpBalanceAfter.toString());
-    const assetsReceived = BigInt(assetBalanceAfter.toString()) - BigInt(assetBalanceBefore.toString());
-
-    console.log(`LP Balance After: ${formatUnits(lpBalanceAfter.toString(), decimals)}`);
-    console.log(`Shares Redeemed: ${formatUnits(sharesRedeemed.toString(), decimals)}`);
-    console.log(`Assets Received: ${formatUnits(assetsReceived.toString(), decimals)} ${symbol}`);
+    // 9. Verify redemption
+    await verifyRedemption(lpToken, refAsset, userAddress, lpBalance, assetBalanceBefore, decimals, symbol);
 }
 
 main().catch((error) => {
