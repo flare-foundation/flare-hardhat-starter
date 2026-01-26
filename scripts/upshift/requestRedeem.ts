@@ -21,45 +21,41 @@ const ITokenizedVault = artifacts.require("ITokenizedVault");
 const IERC20 = artifacts.require("IERC20");
 const IFAsset = artifacts.require("IFAsset");
 
-async function main() {
-    // 1. Initialize: Get user account from Hardhat network
-    const accounts = await web3.eth.getAccounts();
-    const userAddress = accounts[0];
-
-    console.log("REQUEST REDEEM FROM VAULT\n");
-    console.log("Vault Address:", VAULT_ADDRESS);
-    console.log("User Address:", userAddress);
-
-    // 2. Connect to the vault contract instance
-    const vault: ITokenizedVaultInstance = await ITokenizedVault.at(VAULT_ADDRESS);
-
-    // 3. Get reference asset (the token we'll receive after claim)
+async function getReferenceAssetInfo(vault: ITokenizedVaultInstance) {
     const referenceAsset = await vault.asset();
-    console.log("Reference Asset (asset receiving):", referenceAsset);
-
-    // 4. Get token metadata (decimals and symbol) for formatting
     const refAsset = await IFAsset.at(referenceAsset);
     const decimals = Number(await refAsset.decimals());
     const symbol = await refAsset.symbol();
 
-    // 5. Get LP token and check user's LP balance
+    console.log("Reference Asset (asset receiving):", referenceAsset);
+
+    return { referenceAsset, refAsset, decimals, symbol };
+}
+
+async function getLPTokenInfo(vault: ITokenizedVaultInstance, userAddress: string, decimals: number) {
     const lpTokenAddress = await vault.lpTokenAddress();
     const lpToken: IERC20Instance = await IERC20.at(lpTokenAddress);
-
     const lpBalance = await lpToken.balanceOf(userAddress);
+
     console.log(`\nLP Balance: ${formatUnits(lpBalance.toString(), decimals)}`);
 
-    // 6. Convert shares amount from human-readable to token units
-    const sharesToRedeem = parseUnits(SHARES_TO_REDEEM, decimals);
-    console.log(`Shares to Redeem: ${SHARES_TO_REDEEM} (${sharesToRedeem.toString()})`);
+    return { lpToken, lpBalance };
+}
 
-    // 7. Validate LP balance is sufficient for redemption
+function checkLPBalance(lpBalance: any, sharesToRedeem: bigint) {
     if (BigInt(lpBalance.toString()) < sharesToRedeem) {
         console.log("Insufficient LP balance!");
-        return;
+        return false;
     }
+    return true;
+}
 
-    // 8. Check and approve LP tokens for vault
+async function checkAndApproveLPAllowance(
+    lpToken: IERC20Instance,
+    userAddress: string,
+    sharesToRedeem: bigint,
+    decimals: number
+) {
     const lpAllowance = await lpToken.allowance(userAddress, VAULT_ADDRESS);
     console.log(`\nCurrent LP Allowance: ${formatUnits(lpAllowance.toString(), decimals)}`);
 
@@ -68,8 +64,14 @@ async function main() {
         const approveTx = await lpToken.approve(VAULT_ADDRESS, sharesToRedeem.toString());
         console.log("Approval Tx:", approveTx.tx);
     }
+}
 
-    // 9. Check vault configuration and restrictions
+async function checkVaultConfiguration(
+    vault: ITokenizedVaultInstance,
+    sharesToRedeem: bigint,
+    decimals: number,
+    symbol: string
+) {
     const lagDuration = await vault.lagDuration();
     const withdrawalFee = await vault.withdrawalFee();
     const withdrawalsPaused = await vault.withdrawalsPaused();
@@ -82,48 +84,106 @@ async function main() {
 
     if (withdrawalsPaused) {
         console.log("\nError: Withdrawals are currently paused!");
-        return;
+        return false;
     }
 
     if (BigInt(maxWithdrawalAmount.toString()) > 0n && sharesToRedeem > BigInt(maxWithdrawalAmount.toString())) {
         console.log("\nError: Shares to redeem exceeds max withdrawal amount!");
-        return;
+        return false;
     }
 
-    // 10. Preview redemption to see expected assets (non-instant)
+    return true;
+}
+
+async function previewRedemption(
+    vault: ITokenizedVaultInstance,
+    sharesToRedeem: bigint,
+    decimals: number,
+    symbol: string
+) {
     const preview = await vault.previewRedemption(sharesToRedeem.toString(), false);
     const assetsAmount = preview[0];
     const assetsAfterFee = preview[1];
+
     console.log(`\nExpected Assets (before fee): ${formatUnits(assetsAmount.toString(), decimals)} ${symbol}`);
     console.log(`Expected Assets (after fee): ${formatUnits(assetsAfterFee.toString(), decimals)} ${symbol}`);
+}
 
-    // 11. Get current withdrawal epoch info
+async function printWithdrawalEpoch(vault: ITokenizedVaultInstance) {
     const epochInfo = await vault.getWithdrawalEpoch();
     console.log(
         `\nCurrent Epoch - Year: ${epochInfo[0].toString()}, Month: ${epochInfo[1].toString()}, Day: ${epochInfo[2].toString()}`
     );
     console.log(`Claimable Epoch: ${epochInfo[3].toString()}`);
+}
 
-    // 12. Execute the redemption request
-    try {
-        const requestTx = await vault.requestRedeem(sharesToRedeem.toString(), userAddress);
-        console.log("\nRequest Redeem: (tx:", requestTx.tx, ", block:", requestTx.receipt.blockNumber, ")");
-    } catch (error: any) {
-        console.error("\nError executing requestRedeem:", error.message);
-        throw error;
-    }
+async function executeRequestRedeem(vault: ITokenizedVaultInstance, sharesToRedeem: bigint, userAddress: string) {
+    const requestTx = await vault.requestRedeem(sharesToRedeem.toString(), userAddress);
+    console.log("\nRequest Redeem: (tx:", requestTx.tx, ", block:", requestTx.receipt.blockNumber, ")");
+}
 
-    // 13. Check LP balance after request
+async function verifyRequest(
+    vault: ITokenizedVaultInstance,
+    lpToken: IERC20Instance,
+    userAddress: string,
+    lpBalanceBefore: any,
+    decimals: number
+) {
     const lpBalanceAfter = await lpToken.balanceOf(userAddress);
-    const sharesLocked = BigInt(lpBalance.toString()) - BigInt(lpBalanceAfter.toString());
+    const sharesLocked = BigInt(lpBalanceBefore.toString()) - BigInt(lpBalanceAfter.toString());
+
     console.log(`LP Balance After: ${formatUnits(lpBalanceAfter.toString(), decimals)}`);
     console.log(`Shares Locked: ${formatUnits(sharesLocked.toString(), decimals)}`);
 
-    // Get updated epoch info
     const newEpochInfo = await vault.getWithdrawalEpoch();
     console.log(
         `\nClaim your assets after: ${newEpochInfo[0].toString()}/${newEpochInfo[1].toString()}/${newEpochInfo[2].toString()}`
     );
+}
+
+async function main() {
+    // 1. Initialize: Get user account from Hardhat network
+    const accounts = await web3.eth.getAccounts();
+    const userAddress = accounts[0];
+
+    console.log("REQUEST REDEEM FROM VAULT\n");
+    console.log("Vault Address:", VAULT_ADDRESS);
+    console.log("User Address:", userAddress);
+
+    // 2. Connect to the vault contract instance
+    const vault: ITokenizedVaultInstance = await ITokenizedVault.at(VAULT_ADDRESS);
+
+    // 3. Get reference asset info
+    const { decimals, symbol } = await getReferenceAssetInfo(vault);
+
+    // 4. Get LP token info
+    const { lpToken, lpBalance } = await getLPTokenInfo(vault, userAddress, decimals);
+
+    // 5. Convert shares amount and validate balance
+    const sharesToRedeem = parseUnits(SHARES_TO_REDEEM, decimals);
+    console.log(`Shares to Redeem: ${SHARES_TO_REDEEM} (${sharesToRedeem.toString()})`);
+
+    const hasBalance = checkLPBalance(lpBalance, sharesToRedeem);
+    if (!hasBalance) return;
+
+    // 6. Check and approve LP allowance
+    await checkAndApproveLPAllowance(lpToken, userAddress, sharesToRedeem, decimals);
+
+    // 7. Check vault configuration
+    const canProceed = await checkVaultConfiguration(vault, sharesToRedeem, decimals, symbol);
+    if (!canProceed) return;
+
+    // 8. Preview redemption
+    await previewRedemption(vault, sharesToRedeem, decimals, symbol);
+
+    // 9. Print withdrawal epoch info
+    await printWithdrawalEpoch(vault);
+
+    // 10. Execute request redeem
+    await executeRequestRedeem(vault, sharesToRedeem, userAddress);
+
+    // 11. Verify request
+    await verifyRequest(vault, lpToken, userAddress, lpBalance, decimals);
 }
 
 main().catch((error) => {
