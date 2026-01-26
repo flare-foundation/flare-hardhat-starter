@@ -19,6 +19,86 @@ const ITokenizedVault = artifacts.require("ITokenizedVault");
 const IERC20 = artifacts.require("IERC20");
 const IFAsset = artifacts.require("IFAsset");
 
+async function printReferenceAssetInfo(vault: ITokenizedVaultInstance) {
+    const referenceAsset = await vault.asset();
+    const refAsset = await IFAsset.at(referenceAsset);
+    const decimals = Number(await refAsset.decimals());
+    const symbol = await refAsset.symbol();
+
+    console.log("\nReference Asset");
+    console.log(`Address: ${referenceAsset}`);
+    console.log(`Symbol: ${symbol}`);
+    console.log(`Decimals: ${decimals}`);
+
+    return { referenceAsset, refAsset, decimals, symbol };
+}
+
+async function printLPTokenInfo(vault: ITokenizedVaultInstance) {
+    const lpTokenAddress = await vault.lpTokenAddress();
+    const lpToken: IERC20Instance = await IERC20.at(lpTokenAddress);
+
+    console.log("\nLP Token");
+    console.log(`Address: ${lpTokenAddress}`);
+
+    return { lpTokenAddress, lpToken };
+}
+
+async function printVaultConfiguration(vault: ITokenizedVaultInstance, decimals: number, symbol: string) {
+    console.log("\nVault Configuration");
+
+    const withdrawalsPaused = await vault.withdrawalsPaused();
+    const lagDuration = await vault.lagDuration();
+    const withdrawalFee = await vault.withdrawalFee();
+    const instantRedemptionFee = await vault.instantRedemptionFee();
+    const maxWithdrawalAmount = await vault.maxWithdrawalAmount();
+
+    console.log(`Withdrawals Paused: ${withdrawalsPaused}`);
+    console.log(`Lag Duration: ${lagDuration.toString()} seconds`);
+    console.log(`Withdrawal Fee: ${formatUnits(withdrawalFee.toString(), 16)}%`);
+    console.log(`Instant Redemption Fee: ${formatUnits(instantRedemptionFee.toString(), 16)}%`);
+    console.log(`Max Withdrawal Amount: ${formatUnits(maxWithdrawalAmount.toString(), decimals)} ${symbol}`);
+}
+
+async function printWithdrawalEpoch(vault: ITokenizedVaultInstance) {
+    console.log("\nWithdrawal Epoch");
+
+    const epochInfo = await vault.getWithdrawalEpoch();
+    console.log(`Year: ${epochInfo[0].toString()}, Month: ${epochInfo[1].toString()}, Day: ${epochInfo[2].toString()}`);
+    console.log(`Claimable Epoch: ${epochInfo[3].toString()}`);
+}
+
+async function printUserBalances(
+    userAddress: string,
+    refAsset: any,
+    lpToken: IERC20Instance,
+    decimals: number,
+    symbol: string
+) {
+    console.log("\nUser Balances");
+
+    const refBalance = await refAsset.balanceOf(userAddress);
+    const lpBalance = await lpToken.balanceOf(userAddress);
+
+    console.log(`${symbol} Balance: ${formatUnits(refBalance.toString(), decimals)}`);
+    console.log(`LP Token Balance: ${formatUnits(lpBalance.toString(), decimals)}`);
+}
+
+async function printAllowances(
+    userAddress: string,
+    refAsset: any,
+    lpToken: IERC20Instance,
+    decimals: number,
+    symbol: string
+) {
+    console.log("\nAllowances");
+
+    const refAllowance = await refAsset.allowance(userAddress, VAULT_ADDRESS);
+    const lpAllowance = await lpToken.allowance(userAddress, VAULT_ADDRESS);
+
+    console.log(`${symbol} Allowance to Vault: ${formatUnits(refAllowance.toString(), decimals)}`);
+    console.log(`LP Token Allowance to Vault: ${formatUnits(lpAllowance.toString(), decimals)}`);
+}
+
 async function main() {
     // 1. Initialize: Get user account from Hardhat network
     const accounts = await web3.eth.getAccounts();
@@ -31,59 +111,23 @@ async function main() {
     // 2. Connect to the vault contract instance
     const vault: ITokenizedVaultInstance = await ITokenizedVault.at(VAULT_ADDRESS);
 
-    // 3. Get reference asset info
-    const referenceAsset = await vault.asset();
-    const refAsset = await IFAsset.at(referenceAsset);
-    const decimals = Number(await refAsset.decimals());
-    const symbol = await refAsset.symbol();
+    // 3. Get and print reference asset info
+    const { refAsset, decimals, symbol } = await printReferenceAssetInfo(vault);
 
-    console.log("\nReference Asset");
-    console.log(`Address: ${referenceAsset}`);
-    console.log(`Symbol: ${symbol}`);
-    console.log(`Decimals: ${decimals}`);
+    // 4. Get and print LP token info
+    const { lpToken } = await printLPTokenInfo(vault);
 
-    // 4. Get LP token info
-    const lpTokenAddress = await vault.lpTokenAddress();
-    const lpToken: IERC20Instance = await IERC20.at(lpTokenAddress);
+    // 5. Print vault configuration
+    await printVaultConfiguration(vault, decimals, symbol);
 
-    console.log("\nLP Token");
-    console.log(`Address: ${lpTokenAddress}`);
+    // 6. Print withdrawal epoch info
+    await printWithdrawalEpoch(vault);
 
-    // 5. Get vault configuration
-    console.log("\nVault Configuration");
-    const withdrawalsPaused = await vault.withdrawalsPaused();
-    const lagDuration = await vault.lagDuration();
-    const withdrawalFee = await vault.withdrawalFee();
-    const instantRedemptionFee = await vault.instantRedemptionFee();
-    const maxWithdrawalAmount = await vault.maxWithdrawalAmount();
+    // 7. Print user balances
+    await printUserBalances(userAddress, refAsset, lpToken, decimals, symbol);
 
-    console.log(`Withdrawals Paused: ${withdrawalsPaused}`);
-    console.log(`Lag Duration: ${lagDuration.toString()} seconds`);
-    console.log(`Withdrawal Fee: ${formatUnits(withdrawalFee.toString(), 16)}%`);
-    console.log(`Instant Redemption Fee: ${formatUnits(instantRedemptionFee.toString(), 16)}%`);
-    console.log(`Max Withdrawal Amount: ${formatUnits(maxWithdrawalAmount.toString(), decimals)} ${symbol}`);
-
-    // 6. Get withdrawal epoch info
-    console.log("\nWithdrawal Epoch");
-    const epochInfo = await vault.getWithdrawalEpoch();
-    console.log(`Year: ${epochInfo[0].toString()}, Month: ${epochInfo[1].toString()}, Day: ${epochInfo[2].toString()}`);
-    console.log(`Claimable Epoch: ${epochInfo[3].toString()}`);
-
-    // 7. Get user balances
-    console.log("\nUser Balances");
-    const refBalance = await refAsset.balanceOf(userAddress);
-    const lpBalance = await lpToken.balanceOf(userAddress);
-
-    console.log(`${symbol} Balance: ${formatUnits(refBalance.toString(), decimals)}`);
-    console.log(`LP Token Balance: ${formatUnits(lpBalance.toString(), decimals)}`);
-
-    // 8. Check allowances
-    console.log("\nAllowances");
-    const refAllowance = await refAsset.allowance(userAddress, VAULT_ADDRESS);
-    const lpAllowance = await lpToken.allowance(userAddress, VAULT_ADDRESS);
-
-    console.log(`${symbol} Allowance to Vault: ${formatUnits(refAllowance.toString(), decimals)}`);
-    console.log(`LP Token Allowance to Vault: ${formatUnits(lpAllowance.toString(), decimals)}`);
+    // 8. Print allowances
+    await printAllowances(userAddress, refAsset, lpToken, decimals, symbol);
 }
 
 main().catch((error) => {
