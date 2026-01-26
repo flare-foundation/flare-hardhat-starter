@@ -19,7 +19,7 @@ const SHARES_TO_REDEEM = "1";
 
 const ITokenizedVault = artifacts.require("ITokenizedVault");
 const IERC20 = artifacts.require("IERC20");
-const IERC20Metadata = artifacts.require("IERC20Metadata");
+const IFAsset = artifacts.require("IFAsset");
 
 async function main() {
     // 1. Initialize: Get user account from Hardhat network
@@ -38,7 +38,7 @@ async function main() {
     console.log("Reference Asset (asset receiving):", referenceAsset);
 
     // 4. Get token metadata (decimals and symbol) for formatting
-    const refAsset = await IERC20Metadata.at(referenceAsset);
+    const refAsset = await IFAsset.at(referenceAsset);
     const decimals = Number(await refAsset.decimals());
     const symbol = await refAsset.symbol();
 
@@ -46,9 +46,8 @@ async function main() {
     const lpTokenAddress = await vault.lpTokenAddress();
     const lpToken: IERC20Instance = await IERC20.at(lpTokenAddress);
 
-    console.log("\n1. Checking LP token balance...");
     const lpBalance = await lpToken.balanceOf(userAddress);
-    console.log(`LP Balance: ${formatUnits(lpBalance.toString(), decimals)}`);
+    console.log(`\nLP Balance: ${formatUnits(lpBalance.toString(), decimals)}`);
 
     // 6. Convert shares amount from human-readable to token units
     const sharesToRedeem = parseUnits(SHARES_TO_REDEEM, decimals);
@@ -61,24 +60,22 @@ async function main() {
     }
 
     // 8. Check and approve LP tokens for vault
-    console.log("\n1b. Checking LP token allowance...");
     const lpAllowance = await lpToken.allowance(userAddress, VAULT_ADDRESS);
-    console.log(`Current LP Allowance: ${formatUnits(lpAllowance.toString(), decimals)}`);
+    console.log(`\nCurrent LP Allowance: ${formatUnits(lpAllowance.toString(), decimals)}`);
 
     if (BigInt(lpAllowance.toString()) < sharesToRedeem) {
-        console.log(`Approving vault to spend ${SHARES_TO_REDEEM} LP tokens...`);
+        console.log(`\nApproving vault to spend ${SHARES_TO_REDEEM} LP tokens...`);
         const approveTx = await lpToken.approve(VAULT_ADDRESS, sharesToRedeem.toString());
         console.log("Approval Tx:", approveTx.tx);
     }
 
     // 9. Check vault configuration and restrictions
-    console.log("\n2. Checking vault configuration...");
     const lagDuration = await vault.lagDuration();
     const withdrawalFee = await vault.withdrawalFee();
     const withdrawalsPaused = await vault.withdrawalsPaused();
     const maxWithdrawalAmount = await vault.maxWithdrawalAmount();
 
-    console.log(`Lag Duration: ${lagDuration.toString()} seconds`);
+    console.log(`\nLag Duration: ${lagDuration.toString()} seconds`);
     console.log(`Withdrawal Fee: ${formatUnits(withdrawalFee.toString(), 16)}%`);
     console.log(`Withdrawals Paused: ${withdrawalsPaused}`);
     console.log(`Max Withdrawal Amount: ${formatUnits(maxWithdrawalAmount.toString(), decimals)} ${symbol}`);
@@ -97,45 +94,26 @@ async function main() {
     const preview = await vault.previewRedemption(sharesToRedeem.toString(), false);
     const assetsAmount = preview[0];
     const assetsAfterFee = preview[1];
-    console.log(`Expected Assets (before fee): ${formatUnits(assetsAmount.toString(), decimals)} ${symbol}`);
+    console.log(`\nExpected Assets (before fee): ${formatUnits(assetsAmount.toString(), decimals)} ${symbol}`);
     console.log(`Expected Assets (after fee): ${formatUnits(assetsAfterFee.toString(), decimals)} ${symbol}`);
 
     // 11. Get current withdrawal epoch info
-    console.log("\n3. Getting withdrawal epoch info...");
     const epochInfo = await vault.getWithdrawalEpoch();
     console.log(
-        `Current Epoch - Year: ${epochInfo[0].toString()}, Month: ${epochInfo[1].toString()}, Day: ${epochInfo[2].toString()}`
+        `\nCurrent Epoch - Year: ${epochInfo[0].toString()}, Month: ${epochInfo[1].toString()}, Day: ${epochInfo[2].toString()}`
     );
     console.log(`Claimable Epoch: ${epochInfo[3].toString()}`);
 
     // 12. Execute the redemption request
-    console.log("\n4. Executing redemption request...");
     try {
         const requestTx = await vault.requestRedeem(sharesToRedeem.toString(), userAddress);
-        console.log("Request Redeem: (tx:", requestTx.tx, ", block:", requestTx.receipt.blockNumber, ")");
+        console.log("\nRequest Redeem: (tx:", requestTx.tx, ", block:", requestTx.receipt.blockNumber, ")");
     } catch (error: any) {
-        console.error("\nError executing requestRedeem:");
-        if (error.message.includes("WithdrawalsPaused")) {
-            console.error("  - Withdrawals are paused");
-        } else if (error.message.includes("InsufficientShares")) {
-            console.error("  - Insufficient shares");
-        } else if (error.message.includes("SenderNotWhitelisted")) {
-            console.error("  - Your address is not whitelisted");
-        } else if (error.message.includes("WithdrawalLimitReached")) {
-            console.error("  - Withdrawal limit reached");
-        } else if (error.message.includes("AmountTooLow")) {
-            console.error("  - Amount too low");
-        } else {
-            console.error("  - Unknown error:", error.message);
-        }
+        console.error("\nError executing requestRedeem:", error.message);
         throw error;
     }
 
-    // 13. Parse the return values from the transaction logs
-    // The function returns: (claimableEpoch, year, month, day)
-    console.log("\n5. Redemption request details...");
-
-    // Check LP balance after request
+    // 13. Check LP balance after request
     const lpBalanceAfter = await lpToken.balanceOf(userAddress);
     const sharesLocked = BigInt(lpBalance.toString()) - BigInt(lpBalanceAfter.toString());
     console.log(`LP Balance After: ${formatUnits(lpBalanceAfter.toString(), decimals)}`);
@@ -146,7 +124,6 @@ async function main() {
     console.log(
         `\nClaim your assets after: ${newEpochInfo[0].toString()}/${newEpochInfo[1].toString()}/${newEpochInfo[2].toString()}`
     );
-    console.log("Use the claim script with the date above to receive your assets.");
 }
 
 main().catch((error) => {

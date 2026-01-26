@@ -25,6 +25,7 @@ const DAY = 23;
 const ITokenizedVault = artifacts.require("ITokenizedVault");
 const IERC20 = artifacts.require("IERC20");
 const IERC20Metadata = artifacts.require("IERC20Metadata");
+const IFAsset = artifacts.require("IFAsset");
 
 async function main() {
     // 1. Initialize: Get user account from Hardhat network
@@ -47,9 +48,6 @@ async function main() {
 
     if (BigInt(shares.toString()) === 0n) {
         console.log("No shares found for this date and receiver address");
-        console.log("\nMake sure:");
-        console.log("- The year, month, and day are correct");
-        console.log("- The receiver address matches your requestRedeem call");
         return;
     }
 
@@ -68,7 +66,7 @@ async function main() {
     const assetsAfterFee = preview[1];
 
     const referenceAsset = await vault.asset();
-    const refAsset = await IERC20Metadata.at(referenceAsset);
+    const refAsset = await IFAsset.at(referenceAsset);
     const refDecimals = Number(await refAsset.decimals());
     const refSymbol = await refAsset.symbol();
 

@@ -18,7 +18,7 @@ const DEPOSIT_AMOUNT = "1";
 
 const ITokenizedVault = artifacts.require("ITokenizedVault");
 const IERC20 = artifacts.require("IERC20");
-const IERC20Metadata = artifacts.require("IERC20Metadata");
+const IFAsset = artifacts.require("IFAsset");
 
 async function main() {
     // 1. Initialize: Get user account from Hardhat network
@@ -34,19 +34,18 @@ async function main() {
 
     // 3. Get reference asset (the token we're depositing)
     const referenceAsset = await vault.asset();
-    console.log("Reference Asset (asset depositing):", referenceAsset);
+    console.log("\nReference Asset (asset depositing):", referenceAsset);
 
     // 4. Get token metadata (decimals and symbol) for formatting
-    const refAsset = await IERC20Metadata.at(referenceAsset);
+    const refAsset = await IFAsset.at(referenceAsset);
     const decimals = Number(await refAsset.decimals());
     const symbol = await refAsset.symbol();
 
     // 5. Convert deposit amount from human-readable to token units
     const depositAmount = parseUnits(DEPOSIT_AMOUNT, decimals);
-    console.log(`Deposit Amount: ${DEPOSIT_AMOUNT} ${symbol} (${depositAmount.toString()})`);
+    console.log(`\nDeposit Amount: ${DEPOSIT_AMOUNT} ${symbol} (${depositAmount.toString()})`);
 
     // 6. Check user balance to ensure sufficient funds
-    console.log("\n1. Checking user balance...");
     const balance = await refAsset.balanceOf(userAddress);
     console.log(`Balance: ${formatUnits(balance.toString(), decimals)} ${symbol}`);
 
@@ -57,23 +56,21 @@ async function main() {
     }
 
     // 8. Check current allowance (how much vault can spend on user's behalf)
-    console.log("\n2. Checking allowance...");
     const allowance = await refAsset.allowance(userAddress, VAULT_ADDRESS);
     console.log(`Current Allowance: ${formatUnits(allowance.toString(), decimals)} ${symbol}`);
 
     // 9. Approve vault to spend tokens if current allowance is insufficient
     if (BigInt(allowance.toString()) < depositAmount) {
-        console.log(`Approving vault to spend ${DEPOSIT_AMOUNT} ${symbol} tokens`);
+        console.log(`\nApproving vault to spend ${DEPOSIT_AMOUNT} ${symbol} tokens`);
         const approveTx = await refAsset.approve(VAULT_ADDRESS, depositAmount.toString());
         console.log("Approval Tx:", approveTx.tx);
     }
 
     // 10. Preview deposit to see expected shares and amount in reference tokens
-    console.log("\n3. Previewing deposit...");
     const preview = await vault.previewDeposit(referenceAsset, depositAmount.toString());
     const expectedShares = preview[0];
     const amountInRefTokens = preview[1];
-    console.log(`Expected Shares: ${formatUnits(expectedShares.toString(), decimals)}`);
+    console.log(`\nExpected Shares: ${formatUnits(expectedShares.toString(), decimals)}`);
     console.log(`Amount in Reference Tokens: ${formatUnits(amountInRefTokens.toString(), decimals)}`);
 
     // 11. Get LP token address and check balance before deposit
@@ -84,10 +81,10 @@ async function main() {
 
     // 12. Execute the deposit transaction
     const depositTx = await vault.deposit(referenceAsset, depositAmount.toString(), userAddress);
-    console.log("\n4. Deposit: (tx: ", depositTx.tx, ", block: ", depositTx.receipt.blockNumber, ")");
+    console.log("\nDeposit: (tx: ", depositTx.tx, ", block: ", depositTx.receipt.blockNumber, ")");
 
     // 13. Verify deposit by comparing LP token balance before and after
-    console.log("\n5. Verifying deposit...");
+    console.log("\nVerifying deposit...");
     const lpBalanceAfter = await lpToken.balanceOf(userAddress);
     const sharesReceived = BigInt(lpBalanceAfter.toString()) - BigInt(lpBalanceBefore.toString());
     console.log(`LP Balance After: ${formatUnits(lpBalanceAfter.toString(), decimals)}`);
