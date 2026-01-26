@@ -20,6 +20,97 @@ const ITokenizedVault = artifacts.require("ITokenizedVault");
 const IERC20 = artifacts.require("IERC20");
 const IFAsset = artifacts.require("IFAsset");
 
+async function getReferenceAssetInfo(vault: ITokenizedVaultInstance) {
+    const referenceAsset = await vault.asset();
+    const refAsset = await IFAsset.at(referenceAsset);
+    const decimals = Number(await refAsset.decimals());
+    const symbol = await refAsset.symbol();
+
+    console.log("\nReference Asset (asset depositing):", referenceAsset);
+
+    return { referenceAsset, refAsset, decimals, symbol };
+}
+
+async function checkBalance(
+    refAsset: any,
+    userAddress: string,
+    depositAmount: bigint,
+    decimals: number,
+    symbol: string
+) {
+    const balance = await refAsset.balanceOf(userAddress);
+    console.log(`Balance: ${formatUnits(balance.toString(), decimals)} ${symbol}`);
+
+    if (BigInt(balance.toString()) < depositAmount) {
+        console.log("Insufficient balance!");
+        return false;
+    }
+    return true;
+}
+
+async function checkAndApproveAllowance(
+    refAsset: any,
+    userAddress: string,
+    depositAmount: bigint,
+    decimals: number,
+    symbol: string
+) {
+    const allowance = await refAsset.allowance(userAddress, VAULT_ADDRESS);
+    console.log(`Current Allowance: ${formatUnits(allowance.toString(), decimals)} ${symbol}`);
+
+    if (BigInt(allowance.toString()) < depositAmount) {
+        console.log(`\nApproving vault to spend ${DEPOSIT_AMOUNT} ${symbol} tokens`);
+        const approveTx = await refAsset.approve(VAULT_ADDRESS, depositAmount.toString());
+        console.log("Approval Tx:", approveTx.tx);
+    }
+}
+
+async function previewDeposit(
+    vault: ITokenizedVaultInstance,
+    referenceAsset: string,
+    depositAmount: bigint,
+    decimals: number
+) {
+    const preview = await vault.previewDeposit(referenceAsset, depositAmount.toString());
+    const expectedShares = preview[0];
+    const amountInRefTokens = preview[1];
+
+    console.log(`\nExpected Shares: ${formatUnits(expectedShares.toString(), decimals)}`);
+    console.log(`Amount in Reference Tokens: ${formatUnits(amountInRefTokens.toString(), decimals)}`);
+
+    return { expectedShares };
+}
+
+async function getLPTokenInfo(vault: ITokenizedVaultInstance, userAddress: string, decimals: number) {
+    const lpTokenAddress = await vault.lpTokenAddress();
+    const lpToken: IERC20Instance = await IERC20.at(lpTokenAddress);
+    const lpBalanceBefore = await lpToken.balanceOf(userAddress);
+
+    console.log(`LP Balance Before: ${formatUnits(lpBalanceBefore.toString(), decimals)}`);
+
+    return { lpToken, lpBalanceBefore };
+}
+
+async function executeDeposit(
+    vault: ITokenizedVaultInstance,
+    referenceAsset: string,
+    depositAmount: bigint,
+    userAddress: string
+) {
+    const depositTx = await vault.deposit(referenceAsset, depositAmount.toString(), userAddress);
+    console.log("\nDeposit: (tx:", depositTx.tx, ", block:", depositTx.receipt.blockNumber, ")");
+}
+
+async function verifyDeposit(lpToken: IERC20Instance, userAddress: string, lpBalanceBefore: any, decimals: number) {
+    console.log("\nVerifying deposit...");
+
+    const lpBalanceAfter = await lpToken.balanceOf(userAddress);
+    const sharesReceived = BigInt(lpBalanceAfter.toString()) - BigInt(lpBalanceBefore.toString());
+
+    console.log(`LP Balance After: ${formatUnits(lpBalanceAfter.toString(), decimals)}`);
+    console.log(`Shares Received: ${formatUnits(sharesReceived.toString(), decimals)}`);
+}
+
 async function main() {
     // 1. Initialize: Get user account from Hardhat network
     const accounts = await web3.eth.getAccounts();
@@ -32,63 +123,31 @@ async function main() {
     // 2. Connect to the vault contract instance
     const vault: ITokenizedVaultInstance = await ITokenizedVault.at(VAULT_ADDRESS);
 
-    // 3. Get reference asset (the token we're depositing)
-    const referenceAsset = await vault.asset();
-    console.log("\nReference Asset (asset depositing):", referenceAsset);
+    // 3. Get reference asset info
+    const { referenceAsset, refAsset, decimals, symbol } = await getReferenceAssetInfo(vault);
 
-    // 4. Get token metadata (decimals and symbol) for formatting
-    const refAsset = await IFAsset.at(referenceAsset);
-    const decimals = Number(await refAsset.decimals());
-    const symbol = await refAsset.symbol();
-
-    // 5. Convert deposit amount from human-readable to token units
+    // 4. Convert deposit amount from human-readable to token units
     const depositAmount = parseUnits(DEPOSIT_AMOUNT, decimals);
     console.log(`\nDeposit Amount: ${DEPOSIT_AMOUNT} ${symbol} (${depositAmount.toString()})`);
 
-    // 6. Check user balance to ensure sufficient funds
-    const balance = await refAsset.balanceOf(userAddress);
-    console.log(`Balance: ${formatUnits(balance.toString(), decimals)} ${symbol}`);
+    // 5. Check user balance
+    const hasBalance = await checkBalance(refAsset, userAddress, depositAmount, decimals, symbol);
+    if (!hasBalance) return;
 
-    // 7. Validate balance is sufficient for deposit
-    if (BigInt(balance.toString()) < depositAmount) {
-        console.log("Insufficient balance!");
-        return;
-    }
+    // 6. Check and approve allowance
+    await checkAndApproveAllowance(refAsset, userAddress, depositAmount, decimals, symbol);
 
-    // 8. Check current allowance (how much vault can spend on user's behalf)
-    const allowance = await refAsset.allowance(userAddress, VAULT_ADDRESS);
-    console.log(`Current Allowance: ${formatUnits(allowance.toString(), decimals)} ${symbol}`);
+    // 7. Preview deposit
+    await previewDeposit(vault, referenceAsset, depositAmount, decimals);
 
-    // 9. Approve vault to spend tokens if current allowance is insufficient
-    if (BigInt(allowance.toString()) < depositAmount) {
-        console.log(`\nApproving vault to spend ${DEPOSIT_AMOUNT} ${symbol} tokens`);
-        const approveTx = await refAsset.approve(VAULT_ADDRESS, depositAmount.toString());
-        console.log("Approval Tx:", approveTx.tx);
-    }
+    // 8. Get LP token info before deposit
+    const { lpToken, lpBalanceBefore } = await getLPTokenInfo(vault, userAddress, decimals);
 
-    // 10. Preview deposit to see expected shares and amount in reference tokens
-    const preview = await vault.previewDeposit(referenceAsset, depositAmount.toString());
-    const expectedShares = preview[0];
-    const amountInRefTokens = preview[1];
-    console.log(`\nExpected Shares: ${formatUnits(expectedShares.toString(), decimals)}`);
-    console.log(`Amount in Reference Tokens: ${formatUnits(amountInRefTokens.toString(), decimals)}`);
+    // 9. Execute deposit
+    await executeDeposit(vault, referenceAsset, depositAmount, userAddress);
 
-    // 11. Get LP token address and check balance before deposit
-    const lpTokenAddress = await vault.lpTokenAddress();
-    const lpToken: IERC20Instance = await IERC20.at(lpTokenAddress);
-    const lpBalanceBefore = await lpToken.balanceOf(userAddress);
-    console.log(`LP Balance Before: ${formatUnits(lpBalanceBefore.toString(), decimals)}`);
-
-    // 12. Execute the deposit transaction
-    const depositTx = await vault.deposit(referenceAsset, depositAmount.toString(), userAddress);
-    console.log("\nDeposit: (tx: ", depositTx.tx, ", block: ", depositTx.receipt.blockNumber, ")");
-
-    // 13. Verify deposit by comparing LP token balance before and after
-    console.log("\nVerifying deposit...");
-    const lpBalanceAfter = await lpToken.balanceOf(userAddress);
-    const sharesReceived = BigInt(lpBalanceAfter.toString()) - BigInt(lpBalanceBefore.toString());
-    console.log(`LP Balance After: ${formatUnits(lpBalanceAfter.toString(), decimals)}`);
-    console.log(`Shares Received: ${formatUnits(sharesReceived.toString(), decimals)}`);
+    // 10. Verify deposit
+    await verifyDeposit(lpToken, userAddress, lpBalanceBefore, decimals);
 }
 
 main().catch((error) => {
