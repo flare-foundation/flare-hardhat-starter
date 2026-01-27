@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>x402 Payment Demo</title>
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.11.0/dist/ethers.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #0a0a0a;
+      color: #e0e0e0;
+    }
+    h1 { color: #fff; border-bottom: 2px solid #ff6b35; padding-bottom: 10px; }
+    .card {
+      background: #1a1a1a;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 20px;
+      margin: 20px 0;
+    }
+    .card h3 { margin-top: 0; color: #ff6b35; }
+    button {
+      background: #ff6b35;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+    }
+    button:hover { background: #ff8c5a; }
+    button:disabled { background: #555; cursor: not-allowed; }
+    .btn-secondary { background: #333; border: 1px solid #555; }
+    .btn-secondary:hover { background: #444; }
+    #status {
+      padding: 15px;
+      border-radius: 6px;
+      margin: 15px 0;
+      font-family: monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .status-info { background: #1e3a5f; border: 1px solid #2d5a87; }
+    .status-success { background: #1e5f3a; border: 1px solid #2d8757; }
+    .status-error { background: #5f1e1e; border: 1px solid #872d2d; }
+    .status-pending { background: #5f4f1e; border: 1px solid #87752d; }
+    input {
+      background: #222;
+      border: 1px solid #444;
+      color: #fff;
+      padding: 10px;
+      border-radius: 4px;
+      width: 100%;
+      margin: 5px 0;
+    }
+    .row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .col { flex: 1; min-width: 200px; }
+    #response {
+      background: #111;
+      border: 1px solid #333;
+      padding: 15px;
+      border-radius: 6px;
+      font-family: monospace;
+      font-size: 12px;
+      overflow-x: auto;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .resource-list { list-style: none; padding: 0; }
+    .resource-list li {
+      padding: 10px;
+      background: #222;
+      margin: 5px 0;
+      border-radius: 4px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .price { color: #ff6b35; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>x402 Payment Demo</h1>
+  <p>HTTP 402 Payment Required with EIP-3009 transferWithAuthorization</p>
+
+  <div class="card">
+    <h3>1. Connect Wallet</h3>
+    <button id="connectBtn" onclick="connectWallet()">Connect MetaMask</button>
+    <div id="walletStatus"></div>
+  </div>
+
+  <div class="card">
+    <h3>2. Configuration</h3>
+    <div class="row">
+      <div class="col">
+        <label>Backend URL</label>
+        <input type="text" id="backendUrl" value="http://localhost:3402">
+      </div>
+      <div class="col">
+        <label>Token Address</label>
+        <input type="text" id="tokenAddress" placeholder="MockUSDT0 address">
+      </div>
+    </div>
+    <button class="btn-secondary" onclick="checkBalance()">Check Balance</button>
+    <button class="btn-secondary" onclick="mintTokens()">Mint Test Tokens</button>
+  </div>
+
+  <div class="card">
+    <h3>3. Available Resources</h3>
+    <ul class="resource-list">
+      <li>
+        <span>/api/public - Free endpoint</span>
+        <button onclick="fetchResource('/api/public')">Fetch (Free)</button>
+      </li>
+      <li>
+        <span>/api/premium-data</span>
+        <span class="price">0.1 USDT0</span>
+        <button onclick="fetchWithPayment('/api/premium-data')">Pay & Fetch</button>
+      </li>
+      <li>
+        <span>/api/report</span>
+        <span class="price">0.5 USDT0</span>
+        <button onclick="fetchWithPayment('/api/report')">Pay & Fetch</button>
+      </li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h3>Status</h3>
+    <div id="status" class="status-info">Ready to connect wallet...</div>
+  </div>
+
+  <div class="card">
+    <h3>Response</h3>
+    <pre id="response">No response yet</pre>
+  </div>
+
+  <script>
+    const TOKEN_ABI = [
+      'function name() view returns (string)',
+      'function symbol() view returns (string)',
+      'function decimals() view returns (uint8)',
+      'function balanceOf(address) view returns (uint256)',
+      'function mint(address to, uint256 amount)',
+      'function DOMAIN_SEPARATOR() view returns (bytes32)'
+    ];
+
+    let provider, signer, userAddress, selectedProvider;
+
+    // EIP-6963: Multi Injected Provider Discovery
+    const walletProviders = new Map();
+
+    window.addEventListener('eip6963:announceProvider', (event) => {
+      const { info, provider } = event.detail;
+      walletProviders.set(info.uuid, { info, provider });
+    });
+
+    // Request wallet providers
+    window.dispatchEvent(new Event('eip6963:requestProvider'));
+
+    function setStatus(message, type = 'info') {
+      const el = document.getElementById('status');
+      el.textContent = message;
+      el.className = `status-${type}`;
+    }
+
+    function setResponse(data) {
+      document.getElementById('response').textContent =
+        typeof data === 'object' ? JSON.stringify(data, null, 2) : data;
+    }
+
+    function getPreferredProvider() {
+      // Prefer MetaMask if available via EIP-6963
+      for (const [, wallet] of walletProviders) {
+        if (wallet.info.rdns === 'io.metamask' || wallet.info.name.toLowerCase().includes('metamask')) {
+          return wallet.provider;
+        }
+      }
+      // Fallback to first available EIP-6963 provider
+      if (walletProviders.size > 0) {
+        return walletProviders.values().next().value.provider;
+      }
+      // Legacy fallback to window.ethereum
+      return window.ethereum;
+    }
+
+    async function connectWallet() {
+      try {
+        selectedProvider = getPreferredProvider();
+        if (!selectedProvider) throw new Error('No wallet detected. Please install MetaMask.');
+
+        setStatus('Connecting to wallet...', 'pending');
+        provider = new ethers.BrowserProvider(selectedProvider);
+        await provider.send('eth_requestAccounts', []);
+
+        const network = await provider.getNetwork();
+        if (network.chainId !== 114n) {
+          setStatus('Please switch to Coston2 (chainId: 114)', 'error');
+          try {
+            await selectedProvider.request({
+              method: 'wallet_switchEthereumChain',
+              params: [{ chainId: '0x72' }]
+            });
+          } catch (switchError) {
+            await selectedProvider.request({
+              method: 'wallet_addEthereumChain',
+              params: [{
+                chainId: '0x72',
+                chainName: 'Flare Testnet Coston2',
+                nativeCurrency: { name: 'Coston2 Flare', symbol: 'C2FLR', decimals: 18 },
+                rpcUrls: ['https://coston2-api.flare.network/ext/C/rpc'],
+                blockExplorerUrls: ['https://coston2-explorer.flare.network']
+              }]
+            });
+          }
+          provider = new ethers.BrowserProvider(selectedProvider);
+        }
+
+        signer = await provider.getSigner();
+        userAddress = await signer.getAddress();
+
+        document.getElementById('walletStatus').innerHTML =
+          `<p style="color: #4ade80;">Connected: ${userAddress.slice(0, 6)}...${userAddress.slice(-4)}</p>`;
+        document.getElementById('connectBtn').textContent = 'Connected';
+        document.getElementById('connectBtn').disabled = true;
+        setStatus(`Connected to ${userAddress}`, 'success');
+      } catch (error) {
+        setStatus(`Connection failed: ${error.message}`, 'error');
+      }
+    }
+
+    async function checkBalance() {
+      if (!signer) { setStatus('Please connect wallet first', 'error'); return; }
+      const tokenAddress = document.getElementById('tokenAddress').value;
+      if (!tokenAddress) { setStatus('Please enter token address', 'error'); return; }
+
+      try {
+        // First verify contract exists at address
+        const code = await provider.getCode(tokenAddress);
+        if (code === '0x') {
+          setStatus(`Error: No contract deployed at ${tokenAddress}. Check the address is correct for Coston2.`, 'error');
+          return;
+        }
+
+        const token = new ethers.Contract(tokenAddress, TOKEN_ABI, provider);
+        const balance = await token.balanceOf(userAddress);
+        const decimals = await token.decimals();
+        const symbol = await token.symbol();
+        setStatus(`Balance: ${ethers.formatUnits(balance, decimals)} ${symbol}`, 'success');
+      } catch (error) {
+        if (error.message.includes('could not decode result data')) {
+          setStatus(`Error: Contract at ${tokenAddress} does not support required ERC20 functions. Ensure this is the correct MockUSDT0 address.`, 'error');
+        } else {
+          setStatus(`Error: ${error.message}`, 'error');
+        }
+      }
+    }
+
+    async function mintTokens() {
+      if (!signer) { setStatus('Please connect wallet first', 'error'); return; }
+      const tokenAddress = document.getElementById('tokenAddress').value;
+      if (!tokenAddress) { setStatus('Please enter token address', 'error'); return; }
+
+      try {
+        // Verify contract exists at address
+        const code = await provider.getCode(tokenAddress);
+        if (code === '0x') {
+          setStatus(`Error: No contract deployed at ${tokenAddress}. Check the address is correct for Coston2.`, 'error');
+          return;
+        }
+
+        setStatus('Minting test tokens...', 'pending');
+        const token = new ethers.Contract(tokenAddress, TOKEN_ABI, signer);
+        const tx = await token.mint(userAddress, ethers.parseUnits('1000', 6));
+        await tx.wait();
+        setStatus('Minted 1000 test tokens!', 'success');
+        await checkBalance();
+      } catch (error) {
+        if (error.code === 'ACTION_REJECTED') {
+          setStatus('Transaction rejected by user', 'error');
+        } else if (error.message.includes('could not decode result data')) {
+          setStatus(`Error: Contract does not support mint function. Ensure this is the correct MockUSDT0 address.`, 'error');
+        } else {
+          setStatus(`Mint failed: ${error.message}`, 'error');
+        }
+      }
+    }
+
+    async function fetchResource(path) {
+      const backendUrl = document.getElementById('backendUrl').value;
+      try {
+        setStatus(`Fetching ${path}...`, 'pending');
+        const response = await fetch(`${backendUrl}${path}`);
+        const data = await response.json();
+        setStatus(response.status === 402 ? 'Payment required!' : 'Success!',
+                  response.status === 402 ? 'info' : 'success');
+        setResponse(data);
+      } catch (error) {
+        setStatus(`Error: ${error.message}`, 'error');
+      }
+    }
+
+    async function fetchWithPayment(path) {
+      if (!signer) { setStatus('Please connect wallet first', 'error'); return; }
+      const backendUrl = document.getElementById('backendUrl').value;
+      const tokenAddress = document.getElementById('tokenAddress').value;
+      if (!tokenAddress) { setStatus('Please enter token address', 'error'); return; }
+
+      try {
+        // Verify contract exists at address before proceeding
+        const code = await provider.getCode(tokenAddress);
+        if (code === '0x') {
+          setStatus(`Error: No contract deployed at ${tokenAddress}. Check the address is correct for Coston2.`, 'error');
+          return;
+        }
+
+        setStatus('Fetching payment requirements...', 'pending');
+        const reqResponse = await fetch(`${backendUrl}${path}`);
+
+        if (reqResponse.status !== 402) {
+          setResponse(await reqResponse.json());
+          setStatus('Resource fetched (no payment needed)', 'success');
+          return;
+        }
+
+        const paymentReq = await reqResponse.json();
+        setResponse(paymentReq);
+
+        const requirement = paymentReq.accepts[0];
+        const amount = BigInt(requirement.maxAmountRequired);
+        const payTo = requirement.payTo;
+
+        setStatus('Creating EIP-3009 authorization...', 'pending');
+
+        const token = new ethers.Contract(tokenAddress, TOKEN_ABI, provider);
+        const tokenName = await token.name();
+        const nonce = ethers.hexlify(ethers.randomBytes(32));
+        const validAfter = Math.floor(Date.now() / 1000) - 60;
+        const validBefore = Math.floor(Date.now() / 1000) + 300;
+
+        const domain = {
+          name: tokenName,
+          version: '1',
+          chainId: 114,
+          verifyingContract: tokenAddress
+        };
+
+        const types = {
+          TransferWithAuthorization: [
+            { name: 'from', type: 'address' },
+            { name: 'to', type: 'address' },
+            { name: 'value', type: 'uint256' },
+            { name: 'validAfter', type: 'uint256' },
+            { name: 'validBefore', type: 'uint256' },
+            { name: 'nonce', type: 'bytes32' }
+          ]
+        };
+
+        const message = {
+          from: userAddress,
+          to: payTo,
+          value: amount,
+          validAfter: validAfter,
+          validBefore: validBefore,
+          nonce: nonce
+        };
+
+        setStatus('Please sign the payment authorization in MetaMask...', 'pending');
+        const signature = await signer.signTypedData(domain, types, message);
+        const sig = ethers.Signature.from(signature);
+
+        const paymentPayload = {
+          from: userAddress,
+          to: payTo,
+          token: tokenAddress,
+          value: amount.toString(),
+          validAfter: validAfter.toString(),
+          validBefore: validBefore.toString(),
+          nonce: nonce,
+          v: sig.v,
+          r: sig.r,
+          s: sig.s
+        };
+
+        const paymentHeader = btoa(JSON.stringify(paymentPayload));
+
+        setStatus('Submitting payment and fetching resource...', 'pending');
+        const paidResponse = await fetch(`${backendUrl}${path}`, {
+          headers: { 'X-Payment': paymentHeader }
+        });
+
+        const data = await paidResponse.json();
+
+        if (paidResponse.status === 200) {
+          const paymentResponse = paidResponse.headers.get('X-Payment-Response');
+          if (paymentResponse) {
+            data.x402PaymentResponse = JSON.parse(atob(paymentResponse));
+          }
+          setStatus('Payment successful! Resource accessed.', 'success');
+        } else {
+          setStatus(`Payment failed: ${data.error}`, 'error');
+        }
+        setResponse(data);
+
+      } catch (error) {
+        if (error.message.includes('could not decode result data')) {
+          setStatus(`Error: Contract does not support required functions. Ensure the token address is correct (should be MockUSDT0 with EIP-3009 support).`, 'error');
+        } else if (error.code === 'ACTION_REJECTED') {
+          setStatus('Transaction rejected by user', 'error');
+        } else {
+          setStatus(`Error: ${error.message}`, 'error');
+        }
+        console.error(error);
+      }
+    }
+
+    // Auto-connect if already connected
+    window.addEventListener('load', async () => {
+      // Wait briefly for EIP-6963 providers to announce
+      await new Promise(r => setTimeout(r, 100));
+
+      const walletProvider = getPreferredProvider();
+      if (walletProvider) {
+        try {
+          const accounts = await walletProvider.request({ method: 'eth_accounts' });
+          if (accounts.length > 0) connectWallet();
+        } catch (e) {
+          // Ignore - wallet not ready
+        }
+      }
+    });
+  </script>
+</body>
+</html>
