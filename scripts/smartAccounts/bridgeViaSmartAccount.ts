@@ -16,6 +16,7 @@ import * as fs from "fs";
 import * as path from "path";
 
 const IERC20 = artifacts.require("IERC20");
+const IERC20Metadata = artifacts.require("IERC20Metadata");
 
 // ABIs
 const MASTER_ACCOUNT_CONTROLLER_ABI = JSON.parse(
@@ -51,7 +52,7 @@ const CONFIG = {
 async function getAssetManagerInfo(lots: number) {
     const assetManager = await getAssetManagerFXRP();
     const fxrpAddress = await assetManager.fAsset();
-    const fxrp: IERC20Instance = await IERC20.at(fxrpAddress);
+    const fxrp = await IERC20Metadata.at(fxrpAddress);
     const decimals = Number(await fxrp.decimals());
     const lotSizeBN = await assetManager.lotSize();
     const lotSize = BigInt(lotSizeBN.toString());
