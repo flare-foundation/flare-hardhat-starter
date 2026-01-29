@@ -11,11 +11,10 @@ import { Client, Wallet as XrplWallet, xrpToDrops, Payment } from "xrpl";
 import { FXRPCollateralReservationInstruction } from "@flarenetwork/smart-accounts-encoder";
 import { getAssetManagerFXRP } from "../utils/getters";
 import { sleep } from "../utils/core";
-import { IAssetManagerInstance, IERC20Instance } from "../../typechain-types";
+import { IAssetManagerInstance, IERC20MetadataInstance } from "../../typechain-types";
 import * as fs from "fs";
 import * as path from "path";
 
-const IERC20 = artifacts.require("IERC20");
 const IERC20Metadata = artifacts.require("IERC20Metadata");
 
 // ABIs
@@ -89,7 +88,7 @@ async function registerBridgeInstruction(recipientAddress: string, amountToBridg
     console.log("\n=== Step 1: Registering Atomic Bridge Instruction ===");
 
     const oftAdapter = new web3.eth.Contract(FASSET_OFT_ADAPTER_ABI, CONFIG.COSTON2_OFT_ADAPTER);
-    const ftestxrp = new web3.eth.Contract(IERC20.abi, fxrpAddress);
+    const ftestxrp = new web3.eth.Contract(IERC20Metadata.abi, fxrpAddress);
 
     // 1. Prepare APPROVE Call (Personal Account -> OFT Adapter)
     const approveCallData = ftestxrp.methods.approve(CONFIG.COSTON2_OFT_ADAPTER, amountToBridge.toString()).encodeABI();
@@ -193,7 +192,7 @@ async function checkPersonalAccount(
     let nativeBalance = 0n;
 
     if (hasAccount) {
-        const ftestxrp: IERC20Instance = await IERC20.at(fxrpAddress);
+        const ftestxrp: IERC20MetadataInstance = await IERC20Metadata.at(fxrpAddress);
         fxrpBalance = BigInt(await ftestxrp.balanceOf(personalAccountAddr));
         nativeBalance = BigInt(await web3.eth.getBalance(personalAccountAddr));
 
