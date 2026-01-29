@@ -1,2 +1,3 @@
-export const checkpointAddress = "0x3466de7fBFE462E1b47E8AA9F812a494fdaB92D5";
-export const piggyBankAddress = "0x947D0d3D2b0dB23c6fcC6C2dDA89A22343F239bA";
+export const checkpointAddress = "0xEE6D54382aA623f4D16e856193f5f8384E487002";
+export const piggyBankAddress = "0x42Ccd4F0aB1C6Fa36BfA37C9e30c4DC4DD94dE42";
+export const noticeBoardAddress = "0x59D57652BF4F6d97a6e555800b3920Bd775661Dc";
