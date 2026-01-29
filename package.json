@@ -65,6 +65,7 @@
         "@flarenetwork/flare-periphery-contract-artifacts": "0.1.37",
         "@flarenetwork/flare-periphery-contracts": "0.1.37",
         "@flarenetwork/ftso-adapters": "^0.0.1-rc.1",
+        "@flarenetwork/smart-accounts-encoder": "^0.0.8",
         "@layerzerolabs/lz-definitions": "^3.0.145",
         "@layerzerolabs/lz-evm-protocol-v2": "^3.0.144",
         "@layerzerolabs/lz-evm-sdk-v2": "^3.0.144",
@@ -81,8 +82,14 @@
         "ethers": "^6.4.0",
         "hardhat": "^2.22.18",
         "solady": "^0.1.26",
-        "solhint": "^4.5.2"
+        "solhint": "^4.5.2",
+        "xrpl": "^4.4.3"
     },
     "prettier": "@flarenetwork/prettier-config-flare",
-    "packageManager": "yarn@1.22.22"
+    "packageManager": "yarn@1.22.22",
+    "resolutions": {
+        "@noble/hashes": "1.8.0",
+        "ethereum-cryptography": "3.2.0",
+        "secp256k1": "^5.0.0"
+    }
 }
