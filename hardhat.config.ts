@@ -10,7 +10,6 @@ require("dotenv").config();
 // Load environment variables
 const PRIVATE_KEY = process.env.PRIVATE_KEY ?? "";
 const FLARE_RPC_API_KEY = process.env.FLARE_RPC_API_KEY ?? "";
-const FLARESCAN_API_KEY = process.env.FLARESCAN_API_KEY ?? "";
 const FLARE_EXPLORER_API_KEY = process.env.FLARE_EXPLORER_API_KEY ?? "";
 
 const COSTON_RPC_URL = process.env.COSTON_RPC_URL ?? "";
@@ -21,8 +20,6 @@ const ETHERSCAN_API_URL = process.env.ETHERSCAN_API_URL ?? "";
 const XRPLEVM_RPC_URL_TESTNET = process.env.XRPLEVM_RPC_URL_TESTNET ?? "";
 
 const VERIFIER_API_KEY_TESTNET = process.env.VERIFIER_API_KEY_TESTNET ?? "";
-
-const USE_FLARESCAN = process.env.USE_FLARESCAN ?? false;
 
 const GOERLI_API_URL = process.env.GOERLI_API_URL ?? "";
 const SEPOLIA_API_KEY = process.env.SEPOLIA_API_KEY ?? "";
@@ -108,10 +105,10 @@ const config: HardhatUserConfig = {
     etherscan: {
         apiKey: {
             goerli: `${ETHERSCAN_API_URL}`,
-            coston: `${FLARESCAN_API_KEY}`,
-            coston2: `${FLARESCAN_API_KEY}`,
-            songbird: `${FLARESCAN_API_KEY}`,
-            flare: `${FLARESCAN_API_KEY}`,
+            coston: `${FLARE_EXPLORER_API_KEY}`,
+            coston2: `${FLARE_EXPLORER_API_KEY}`,
+            songbird: `${FLARE_EXPLORER_API_KEY}`,
+            flare: `${FLARE_EXPLORER_API_KEY}`,
             sepolia: `${ETHERSCAN_API_URL}`,
             xrplEVMTestnet: "testnet-key",
         },
@@ -182,30 +179,5 @@ const config: HardhatUserConfig = {
         project: TENDERLY_PROJECT_SLUG,
     },
 };
-
-if (USE_FLARESCAN) {
-    const FLARESCAN_DATA = [
-        {
-            apiURL: "https://api.routescan.io/v2/network/testnet/evm/16/etherscan",
-            browserURL: "https://coston.testnet.flarescan.com",
-        },
-        {
-            apiURL: "https://api.routescan.io/v2/network/testnet/evm/114/etherscan",
-            browserURL: "https://coston2.testnet.flarescan.com",
-        },
-        {
-            apiURL: "https://api.routescan.io/v2/network/mainnet/evm/19/etherscan",
-            browserURL: "https://songbird.flarescan.com",
-        },
-        {
-            apiURL: "https://api.routescan.io/v2/network/mainnet/evm/14/etherscan",
-            browserURL: "https://mainnet.flarescan.com",
-        },
-    ];
-
-    for (let i = 0; i < FLARESCAN_DATA.length; i++) {
-        config.etherscan.customChains[i].urls = FLARESCAN_DATA[i];
-    }
-}
 
 export default config;
