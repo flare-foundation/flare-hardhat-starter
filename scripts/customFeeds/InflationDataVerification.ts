@@ -8,7 +8,7 @@ import {
 
 const InflationCustomFeed = artifacts.require("InflationCustomFeed");
 
-const { WEB2JSON_VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } = process.env;
+const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } = process.env;
 
 // --- Configuration Constants ---
 const inflationDatasetIdentifier = "US_INFLATION_CPI_ANNUAL";
@@ -24,7 +24,7 @@ const abiSig = `{"components": [{"internalType": "uint256","name": "inflationRat
 // --- FDC Configuration ---
 const attestationTypeBase = "Web2Json";
 const sourceIdBase = "PublicWeb2";
-const verifierUrlBase = WEB2JSON_VERIFIER_URL_TESTNET;
+const verifierUrlBase = VERIFIER_URL_TESTNET;
 
 /**
  * Prepares the attestation request using the shared utility function.
