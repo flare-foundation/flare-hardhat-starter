@@ -121,6 +121,8 @@ interface IFirelightVault {
 
     function withdrawalsOf(uint256 period, address account) external view returns (uint256);
 
+    function isWithdrawClaimed(uint256 period, address account) external view returns (bool);
+
     // --- Period configuration / time helpers ---
 
     function periodConfigurationAtTimestamp(uint48 timestamp) external view returns (PeriodConfiguration memory);
