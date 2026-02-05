@@ -117,6 +117,16 @@ A shell command that does this is:
 rm -rf contracts/* & mv scripts/fdcExample/Base.ts ./Base.ts & rm -rf scripts/* & mv ./Base.ts scripts/Base.ts
 ```
 
+## Patches
+
+This project uses `patch-package` to fix an upstream bug in `@openzeppelin/upgrades-core@1.44.2`.
+
+**Issue:** When `ethereum-cryptography` v3.x is installed, `ethereumjs-util`'s `keccak256` returns a `Uint8Array` instead of a `Buffer`. The OpenZeppelin code calls `.toString('hex')` expecting a Buffer, but `Uint8Array.toString()` ignores the encoding argument and returns comma-separated decimals (e.g., `54,8,148,...`) instead of a hex string. This breaks contract verification and proxy detection.
+
+**Fix:** The patch wraps `keccak256()` results with `Buffer.from()` before calling `.toString('hex')`. It's automatically applied on `yarn install` via the postinstall script.
+
+Once OpenZeppelin releases a fix upstream, this patch can be removed.
+
 ## Resources
 
 - [Flare Developer Hub](https://dev.flare.network/)

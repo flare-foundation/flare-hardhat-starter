@@ -20,7 +20,8 @@
         "format:fix-solidity": "prettier --write --plugin=prettier-plugin-solidity \"contracts/**/*.sol\"",
         "-----Testing-----": "echo \"Testing scripts\"",
         "test": "",
-        "prepare": "husky"
+        "prepare": "husky",
+        "postinstall": "patch-package"
     },
     "devDependencies": {
         "@eslint/compat": "^1.4.0",
@@ -51,7 +52,9 @@
         "eslint-plugin-prettier": "^5.0.0",
         "hardhat-gas-reporter": "^1.0.8",
         "husky": "^9.1.7",
+        "patch-package": "^8.0.1",
         "pinst": "^3.0.0",
+        "postinstall-postinstall": "^2.1.0",
         "prettier": "^3.6.2",
         "prettier-plugin-solidity": "^1.4.2",
         "solidity-coverage": "^0.8.0",
