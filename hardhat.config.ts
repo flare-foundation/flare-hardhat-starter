@@ -10,22 +10,21 @@ require("dotenv").config();
 // Load environment variables
 const PRIVATE_KEY = process.env.PRIVATE_KEY ?? "";
 const FLARE_RPC_API_KEY = process.env.FLARE_RPC_API_KEY ?? "";
-const FLARESCAN_API_KEY = process.env.FLARESCAN_API_KEY ?? "";
 const FLARE_EXPLORER_API_KEY = process.env.FLARE_EXPLORER_API_KEY ?? "";
+
+// Explorer URLs (Blockscout) — override via env vars if needed
+const COSTON_EXPLORER_URL = process.env.COSTON_EXPLORER_URL ?? "https://coston-explorer.flare.network";
+const COSTON2_EXPLORER_URL = process.env.COSTON2_EXPLORER_URL ?? "https://coston2-explorer.flare.network";
+const SONGBIRD_EXPLORER_URL = process.env.SONGBIRD_EXPLORER_URL ?? "https://songbird-explorer.flare.network";
+const FLARE_EXPLORER_URL = process.env.FLARE_EXPLORER_URL ?? "https://flare-explorer.flare.network";
 
 const COSTON_RPC_URL = process.env.COSTON_RPC_URL ?? "";
 const COSTON2_RPC_URL = process.env.COSTON2_RPC_URL ?? "";
 const SONGBIRD_RPC_URL = process.env.SONGBIRD_RPC_URL ?? "";
 const FLARE_RPC_URL = process.env.FLARE_RPC_URL ?? "";
-const ETHERSCAN_API_URL = process.env.ETHERSCAN_API_URL ?? "";
 const XRPLEVM_RPC_URL_TESTNET = process.env.XRPLEVM_RPC_URL_TESTNET ?? "";
 
 const VERIFIER_API_KEY_TESTNET = process.env.VERIFIER_API_KEY_TESTNET ?? "";
-
-const USE_FLARESCAN = process.env.USE_FLARESCAN ?? false;
-
-const GOERLI_API_URL = process.env.GOERLI_API_URL ?? "";
-const SEPOLIA_API_KEY = process.env.SEPOLIA_API_KEY ?? "";
 
 const TENDERLY_USERNAME = process.env.TENDERLY_USERNAME ?? "";
 const TENDERLY_PROJECT_SLUG = process.env.TENDERLY_PROJECT_SLUG ?? "";
@@ -48,12 +47,8 @@ const config: HardhatUserConfig = {
         ],
     },
     networks: {
-        goerli: {
-            url: `https://eth-goerli.alchemyapi.io/v2/${GOERLI_API_URL}`,
-            accounts: [`${PRIVATE_KEY}`],
-        },
         sepolia: {
-            url: `https://rpc.ankr.com/eth_sepolia/${SEPOLIA_API_KEY}`,
+            url: "https://rpc.ankr.com/eth_sepolia",
             accounts: [`${PRIVATE_KEY}`],
         },
         coston: {
@@ -107,12 +102,10 @@ const config: HardhatUserConfig = {
     },
     etherscan: {
         apiKey: {
-            goerli: `${ETHERSCAN_API_URL}`,
-            coston: `${FLARESCAN_API_KEY}`,
-            coston2: `${FLARESCAN_API_KEY}`,
-            songbird: `${FLARESCAN_API_KEY}`,
-            flare: `${FLARESCAN_API_KEY}`,
-            sepolia: `${ETHERSCAN_API_URL}`,
+            coston: `${FLARE_EXPLORER_API_KEY}`,
+            coston2: `${FLARE_EXPLORER_API_KEY}`,
+            songbird: `${FLARE_EXPLORER_API_KEY}`,
+            flare: `${FLARE_EXPLORER_API_KEY}`,
             xrplEVMTestnet: "testnet-key",
         },
         customChains: [
@@ -122,9 +115,9 @@ const config: HardhatUserConfig = {
                 urls: {
                     // faucet: https://faucet.towolabs.com/
                     apiURL:
-                        "https://coston-explorer.flare.network/api" +
+                        `${COSTON_EXPLORER_URL}/api` +
                         (FLARE_EXPLORER_API_KEY ? `?x-apikey=${FLARE_EXPLORER_API_KEY}` : ""), // Must not have / endpoint
-                    browserURL: "https://coston-explorer.flare.network",
+                    browserURL: COSTON_EXPLORER_URL,
                 },
             },
             {
@@ -133,9 +126,9 @@ const config: HardhatUserConfig = {
                 urls: {
                     // faucet: https://coston2-faucet.towolabs.com/
                     apiURL:
-                        "https://coston2-explorer.flare.network/api" +
+                        `${COSTON2_EXPLORER_URL}/api` +
                         (FLARE_EXPLORER_API_KEY ? `?x-apikey=${FLARE_EXPLORER_API_KEY}` : ""), // Must not have / endpoint
-                    browserURL: "https://coston2-explorer.flare.network",
+                    browserURL: COSTON2_EXPLORER_URL,
                 },
             },
             {
@@ -143,9 +136,9 @@ const config: HardhatUserConfig = {
                 chainId: 19,
                 urls: {
                     apiURL:
-                        "https://songbird-explorer.flare.network/api" +
+                        `${SONGBIRD_EXPLORER_URL}/api` +
                         (FLARE_EXPLORER_API_KEY ? `?x-apikey=${FLARE_EXPLORER_API_KEY}` : ""), // Must not have / endpoint
-                    browserURL: "https://songbird-explorer.flare.network/",
+                    browserURL: SONGBIRD_EXPLORER_URL,
                 },
             },
             {
@@ -153,9 +146,9 @@ const config: HardhatUserConfig = {
                 chainId: 14,
                 urls: {
                     apiURL:
-                        "https://flare-explorer.flare.network/api" +
+                        `${FLARE_EXPLORER_URL}/api` +
                         (FLARE_EXPLORER_API_KEY ? `?x-apikey=${FLARE_EXPLORER_API_KEY}` : ""), // Must not have / endpoint
-                    browserURL: "https://flare-explorer.flare.network/",
+                    browserURL: FLARE_EXPLORER_URL,
                 },
             },
             {
@@ -182,30 +175,5 @@ const config: HardhatUserConfig = {
         project: TENDERLY_PROJECT_SLUG,
     },
 };
-
-if (USE_FLARESCAN) {
-    const FLARESCAN_DATA = [
-        {
-            apiURL: "https://api.routescan.io/v2/network/testnet/evm/16/etherscan",
-            browserURL: "https://coston.testnet.flarescan.com",
-        },
-        {
-            apiURL: "https://api.routescan.io/v2/network/testnet/evm/114/etherscan",
-            browserURL: "https://coston2.testnet.flarescan.com",
-        },
-        {
-            apiURL: "https://api.routescan.io/v2/network/mainnet/evm/19/etherscan",
-            browserURL: "https://songbird.flarescan.com",
-        },
-        {
-            apiURL: "https://api.routescan.io/v2/network/mainnet/evm/14/etherscan",
-            browserURL: "https://mainnet.flarescan.com",
-        },
-    ];
-
-    for (let i = 0; i < FLARESCAN_DATA.length; i++) {
-        config.etherscan.customChains[i].urls = FLARESCAN_DATA[i];
-    }
-}
 
 export default config;

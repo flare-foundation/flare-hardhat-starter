@@ -7,7 +7,7 @@ import {
 } from "../../utils/fdc";
 import { sleep } from "../../utils/core";
 
-const { WEB2JSON_VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } = process.env;
+const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } = process.env;
 
 const WeatherIdAgency = artifacts.require("WeatherIdAgency");
 
@@ -85,7 +85,7 @@ const abiSignature = `{
 // Configuration constants
 const attestationTypeBase = "Web2Json";
 const sourceIdBase = "PublicWeb2";
-const verifierUrlBase = WEB2JSON_VERIFIER_URL_TESTNET;
+const verifierUrlBase = VERIFIER_URL_TESTNET;
 
 async function getPolicy(agency: WeatherIdAgencyInstance, id: number) {
     const response = await agency.registeredPolicies(id);

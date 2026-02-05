@@ -1,0 +1,69 @@
+diff --git a/node_modules/@openzeppelin/upgrades-core/dist/call-optional-signature.js b/node_modules/@openzeppelin/upgrades-core/dist/call-optional-signature.js
+index 30aea5a..f0fcb30 100644
+--- a/node_modules/@openzeppelin/upgrades-core/dist/call-optional-signature.js
++++ b/node_modules/@openzeppelin/upgrades-core/dist/call-optional-signature.js
+@@ -4,7 +4,7 @@ exports.callOptionalSignature = callOptionalSignature;
+ const ethereumjs_util_1 = require("ethereumjs-util");
+ const provider_1 = require("./provider");
+ async function callOptionalSignature(provider, address, signature) {
+-    const data = '0x' + (0, ethereumjs_util_1.keccak256)(Buffer.from(signature)).toString('hex').slice(0, 8);
++    const data = '0x' + Buffer.from((0, ethereumjs_util_1.keccak256)(Buffer.from(signature))).toString('hex').slice(0, 8);
+     try {
+         return await (0, provider_1.call)(provider, address, data);
+     }
+diff --git a/node_modules/@openzeppelin/upgrades-core/dist/eip-1967.js b/node_modules/@openzeppelin/upgrades-core/dist/eip-1967.js
+index 53fadfd..4bd5c27 100644
+--- a/node_modules/@openzeppelin/upgrades-core/dist/eip-1967.js
++++ b/node_modules/@openzeppelin/upgrades-core/dist/eip-1967.js
+@@ -46,10 +46,10 @@ async function getStorageFallback(provider, address, ...slots) {
+     return storage;
+ }
+ function toFallbackEip1967Hash(label) {
+-    return '0x' + (0, ethereumjs_util_1.keccak256)(Buffer.from(label)).toString('hex');
++    return '0x' + Buffer.from((0, ethereumjs_util_1.keccak256)(Buffer.from(label))).toString('hex');
+ }
+ function toEip1967Hash(label) {
+-    const hash = (0, ethereumjs_util_1.keccak256)(Buffer.from(label));
++    const hash = Buffer.from((0, ethereumjs_util_1.keccak256)(Buffer.from(label)));
+     const bigNumber = BigInt('0x' + hash.toString('hex')) - 1n;
+     return '0x' + bigNumber.toString(16);
+ }
+diff --git a/node_modules/@openzeppelin/upgrades-core/dist/utils/erc7201.js b/node_modules/@openzeppelin/upgrades-core/dist/utils/erc7201.js
+index ff6f031..072e020 100644
+--- a/node_modules/@openzeppelin/upgrades-core/dist/utils/erc7201.js
++++ b/node_modules/@openzeppelin/upgrades-core/dist/utils/erc7201.js
+@@ -12,10 +12,10 @@ exports.ERC7201_FORMULA_PREFIX = 'erc7201:';
+  * @returns The ERC-7201 storage location hash as a hex string
+  */
+ function calculateERC7201StorageLocation(id) {
+-    const firstHash = (0, ethereumjs_util_1.keccak256)(Buffer.from(id));
++    const firstHash = Buffer.from((0, ethereumjs_util_1.keccak256)(Buffer.from(id)));
+     const minusOne = BigInt(`0x${firstHash.toString('hex')}`) - 1n;
+     const minusOneBuffer = Buffer.from(minusOne.toString(16), 'hex');
+-    const secondHash = (0, ethereumjs_util_1.keccak256)(minusOneBuffer);
++    const secondHash = Buffer.from((0, ethereumjs_util_1.keccak256)(minusOneBuffer));
+     const mask = BigInt('0xff');
+     const masked = BigInt(`0x${secondHash.toString('hex')}`) & ~mask;
+     const padded = masked.toString(16).padStart(64, '0');
+diff --git a/node_modules/@openzeppelin/upgrades-core/dist/version.js b/node_modules/@openzeppelin/upgrades-core/dist/version.js
+index d650682..7dca29b 100644
+--- a/node_modules/@openzeppelin/upgrades-core/dist/version.js
++++ b/node_modules/@openzeppelin/upgrades-core/dist/version.js
+@@ -23,7 +23,7 @@ function getVersion(bytecode, linkedBytecode, constructorArgs = '') {
+ function hashBytecode(bytecode, constructorArgs = '') {
+     bytecode = bytecode
+         .replace(/__\$([0-9a-fA-F]{34})\$__/g, (_, placeholder) => `000${placeholder}000`)
+-        .replace(/__\w{36}__/g, placeholder => (0, ethereumjs_util_1.keccak256)(Buffer.from(placeholder)).toString('hex', 0, 20));
++        .replace(/__\w{36}__/g, placeholder => Buffer.from((0, ethereumjs_util_1.keccak256)(Buffer.from(placeholder))).toString('hex', 0, 20));
+     // Fail if bytecode is still not valid hex after transformations above.
+     // Buffer.from silently truncates at the first non-hex character.
+     // NOTE: Some bytecode seems to have odd length, so we cannot do ([0-9a-fA-F]{2})*
+@@ -37,7 +37,7 @@ function hashBytecode(bytecode, constructorArgs = '') {
+         Buffer.from(bytecode.replace(/^0x/, ''), 'hex'),
+         Buffer.from(constructorArgs.replace(/^0x/, ''), 'hex'),
+     ]);
+-    return (0, ethereumjs_util_1.keccak256)(buf).toString('hex');
++    return Buffer.from((0, ethereumjs_util_1.keccak256)(buf)).toString('hex');
+ }
+ function hashBytecodeWithoutMetadata(bytecode, constructorArgs = '') {
+     return hashBytecode(trimBytecodeMetadata(bytecode), constructorArgs);

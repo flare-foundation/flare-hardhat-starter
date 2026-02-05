@@ -8,7 +8,7 @@ import {
 
 const StarWarsCharacterListV2 = artifacts.require("StarWarsCharacterListV2");
 
-const { WEB2JSON_VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } = process.env;
+const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } = process.env;
 
 // yarn hardhat run scripts/fdcExample/Web2Json.ts --network coston2
 
@@ -27,7 +27,7 @@ const abiSignature = `{"components": [{"internalType": "string", "name": "name",
 // Configuration constants
 const attestationTypeBase = "Web2Json";
 const sourceIdBase = "PublicWeb2";
-const verifierUrlBase = WEB2JSON_VERIFIER_URL_TESTNET;
+const verifierUrlBase = VERIFIER_URL_TESTNET;
 
 async function prepareAttestationRequest(apiUrl: string, postProcessJq: string, abiSignature: string) {
     const requestBody = {

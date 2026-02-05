@@ -1,7 +1,7 @@
 import fs from "fs";
 import { prepareAttestationRequestBase, submitAttestationRequest } from "../utils/fdc";
 
-const { WEB2JSON_VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET } = process.env;
+const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET } = process.env;
 
 // yarn hardhat run scripts/crossChainFdc/prepareAndSubmitRequest.ts --network coston2
 
@@ -20,7 +20,7 @@ const abiSignature = `{"components": [{"internalType": "string", "name": "name",
 // Configuration constants
 const attestationTypeBase = "Web2Json";
 const sourceIdBase = "PublicWeb2";
-const verifierUrlBase = WEB2JSON_VERIFIER_URL_TESTNET;
+const verifierUrlBase = VERIFIER_URL_TESTNET;
 
 async function prepareAttestationRequest(apiUrl: string, postProcessJq: string, abiSignature: string) {
     const requestBody = {

@@ -130,7 +130,7 @@ async function processPriceFeeds(
 async function main() {
     try {
         // 1. Get Network Configuration
-        const currentNetworkNamespace = await getCurrentNetworkNamespace();
+        const currentNetworkNamespace = getCurrentNetworkNamespace();
         const networkName = hre.network.name;
         const daLayerUrl = getDALayerUrl(networkName);
 

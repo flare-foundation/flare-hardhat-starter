@@ -7,8 +7,7 @@ import { tokenAddresses, readerAddresses, proofOfReservesAddress, transactionHas
 
 const ProofOfReserves = artifacts.require("ProofOfReserves");
 
-const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, WEB2JSON_VERIFIER_URL_TESTNET, COSTON2_DA_LAYER_URL } =
-    process.env;
+const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } = process.env;
 
 // yarn hardhat run scripts/proofOfReserves/verifyProofOfReserves.ts --network coston2
 
@@ -25,7 +24,7 @@ const requests: AttestationRequest[] = [
     {
         source: "web2json",
         sourceIdBase: "PublicWeb2",
-        verifierUrlBase: WEB2JSON_VERIFIER_URL_TESTNET,
+        verifierUrlBase: VERIFIER_URL_TESTNET,
         verifierApiKey: VERIFIER_API_KEY_TESTNET,
         urlTypeBase: "",
         data: {
