@@ -67,7 +67,7 @@
         "express-rate-limit": "^7.4.0",
         "express": "^4.19.0",
         "@chainlink/contracts": "^1.4.0",
-        "@flarenetwork/flare-periphery-contract-artifacts": "0.1.37",
+        "@flarenetwork/flare-periphery-contract-artifacts": "^0.1.40",
         "@flarenetwork/flare-periphery-contracts": "0.1.37",
         "@flarenetwork/ftso-adapters": "^0.0.1-rc.1",
         "@flarenetwork/smart-accounts-encoder": "^0.0.8",

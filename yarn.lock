@@ -1327,10 +1327,10 @@
     "@eslint/js" "^9.33.0"
     typescript-eslint "^8.39.0"
 
-"@flarenetwork/flare-periphery-contract-artifacts@0.1.37":
-  version "0.1.37"
-  resolved "https://registry.yarnpkg.com/@flarenetwork/flare-periphery-contract-artifacts/-/flare-periphery-contract-artifacts-0.1.37.tgz#904616228c1875ccd354f94d6e87a6975de20baf"
-  integrity sha512-XwJrlgl4sTISToTmIYoVmLHqeMplD9Ygy6hDhbCokMslsBg0If+6SMygWMf6/HeZTtd3r/jwpZvAa4M4CUYy/Q==
+"@flarenetwork/flare-periphery-contract-artifacts@^0.1.40":
+  version "0.1.40"
+  resolved "https://registry.yarnpkg.com/@flarenetwork/flare-periphery-contract-artifacts/-/flare-periphery-contract-artifacts-0.1.40.tgz#e9b90fe602589b8a013ec8dadbb3d49020fff9aa"
+  integrity sha512-ebQu2wJJpQdMwvBamQ0ar/KU7NAefVjUkXqJXFdWWeD5ABJcYi6pqyvRmp2h4NR3tc7/wjq7D0nqC7Kh3FrHeA==
   dependencies:
     ethers "^6.7.1"
 
