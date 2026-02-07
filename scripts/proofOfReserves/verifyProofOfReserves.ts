@@ -72,7 +72,7 @@ async function prepareWeb2JsonAttestationRequest(transaction: AttestationRequest
         abiSignature: transaction.data.abiSignature,
     };
 
-    const url = `${transaction.verifierUrlBase}/Web2Json/prepareRequest`;
+    const url = `${transaction.verifierUrlBase}/verifier/web2/Web2Json/prepareRequest`;
     const apiKey = transaction.verifierApiKey;
 
     return await prepareAttestationRequestBase(url, apiKey, attestationTypeBase, transaction.sourceIdBase, requestBody);
