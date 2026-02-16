@@ -31,7 +31,7 @@ const postProcessJq = `{
   temperature: (if .main.temp != null then (.main.temp * 1000000) else 0 end),
   minTemp: (if .main.temp_min != null then (.main.temp_min * 1000000) else 0 end),
   windSpeed: (if .wind.speed != null then (.wind.speed * 1000000) else 0 end),
-  windDeg: .wind.deg
+  windDeg: (if .wind.deg != null then .wind.deg else 0 end)
   }`;
 
 const abiSignature = `{

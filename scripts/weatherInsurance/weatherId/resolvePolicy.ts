@@ -25,14 +25,14 @@ const headers = JSON.stringify({ "Content-Type": "application/json" });
 const body = "{}";
 
 const postProcessJq = `{
-latitude: (if .coord.lat != null then (.coord.lat * 1000000) else null end),
-longitude: (if .coord.lon != null then (.coord.lon * 1000000) else null end),
+latitude: (if .coord.lat != null then (.coord.lat * 1000000) else 0 end),
+longitude: (if .coord.lon != null then (.coord.lon * 1000000) else 0 end),
 weatherId: .weather[0].id,
 weatherMain: .weather[0].main,
 description: .weather[0].description,
-temperature: (if .main.temp != null then (.main.temp * 1000000) else null end),
-windSpeed: (if .wind.speed != null then (.wind.speed * 1000000) else null end),
-windDeg: .wind.deg
+temperature: (if .main.temp != null then (.main.temp * 1000000) else 0 end),
+windSpeed: (if .wind.speed != null then (.wind.speed * 1000000) else 0 end),
+windDeg: (if .wind.deg != null then .wind.deg else 0 end)
 }`;
 
 const abiSignature = `{
