@@ -12,7 +12,7 @@ import {
 dotenv.config();
 
 // Helper type for network namespaces
-// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+
 export type FlareNetworkNamespace = typeof flare | typeof songbird | typeof coston2 | typeof coston;
 
 // Define a mapping for network namespaces

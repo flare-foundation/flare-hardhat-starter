@@ -1,1 +1,1 @@
-export const coston2TokenAddress = "0x139a0741D26B724fdE6Ddd5aAc8968C172E3975E";
+export const coston2TokenAddress = "0x994F0537735640b9bAeC283E0dd77D2BF98cEC6F";

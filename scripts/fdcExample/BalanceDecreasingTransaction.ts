@@ -11,8 +11,8 @@ const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } =
 // yarn hardhat run scripts/fdcExample/BalanceDecreasingTransaction.ts --network coston2
 
 // Request data
-const transactionId = "CDBAF39222C04C9FD3AE0FA54B144FFA6D580ABDB0A888EA5B1CFDDEE282156F";
-const sourceAddress = "rGpGUdqUAVkNVr4Hfkvay7ffB7vjoA31uT";
+const transactionId = "576FFB91E76FC28E38D07F8FF513EE76EBFE813D8181E1E8D025E256C26963E0";
+const sourceAddress = "rJjHYTCPpNA3qAM8ZpCDtip3a8xg7B8PFo";
 
 // Configuration constants
 const attestationTypeBase = "BalanceDecreasingTransaction";
