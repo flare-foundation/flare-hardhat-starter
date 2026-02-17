@@ -68,7 +68,14 @@ async function interactWithContract(nftMinter: NFTMinterInstance, proof: any) {
         data: decodedResponse,
     });
     console.log("Transaction:", transaction.tx, "\n");
-    console.log("Token transfer:", await nftMinter.tokenTransfers(0), "\n");
+    const transfers = await nftMinter.getTokenTransfers();
+    if (transfers.length > 0) {
+        console.log("Token transfer:", await nftMinter.tokenTransfers(0), "\n");
+    } else {
+        console.log(
+            "No matching token transfers found in the transaction (expected for non-USDC Sepolia transactions).\n"
+        );
+    }
 }
 
 async function main() {

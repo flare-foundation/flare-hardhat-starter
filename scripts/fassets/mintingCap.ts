@@ -2,7 +2,7 @@ import { getAssetManagerFXRP } from "../utils/getters";
 
 // Run with: yarn hardhat run scripts/fassets/mintingCap.ts --network coston2
 
-const IERC20 = artifacts.require("ERC20");
+const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20");
 
 // Agent status constants
 const AGENT_STATUS_NORMAL = 0;

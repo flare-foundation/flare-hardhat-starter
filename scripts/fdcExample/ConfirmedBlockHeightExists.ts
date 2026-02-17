@@ -9,8 +9,7 @@ const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } =
 
 // yarn hardhat run scripts/fdcExample/ConfirmedBlockHeightExists.ts --network coston2
 
-// Request data
-const blockNumber = "5004226";
+// Request data - fetched dynamically to avoid stale block numbers
 const queryWindow = "1"; // in seconds
 
 // Configuration constants
@@ -43,7 +42,21 @@ async function deployAndVerifyContract() {}
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 async function interactWithContract() {}
 
+async function getRecentXrpLedgerIndex(): Promise<string> {
+    const response = await fetch("https://s.altnet.rippletest.net:51234/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ method: "ledger", params: [{ ledger_index: "validated" }] }),
+    });
+    const json = await response.json();
+    // Use a block ~10 behind the latest to ensure it's well confirmed
+    const ledgerIndex = json.result.ledger_index - 10;
+    console.log("Using XRP ledger index:", ledgerIndex, "\n");
+    return ledgerIndex.toString();
+}
+
 async function main() {
+    const blockNumber = await getRecentXrpLedgerIndex();
     const data = await prepareAttestationRequest(blockNumber, queryWindow);
     console.log("Data:", data, "\n");
 

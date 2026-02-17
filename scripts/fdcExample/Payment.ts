@@ -13,7 +13,7 @@ const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } =
 // yarn hardhat run scripts/fdcExample/Payment.ts --network coston2
 
 // Request data
-const transactionId = "C35B9D376DA75687E19780DB3A99B89CD8DFD451C842E51C7005048CE602464F";
+const transactionId = "576FFB91E76FC28E38D07F8FF513EE76EBFE813D8181E1E8D025E256C26963E0";
 const inUtxo = "0";
 const utxo = "0";
 // WARN:(Nik) Because the lowestUsedTimestamp for the Payment attestation type on XRPL is 2 weeks,
