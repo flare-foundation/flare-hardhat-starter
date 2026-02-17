@@ -18,7 +18,7 @@ const INDICATOR_CODE = "FP.CPI.TOTL.ZG"; // World Bank Indicator for CPI, annual
 // --- World Bank API Request Data ---
 const apiUrl = `https://api.worldbank.org/v2/country/US/indicator/${INDICATOR_CODE}`;
 const stringifiedQueryParams = JSON.stringify({ format: "json", date: targetYear });
-const postprocessJq = `{inflationRate: (.[1][0].value * 100 | . - (. % 1)), observationYear: ${targetYear}}`;
+const postprocessJq = `{inflationRate: (.[1][0].value * 100), observationYear: ${targetYear}}`;
 const abiSig = `{"components": [{"internalType": "uint256","name": "inflationRate","type": "uint256"}, {"internalType": "uint256","name": "observationYear","type": "uint256"}],"internalType": "struct InflationData","name": "inflationData","type": "tuple"}`;
 
 // --- FDC Configuration ---

@@ -19,7 +19,7 @@ if (!supportedMetals.includes(metalSymbol)) {
 
 // --- Swissquote Metal Price Request Data ---
 const fullApiUrl = `https://forex-data-feed.swissquote.com/public-quotes/bboquotes/instrument/${metalSymbol}/USD`;
-const postprocessJq = `{price: (.[0].spreadProfilePrices[0].ask * 10000 | . - (. % 1))}`; // Multiply to get 4 decimal places of precision
+const postprocessJq = `{price: (.[0].spreadProfilePrices[0].ask * 10000)}`; // Multiply to get 4 decimal places of precision
 const abiSig = `{"components": [{"internalType": "uint256","name": "price","type": "uint256"}],"internalType": "struct MetalPriceData","name": "priceData","type": "tuple"}`;
 
 // --- FDC Configuration ---
