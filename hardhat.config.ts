@@ -11,6 +11,7 @@ require("dotenv").config();
 const PRIVATE_KEY = process.env.PRIVATE_KEY ?? "";
 const FLARE_RPC_API_KEY = process.env.FLARE_RPC_API_KEY ?? "";
 const FLARE_EXPLORER_API_KEY = process.env.FLARE_EXPLORER_API_KEY ?? "";
+const NETWORK_ACCOUNTS = PRIVATE_KEY ? [PRIVATE_KEY] : [];
 
 // Explorer URLs (Blockscout) — override via env vars if needed
 const COSTON_EXPLORER_URL = process.env.COSTON_EXPLORER_URL ?? "https://coston-explorer.flare.network";
@@ -49,54 +50,54 @@ const config: HardhatUserConfig = {
     networks: {
         sepolia: {
             url: "https://rpc.ankr.com/eth_sepolia",
-            accounts: [`${PRIVATE_KEY}`],
+            accounts: NETWORK_ACCOUNTS,
         },
         coston: {
             url: FLARE_RPC_API_KEY
                 ? `https://coston-api-tracer.flare.network/ext/C/rpc?x-apikey=${FLARE_RPC_API_KEY}`
                 : "https://coston-api.flare.network/ext/C/rpc",
-            accounts: [`${PRIVATE_KEY}`],
+            accounts: NETWORK_ACCOUNTS,
             chainId: 16,
         },
         coston2: {
             url: FLARE_RPC_API_KEY
                 ? `https://coston2-api-tracer.flare.network/ext/C/rpc?x-apikey=${FLARE_RPC_API_KEY}`
                 : "https://coston2-api.flare.network/ext/C/rpc",
-            accounts: [`${PRIVATE_KEY}`],
+            accounts: NETWORK_ACCOUNTS,
             chainId: 114,
         },
         songbird: {
             url: FLARE_RPC_API_KEY
                 ? `https://songbird-api-tracer.flare.network/ext/C/rpc?x-apikey=${FLARE_RPC_API_KEY}`
                 : "https://songbird-api.flare.network/ext/C/rpc",
-            accounts: [`${PRIVATE_KEY}`],
+            accounts: NETWORK_ACCOUNTS,
             chainId: 19,
         },
         flare: {
             url: FLARE_RPC_API_KEY
                 ? `https://flare-api-tracer.flare.network/ext/C/rpc?x-apikey=${FLARE_RPC_API_KEY}`
                 : "https://flare-api.flare.network/ext/C/rpc",
-            accounts: [`${PRIVATE_KEY}`],
+            accounts: NETWORK_ACCOUNTS,
             chainId: 14,
         },
         hyperliquidTestnet: {
             url: "https://rpc.hyperliquid-testnet.xyz/evm",
-            accounts: [`${PRIVATE_KEY}`],
+            accounts: NETWORK_ACCOUNTS,
             chainId: 998,
         },
         hyperliquid: {
             url: "https://rpc.hyperliquid.xyz/evm",
-            accounts: [`${PRIVATE_KEY}`],
+            accounts: NETWORK_ACCOUNTS,
             chainId: 999,
         },
         tenderly: {
             url: "https://flare.gateway.tenderly.co/pdYQcL54puW9QXPURLblM",
-            accounts: [`${PRIVATE_KEY}`],
+            accounts: NETWORK_ACCOUNTS,
             chainId: 14,
         },
         xrplEVMTestnet: {
             url: `${XRPLEVM_RPC_URL_TESTNET}`,
-            accounts: [`${PRIVATE_KEY}`],
+            accounts: NETWORK_ACCOUNTS,
             chainId: 1449000,
         },
     },
