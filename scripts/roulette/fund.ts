@@ -1,6 +1,7 @@
 import { web3 } from "hardhat";
 import { RouletteInstance } from "../../typechain-types";
 import { ERC20Instance } from "../../typechain-types/@openzeppelin/contracts/token/ERC20/ERC20";
+import { getFXRPTokenAddress } from "../utils/fassets";
 import { rouletteAddress } from "./deploys";
 
 const Roulette = artifacts.require("Roulette");
@@ -15,8 +16,6 @@ const IERC20 = artifacts.require("@openzeppelin/contracts/token/ERC20/ERC20.sol:
 // which is auto-written by scripts/roulette/deploy.ts. Required env var:
 //   FUND_AMOUNT — FXRP amount in whole tokens (e.g. "100" → 100 FXRP)
 
-const FXRP_ADDRESS_COSTON2 = "0x0b6A3645c240605887a5532109323A3E12273dc7";
-
 async function fundHouse() {
     if (!rouletteAddress) {
         throw new Error(
@@ -29,8 +28,9 @@ async function fundHouse() {
     }
 
     const [deployer] = await web3.eth.getAccounts();
+    const fxrpAddress = await getFXRPTokenAddress();
     const roulette = (await Roulette.at(rouletteAddress)) as RouletteInstance;
-    const fxrp = (await IERC20.at(FXRP_ADDRESS_COSTON2)) as ERC20Instance;
+    const fxrp = (await IERC20.at(fxrpAddress)) as ERC20Instance;
 
     const owner = await roulette.owner();
     if (owner.toLowerCase() !== deployer.toLowerCase()) {
@@ -47,7 +47,7 @@ async function fundHouse() {
 
     console.log("Roulette:        ", rouletteAddress);
     console.log("Owner / sender:  ", deployer);
-    console.log("FXRP:            ", FXRP_ADDRESS_COSTON2, `(decimals=${decimals})`);
+    console.log("FXRP:            ", fxrpAddress, `(decimals=${decimals})`);
     console.log("Funding amount:  ", amount.toString(), `(= ${fundAmountTokens} FXRP)`);
 
     const houseBefore = BigInt((await roulette.houseFunds()).toString());
