@@ -2,7 +2,6 @@ import { run, web3 } from "hardhat";
 import { writeFileSync } from "fs";
 import { join } from "path";
 import { RouletteInstance } from "../../typechain-types";
-import { getFXRPTokenAddress } from "../utils/fassets";
 
 const Roulette = artifacts.require("Roulette");
 
@@ -21,8 +20,7 @@ function writeDeploysFile(address: string) {
 
 async function deployAndVerify() {
     const [deployer] = await web3.eth.getAccounts();
-    const fxrpAddress = await getFXRPTokenAddress();
-    const args: any[] = [fxrpAddress, deployer];
+    const args: any[] = [deployer];
     const roulette: RouletteInstance = await Roulette.new(...args);
     writeDeploysFile(roulette.address);
     try {

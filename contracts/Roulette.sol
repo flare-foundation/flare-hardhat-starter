@@ -2,6 +2,7 @@
 pragma solidity ^0.8.25;
 
 import { ContractRegistry } from "@flarenetwork/flare-periphery-contracts/coston2/ContractRegistry.sol";
+import { IAssetManager } from "@flarenetwork/flare-periphery-contracts/coston2/IAssetManager.sol";
 import { RandomNumberV2Interface } from "@flarenetwork/flare-periphery-contracts/coston2/RandomNumberV2Interface.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
@@ -74,8 +75,9 @@ contract Roulette is Ownable {
     error AlreadySettled();
     error RandomNotReady();
 
-    constructor(IERC20 _fxrp, address _initialOwner) Ownable(_initialOwner) {
-        fxrp = _fxrp;
+    constructor(address _initialOwner) Ownable(_initialOwner) {
+        IAssetManager assetManager = ContractRegistry.getAssetManagerFXRP();
+        fxrp = IERC20(address(assetManager.fAsset()));
         generator = ContractRegistry.getRandomNumberV2();
     }
 
@@ -100,8 +102,8 @@ contract Roulette is Ownable {
         }
         if (chips[msg.sender] < amount) revert InsufficientChips();
 
-        uint256 mult = _payoutMultiplier(kind);
-        uint256 maxLoss = uint256(amount) * mult;
+        uint256 payoutMultiplier = _payoutMultiplier(kind);
+        uint256 maxLoss = uint256(amount) * payoutMultiplier;
         if (houseFunds < outstandingMaxLoss + maxLoss) revert InsufficientHouseFunds();
 
         chips[msg.sender] -= amount;
@@ -129,8 +131,8 @@ contract Roulette is Ownable {
         uint8 wheel = uint8(uint256(keccak256(abi.encode(randomNumber, betId))) % 37);
         bool won = _isWinningWheel(wheel, bet.kind, bet.selection);
 
-        uint256 mult = _payoutMultiplier(bet.kind);
-        uint256 maxLoss = uint256(bet.amount) * mult;
+        uint256 payoutMultiplier = _payoutMultiplier(bet.kind);
+        uint256 maxLoss = uint256(bet.amount) * payoutMultiplier;
         outstandingMaxLoss -= maxLoss;
 
         uint256 payout = 0;
