@@ -12,8 +12,7 @@ import { ethers } from "hardhat";
 import type { IFirelightVaultInstance } from "../../typechain-types/contracts/firelight/IFirelightVault";
 import type { ERC20Instance } from "../../typechain-types/@openzeppelin/contracts/token/ERC20/ERC20";
 import { bnToBigInt } from "../utils/core";
-
-export const FIRELIGHT_VAULT_ADDRESS = "0x91Bfe6A68aB035DFebb6A770FFfB748C03C0E40B";
+import { FIRELIGHT_VAULT_ADDRESS } from "./constants";
 
 export const IFirelightVault = artifacts.require("IFirelightVault");
 
