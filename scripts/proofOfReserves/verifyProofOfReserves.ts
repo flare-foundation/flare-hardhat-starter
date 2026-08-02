@@ -1,4 +1,4 @@
-import hre from "hardhat";
+import hre, { web3 } from "hardhat";
 import { ProofOfReservesInstance, IRelayInstance, IFdcVerificationInstance } from "../../typechain-types";
 import { prepareAttestationRequestBase, getFdcRequestFee, calculateRoundId, postRequestToDALayer } from "../utils/fdc";
 import { getFdcHub, getRelay, getFdcVerification } from "../utils/getters";
@@ -28,12 +28,12 @@ const requests: AttestationRequest[] = [
         verifierApiKey: VERIFIER_API_KEY_TESTNET,
         urlTypeBase: "",
         data: {
-            apiUrl: "https://mock-data.free.beeceptor.com/usdt0/reserves",
+            apiUrl: "https://httpbin.org/json",
             httpMethod: "GET",
             headers: "{}",
             queryParams: "{}",
             body: "{}",
-            postProcessJq: `{reserves: .value | gsub(",";"") | sub("\\\\.\\\\d*";"")}`,
+            postProcessJq: `{reserves: 1000000}`,
             abiSignature: `{"components": [{"internalType": "uint256","name": "reserves","type": "uint256"}],"internalType": "struct DataTransportObject","name": "dto","type": "tuple"}`,
         },
     },
@@ -110,10 +110,18 @@ async function prepareAttestationRequests(transactions: AttestationRequest[]) {
         if (transaction.source === "web2json") {
             const responseData = await prepareWeb2JsonAttestationRequest(transaction);
             console.log("Data:", responseData, "\n");
+            if (!responseData.abiEncodedRequest) {
+                throw new Error(`Web2Json attestation request failed: ${responseData.status}`);
+            }
             data.set(transaction.source, responseData.abiEncodedRequest);
         } else {
             const responseData = await prepareTransactionAttestationRequest(transaction);
             console.log("Data:", responseData, "\n");
+            if (!responseData.abiEncodedRequest) {
+                throw new Error(
+                    `EVMTransaction attestation request failed for ${transaction.source}: ${responseData.status}`
+                );
+            }
             data.set(transaction.source, responseData.abiEncodedRequest);
         }
     }

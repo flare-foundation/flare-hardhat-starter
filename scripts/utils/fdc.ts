@@ -72,6 +72,12 @@ export async function calculateRoundId(transaction: any) {
 }
 
 export async function submitAttestationRequest(abiEncodedRequest: string) {
+    if (!abiEncodedRequest) {
+        throw new Error(
+            "abiEncodedRequest is empty or undefined. The verifier likely returned an INVALID status — check the prepareRequest response above."
+        );
+    }
+
     const fdcHub = await getFdcHub();
 
     const requestFee = await getFdcRequestFee(abiEncodedRequest);

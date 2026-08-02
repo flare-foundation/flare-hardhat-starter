@@ -12,8 +12,7 @@ const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } =
 
 // yarn hardhat run scripts/fdcExample/EVMTransaction.ts --network coston2
 
-// Request data
-const transactionHash = "0x4e636c6590b22d8dcdade7ee3b5ae5572f42edb1878f09b3034b2f7c3362ef3c";
+// Request data - fetched dynamically to avoid stale tx issues with the DA layer
 
 // Configuration constants
 const attestationTypeBase = "EVMTransaction";
@@ -77,10 +76,37 @@ async function interactWithContract(eventListener: TransferEventListenerInstance
         data: decodedResponse,
     });
     console.log("Transaction:", transaction.tx, "\n");
-    console.log("Token transfer:", await eventListener.tokenTransfers(0), "\n");
+    const transfers = await eventListener.getTokenTransfers();
+    if (transfers.length > 0) {
+        console.log("Token transfer:", transfers[0], "\n");
+    } else {
+        console.log("No USDC transfer events found in this transaction (expected for non-USDC txs)\n");
+    }
+}
+
+async function getRecentSepoliaTxHash(): Promise<string> {
+    // Fetch a tx from ~20 blocks back to ensure enough confirmations
+    const blockNumRes = await fetch("https://ethereum-sepolia-rpc.publicnode.com", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", method: "eth_blockNumber", params: [], id: 1 }),
+    });
+    const blockNumJson = await blockNumRes.json();
+    const targetBlock = "0x" + (parseInt(blockNumJson.result, 16) - 20).toString(16);
+
+    const blockRes = await fetch("https://ethereum-sepolia-rpc.publicnode.com", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ jsonrpc: "2.0", method: "eth_getBlockByNumber", params: [targetBlock, true], id: 2 }),
+    });
+    const blockJson = await blockRes.json();
+    const txHash = blockJson.result.transactions[0].hash;
+    console.log("Using recent Sepolia tx:", txHash, "from block", targetBlock, "\n");
+    return txHash;
 }
 
 async function main() {
+    const transactionHash = await getRecentSepoliaTxHash();
     const data = await prepareAttestationRequest(transactionHash);
     console.log("Data:", data, "\n");
 

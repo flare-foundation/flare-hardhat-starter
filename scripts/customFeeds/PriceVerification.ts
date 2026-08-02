@@ -23,7 +23,7 @@ const month = String(dateToFetch.getMonth() + 1).padStart(2, "0");
 const year = dateToFetch.getFullYear();
 const dateString = `${day}-${month}-${year}`;
 const fullApiUrl = `https://api.coingecko.com/api/v3/coins/${coinGeckoId}/history`;
-const postprocessJq = `{price: (.market_data.current_price.usd * ${10 ** priceDecimals} | floor)}`;
+const postprocessJq = `{price: (.market_data.current_price.usd * ${10 ** priceDecimals})}`;
 const abiSig = `{"components": [{"internalType": "uint256","name": "price","type": "uint256"}],"internalType": "struct PriceData","name": "priceData","type": "tuple"}`;
 const stringifiedQueryParams = JSON.stringify({
     date: dateString,

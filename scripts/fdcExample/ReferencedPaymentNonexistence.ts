@@ -10,20 +10,22 @@ const { VERIFIER_URL_TESTNET, VERIFIER_API_KEY_TESTNET, COSTON2_DA_LAYER_URL } =
 // yarn hardhat run scripts/fdcExample/ReferencedPaymentNonexistence.ts --network coston2
 
 // Request data
-const minimalBlockNumber = "TODO";
-const deadlineBlockNumber = "TODO";
-const deadlineTimestamp = "TODO";
-const destinationAddressHash = "TODO";
-const amount = "TODO";
-const standardPaymentReference = "TODO";
-const checkSourceAddresses = "TODO";
-const sourceAddressesRoot = "TODO";
+// We prove that no payment with a specific reference was made to a specific destination
+// within a given block range on the XRP testnet.
+const minimalBlockNumber = "14950000";
+const deadlineBlockNumber = "14950770";
+const deadlineTimestamp = "1739720000";
+const destinationAddressHash = "0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef";
+const amount = "1000000";
+const standardPaymentReference = "0xdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef";
+const checkSourceAddresses = false;
+const sourceAddressesRoot = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 // Configuration constants
 const attestationTypeBase = "ReferencedPaymentNonexistence";
-const sourceIdBase = "testBTC";
+const sourceIdBase = "testXRP";
 const verifierUrlBase = VERIFIER_URL_TESTNET;
-const urlTypeBase = "btc";
+const urlTypeBase = "xrp";
 
 async function prepareAttestationRequest(
     minimalBlockNumber: string,
